@@ -697,15 +697,27 @@
     }
     #send-btn:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
     #send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none;}
-    .footer-notice {
-    text-align: center;
-    color: rgba(255, 255, 255, 0.35); /* 漂亮的半透明白色，完美融入星空 */
+    /* 底部敬请期待文字 - 全局绝对居中 */
+.footer-notice {
+    position: fixed;     /* 终极魔法：让它脱离原有排版，悬浮在屏幕上 */
+    bottom: 25px;        /* 距离屏幕底部的距离，正好贴合你画的红框 */
+    left: 50%;           /* 把它的左边缘对齐屏幕正中 */
+    transform: translateX(-50%); /* 往回拉一半身位，实现绝对的水平居中 */
+    
+    color: rgba(255, 255, 255, 0.45); /* 优雅的半透明白色 */
     font-size: 13px;
-    letter-spacing: 3px; /* 字间距拉开，更有科技质感 */
-    margin-top: 60px;    /* 和上面的链接按钮拉开优雅的距离 */
-    padding-bottom: 40px; /* 让网页最底部留出一点呼吸空间，在手机上特别重要 */
-    width: 100%;
-    animation: fadeIn 1.5s ease-out; /* 让它和主页内容一起平滑淡入 */
+    letter-spacing: 4px; /* 字间距拉大，更有高级感 */
+    z-index: 100;        /* 确保它在背景上面 */
+    pointer-events: none;/* 关键！让鼠标能“穿透”它，不会挡住背景或按钮的点击 */
+    width: max-content;  /* 保证文字不会换行 */
+}
+
+/* 手机端适配：稍微往上提一点，防止被浏览器自带的底部工具栏挡住 */
+@media (max-width: 768px) {
+    .footer-notice {
+        bottom: 15px;
+        font-size: 11px;
+    }
 }
 </style>
 
