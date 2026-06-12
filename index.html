@@ -699,18 +699,23 @@
     #send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none;}
     /* 底部敬请期待文字 - 全局绝对居中 */
 .footer-notice {
-    position: fixed;     /* 终极魔法：让它脱离原有排版，悬浮在屏幕上 */
-    bottom: 25px;        /* 距离屏幕底部的距离，正好贴合你画的红框 */
-    left: 50%;           /* 把它的左边缘对齐屏幕正中 */
-    transform: translateX(-50%); /* 往回拉一半身位，实现绝对的水平居中 */
-    
-        color: rgba(255, 255, 255, 0.55); /* 优雅的半透明白色 */
+        position: fixed !important; /* 强制锁定，谁也别想移动它 */
+        bottom: 20px !important;    /* 强制固定在离底部 20px 的位置 */
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        
+        color: rgba(255, 255, 255, 0.55);
         font-size: 13px;
-    letter-spacing: 4px; 
-    z-index: 8888;       /* 调高层级，确保它浮在最顶层，但低于 AI 悬浮球 */
-    pointer-events: none;
-    width: max-content;  
-}
+        letter-spacing: 4px;
+        z-index: 9999 !important; /* 确保它是最顶层的 */
+        pointer-events: none;
+        width: max-content;
+        
+        /* 移动端抗抖动核心优化 */
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        will-change: transform;
+    }
 
 /* 手机端适配：稍微往上提一点，防止被浏览器自带的底部工具栏挡住 */
 @media (max-width: 768px) {
