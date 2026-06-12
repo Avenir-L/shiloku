@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>十六夜叶月 - 个人主页</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Serif+JP:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            /* 删除了隐藏系统鼠标的代码，保留默认箭头 */
+        }
+
+        body {
+            background-image: url('bg.jpg'); 
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            font-family: 'Noto Serif SC', 'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+            color: #2c2c2c; 
+            overflow: hidden; 
+            position: relative;
+        }
+
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0; 
+            pointer-events: none; 
+        }
+
+        /* 仅保留了外圈光环，删除了中心白点 */
+        .cursor-ring {
+            position: fixed;
+            top: 0;
+            left: 0;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            width: 36px;
+            height: 36px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+            transition: width 0.2s, height 0.2s, border-color 0.2s;
+        }
+
+        .layout-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100vw;
+            height: 100vh;
+            padding: 8vh 8vw; 
+            position: relative;
+            z-index: 10; 
+        }
+
+        @keyframes fadeUp {
+            0% { opacity: 0; transform: translateY(40px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-item {
+            animation: fadeUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            opacity: 0; 
+        }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.3s; }
+        .delay-3 { animation-delay: 0.5s; }
+        .delay-4 { animation-delay: 0.7s; }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; 
+            height: 100%;
+        }
+
+        .left-column { width: 45%; align-items: flex-start; }
+        .right-column { width: 45%; align-items: flex-end; text-align: right; }
+
+        .avatar {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-top: 4vh; 
+            margin-bottom: 35px; 
+            border: 3px solid rgba(255, 255, 255, 0.8); 
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+            transition: transform 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        .avatar:hover {
+            transform: scale(1.05) rotate(3deg);
+            box-shadow: 0 0 50px rgba(255, 255, 255, 0.6);
+        }
+
+        .gradient-text-flow {
+            background: linear-gradient(120deg, #1e1e1e, #555, #1e1e1e);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shine 4s linear infinite;
+        }
+        
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+
+        .name-box { margin-bottom: 20px; }
+
+        .name {
+            font-size: 44px; 
+            font-weight: 900; 
+            margin-bottom: 5px;
+            letter-spacing: 3px;
+        }
+
+        .subtitle {
+            font-size: 17px; 
+            font-weight: 600; 
+            color: #444; 
+            letter-spacing: 2px;
+            margin-bottom: 25px;
+        }
+
+        .divider {
+            width: 60px;
+            height: 3px; 
+            background: linear-gradient(90deg, #333, transparent);
+            border-radius: 2px;
+        }
+
+        .bio-title {
+            font-size: 32px; 
+            font-weight: 900; 
+            letter-spacing: 4px;
+            margin-bottom: 20px; 
+        }
+
+        .bio {
+            font-size: 21px; 
+            font-weight: 600; 
+            color: #222; 
+            line-height: 2.2; 
+            text-align: justify;
+            max-width: 520px; 
+        }
+
+        .bio p { margin-bottom: 15px; }
+
+        .char-span {
+            display: inline-block;
+            transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1), color 0.2s, text-shadow 0.2s;
+        }
+
+        .char-span:hover {
+            transform: scale(1.4) translateY(-3px); 
+            color: #000; 
+            text-shadow: 0 10px 20px rgba(255,255,255,0.8);
+            z-index: 10;
+            position: relative;
+        }
+
+        .section-title {
+            font-size: 14px; 
+            font-weight: 700; 
+            color: #ffffff; 
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .email-text {
+            font-size: 17px; 
+            font-weight: 700; 
+            color: #ffffff; 
+            letter-spacing: 1px;
+            font-family: Arial, sans-serif; 
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .time-header {
+            font-size: 26px; 
+            letter-spacing: 6px;
+            color: #ffffff; 
+            font-weight: 900; 
+            margin-bottom: 10px; 
+            text-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .time-display {
+            font-size: 9vw; 
+            font-weight: 900; 
+            letter-spacing: 2px;
+            line-height: 1;
+            font-variant-numeric: tabular-nums; 
+            color: #ffffff; 
+            text-shadow: 0 0 20px rgba(255,255,255,0.4), 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .link-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap; 
+            justify-content: flex-end; 
+        }
+
+        .btn {
+            text-decoration: none;
+            color: #ffffff; 
+            font-size: 15px; 
+            font-weight: 700; 
+            padding: 10px 24px;
+            background: rgba(255, 255, 255, 0.1); 
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.4); 
+            border-radius: 30px;
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px; 
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transform: skewX(-20deg);
+            transition: all 0.5s ease;
+        }
+
+        .btn:hover::after {
+            left: 150%;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateY(-4px);
+            color: #000; 
+            box-shadow: 0 12px 25px rgba(255,255,255,0.3);
+            border-color: #fff;
+        }
+
+        /* ====== 手机端适配 (当屏幕宽度小于 768px 时生效) ====== */
+@media (max-width: 768px) {
+    .layout-container {
+        flex-direction: column; /* 变成上下结构 */
+        padding: 5vh 5vw;
+        overflow-y: auto; /* 允许内容过长时滚动 */
+    }
+
+    .left-column, .right-column {
+        width: 100%; /* 宽度占满 */
+        align-items: center; /* 内容居中 */
+        text-align: center;
+        height: auto; /* 高度自适应 */
+        margin-bottom: 30px;
+    }
+
+    .avatar {
+        width: 100px;
+        height: 100px;
+        margin-top: 20px;
+    }
+
+    .name { font-size: 28px; }
+    .bio { font-size: 16px; max-width: 100%; }
+    .time-display { font-size: 16vw; } /* 时间字号缩小 */
+    
+    .link-group {
+        justify-content: center; /* 按钮居中 */
+    }
+}
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="cursor-ring"></div>
+
+    <div class="layout-container">
+        
+        <div class="column left-column">
+            <div class="top-area animate-item delay-1">
+                <img src="avatar.jpg" alt="头像" class="avatar">
+                <div class="name-box">
+                    <h1 class="name gradient-text-flow" id="name-text">栀落余殁</h1>
+                    <p class="subtitle">Shiloku</p>
+                    <div class="divider"></div>
+                </div>
+            </div>
+
+            <div class="mid-area bio animate-item delay-2">
+                <h2 class="bio-title gradient-text-flow">个人简介</h2>
+                <div>
+                    <p id="bio-p1">坐标中国。偶尔喜欢研究研究没接触过的领域</p>
+                    <p id="bio-p2">热爱绘画（但是目前只会风景画QWQ），听歌，二次元，但都涉及的不多。也热衷休闲类游戏，偶尔也会玩玩竞技类。不爱说话，比较喜欢打字交流。剩下不知道写什么了，下次想到了再说吧。Hatsune Miku！</p>
+                </div>
+            </div>
+
+            <div class="bottom-area animate-item delay-3">
+                <div class="section-title">Contact</div>
+                <div class="email-text">
+                    ✉️520avenir@gmail.com
+                </div>
+            </div>
+        </div>
+
+        <div class="column right-column">
+            <div class="top-area"></div>
+
+            <div class="mid-area animate-item delay-2">
+                <div class="time-header">北京时间 / BEIJING TIME</div>
+                <div class="time-display" id="big-time">00:00:00</div>
+            </div>
+
+            <div class="bottom-area animate-item delay-4">
+                <div class="section-title">Other Pages</div>
+                <div class="link-group">
+                    <a href="https://space.bilibili.com/479198505?spm_id_from=333.788.0.0" target="_blank" class="btn hover-target">📺 B站主页</a>
+                    <a href="https://steamcommunity.com/profiles/76561199236026651/" target="_blank" class="btn hover-target">🎮 Steam 主页</a>
+                    <a href="https://user.qzone.qq.com/2780932701/main" target="_blank" class="btn hover-target">🔗 个人动态</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 1. 实时更新北京时间
+        function updateBigTime() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const bjTime = new Date(utc + (3600000 * 8));
+            
+            let h = bjTime.getHours().toString().padStart(2, '0');
+            let m = bjTime.getMinutes().toString().padStart(2, '0');
+            let s = bjTime.getSeconds().toString().padStart(2, '0');
+            
+            document.getElementById('big-time').innerText = `${h}:${m}:${s}`;
+        }
+        updateBigTime();
+        setInterval(updateBigTime, 1000);
+
+        // 2. 悬浮拆字放大特效
+        function wrapCharacters(elementId) {
+            const p = document.getElementById(elementId);
+            if (!p) return;
+            const text = p.textContent;
+            p.textContent = ''; 
+            for (let char of text) {
+                const span = document.createElement('span');
+                span.className = 'char-span hover-target'; 
+                if (char === ' ') {
+                    span.innerHTML = '&nbsp;'; 
+                } else {
+                    span.textContent = char;
+                }
+                p.appendChild(span);
+            }
+        }
+        wrapCharacters('name-text');
+        wrapCharacters('bio-p1');
+        wrapCharacters('bio-p2');
+
+        // 3. 改进的光环鼠标与轨迹逻辑
+        const cursorRing = document.querySelector('.cursor-ring');
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let ringX = mouseX;
+        let ringY = mouseY;
+        
+        // 存放鼠标轨迹粒子的数组
+        const trails = [];
+
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            
+            // 每次鼠标移动时，生成1-2个尾迹粒子
+            trails.push(new TrailParticle(mouseX, mouseY));
+        });
+
+        function renderCursor() {
+            // 将平滑系数从 0.15 提高到 0.4，大幅降低延迟，更干脆
+            ringX += (mouseX - ringX) * 0.4;
+            ringY += (mouseY - ringY) * 0.4;
+            cursorRing.style.left = `${ringX}px`;
+            cursorRing.style.top = `${ringY}px`;
+            requestAnimationFrame(renderCursor);
+        }
+        renderCursor();
+
+        const hoverTargets = document.querySelectorAll('a, .hover-target');
+        hoverTargets.forEach(target => {
+            target.addEventListener('mouseenter', () => {
+                cursorRing.style.width = '60px';
+                cursorRing.style.height = '60px';
+                cursorRing.style.borderColor = 'rgba(255,255,255,0.9)';
+            });
+            target.addEventListener('mouseleave', () => {
+                cursorRing.style.width = '36px';
+                cursorRing.style.height = '36px';
+                cursorRing.style.borderColor = 'rgba(255,255,255,0.5)';
+            });
+        });
+
+        // 4. 星尘粒子背景 + 鼠标滑动轨迹
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        const particleCount = 60; 
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // 背景缓慢上升的粒子
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5; 
+                this.speedY = Math.random() * -0.5 - 0.2; 
+                this.speedX = Math.random() * 0.4 - 0.2; 
+                this.opacity = Math.random() * 0.5 + 0.1;
+                this.glow = Math.random() * 10 + 5;
+            }
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX;
+                if (this.y < 0) {
+                    this.y = canvas.height;
+                    this.x = Math.random() * canvas.width;
+                }
+                if (this.x < 0 || this.x > canvas.width) {
+                    this.speedX = -this.speedX;
+                }
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                ctx.shadowBlur = this.glow;
+                ctx.shadowColor = '#fff';
+                ctx.fill();
+            }
+        }
+
+        // 鼠标跟随的轨迹粒子
+        class TrailParticle {
+            constructor(x, y) {
+                // 在箭头尖端附近稍微增加一点随机偏移，看起来更像星尘
+                this.x = x + (Math.random() * 10 - 5);
+                this.y = y + (Math.random() * 10 - 5);
+                this.size = Math.random() * 2.5 + 1; 
+                this.life = 1; // 生命值 1 到 0
+                this.decay = Math.random() * 0.03 + 0.02; // 消散速度
+            }
+            update() {
+                this.life -= this.decay;
+                this.size -= 0.05;
+                this.y -= 0.5; // 轨迹稍微向上飘一点
+            }
+            draw() {
+                if (this.life <= 0 || this.size <= 0) return;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.life})`;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = `rgba(255, 255, 255, ${this.life})`;
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle());
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制背景粒子
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            // 绘制鼠标轨迹粒子
+            for (let i = trails.length - 1; i >= 0; i--) {
+                const t = trails[i];
+                t.update();
+                t.draw();
+                // 粒子消散完毕后清理掉，防止内存溢出
+                if (t.life <= 0 || t.size <= 0) {
+                    trails.splice(i, 1);
+                }
+            }
+            
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+    </script>
+</body>
+</html>
