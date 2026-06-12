@@ -105,7 +105,8 @@
         .gradient-text-flow {
             background: linear-gradient(120deg, #1e1e1e, #555, #1e1e1e);
             background-size: 200% auto;
-            -webkit-background-clip: text;
+           -webkit-background-clip: text; /* 兼容 Safari/旧版 Chrome */
+           background-clip: text;
             -webkit-text-fill-color: transparent;
             animation: shine 4s linear infinite;
         }
@@ -285,7 +286,7 @@
         justify-content: center; /* 按钮居中 */
     }
 }
-        }
+        
     </style>
 </head>
 <body>
