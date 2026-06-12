@@ -704,12 +704,12 @@
     left: 50%;           /* 把它的左边缘对齐屏幕正中 */
     transform: translateX(-50%); /* 往回拉一半身位，实现绝对的水平居中 */
     
-    color: rgba(255, 255, 255, 0.45); /* 优雅的半透明白色 */
-    font-size: 13px;
-    letter-spacing: 4px; /* 字间距拉大，更有高级感 */
-    z-index: 100;        /* 确保它在背景上面 */
-    pointer-events: none;/* 关键！让鼠标能“穿透”它，不会挡住背景或按钮的点击 */
-    width: max-content;  /* 保证文字不会换行 */
+        color: rgba(255, 255, 255, 0.55); /* 优雅的半透明白色 */
+        font-size: 13px;
+    letter-spacing: 4px; 
+    z-index: 8888;       /* 调高层级，确保它浮在最顶层，但低于 AI 悬浮球 */
+    pointer-events: none;
+    width: max-content;  
 }
 
 /* 手机端适配：稍微往上提一点，防止被浏览器自带的底部工具栏挡住 */
