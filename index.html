@@ -913,8 +913,77 @@ html {
 #lyrics-list li.active .lyric-text { 
     font-weight: bold; 
 }
-</style>
+        /* ================== 音乐室返回按钮 ================== */
+.back-home-btn {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    z-index: 10;
+    color: rgba(255, 255, 255, 0.6);
+    text-decoration: none;
+    font-size: 14px;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
 
+.back-home-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateX(-5px); /* 鼠标悬浮时有一个往左指的微动效 */
+}
+
+/* 手机端稍微挪一下位置防遮挡 */
+@media (max-width: 768px) {
+    .back-home-btn { top: 20px; left: 20px; padding: 8px 15px; font-size: 12px; }
+}
+</style>
+<section id="music-room">
+        <div class="music-blur-bg" id="music-bg"></div>
+        <a href="#" class="back-home-btn"><span>🔙</span> 返回主界面</a>
+
+        
+        <div class="music-container">
+            <div class="record-area">
+                <div class="vinyl-record" id="vinyl">
+                    <img src="avatar.jpg" id="album-cover" alt="Album Cover">
+                </div>
+            </div>
+
+            <div class="music-info-area">
+            <h2 id="song-title">等待播放...</h2>
+            <div id="song-artist" style="color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 20px;">-</div>
+
+            <div class="lyrics-wrapper">
+                <ul id="lyrics-list">
+                    <li class="lyric-placeholder">纯音乐 / 歌词加载中...</li>
+                </ul>
+            </div>
+
+            <div class="music-controls">
+                <button id="prev-btn" class="ctrl-btn">⏮</button>
+                <button id="main-play-btn" class="ctrl-btn main-play">▶️</button>
+                <button id="next-btn" class="ctrl-btn">⏭</button>
+            </div>
+
+                <div class="playlist-container">
+                    <div class="playlist-header">PLAYLIST</div>
+                    <ul id="playlist">
+                        </ul>
+                </div>
+            </div>
+        </div>
+        
+        <audio id="bg-audio" preload="none"></audio>
+    </section>
 <script>
     // 1. 控制面板打开与关闭
     const floatBtn = document.getElementById('ai-float-button');
@@ -1213,42 +1282,7 @@ document.getElementById('next-btn').addEventListener('click', nextSong);
 document.getElementById('prev-btn').addEventListener('click', prevSong);
 window.addEventListener('DOMContentLoaded', initPlayer);
 </script>
-<section id="music-room">
-        <div class="music-blur-bg" id="music-bg"></div>
-        
-        <div class="music-container">
-            <div class="record-area">
-                <div class="vinyl-record" id="vinyl">
-                    <img src="avatar.jpg" id="album-cover" alt="Album Cover">
-                </div>
-            </div>
 
-            <div class="music-info-area">
-            <h2 id="song-title">等待播放...</h2>
-            <div id="song-artist" style="color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 20px;">-</div>
-
-            <div class="lyrics-wrapper">
-                <ul id="lyrics-list">
-                    <li class="lyric-placeholder">纯音乐 / 歌词加载中...</li>
-                </ul>
-            </div>
-
-            <div class="music-controls">
-                <button id="prev-btn" class="ctrl-btn">⏮</button>
-                <button id="main-play-btn" class="ctrl-btn main-play">▶️</button>
-                <button id="next-btn" class="ctrl-btn">⏭</button>
-            </div>
-
-                <div class="playlist-container">
-                    <div class="playlist-header">PLAYLIST</div>
-                    <ul id="playlist">
-                        </ul>
-                </div>
-            </div>
-        </div>
-        
-        <audio id="bg-audio" preload="none"></audio>
-    </section>
 <div class="footer-notice">✨ 新功能开发中，敬请期待</div>
 </body>
 </html>
