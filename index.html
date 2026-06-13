@@ -347,9 +347,9 @@ html {
     position: relative;
     z-index: 1;
     display: flex;
-    width: 85%;
-    max-width: 1000px;
-    gap: 60px;
+    width: 90%;         /* 占用屏幕 90% 的宽度 */
+    max-width: 1400px;  /* 解除之前的 1000px 限制，允许更大 */
+    gap: 100px;         /* 唱片和歌词之间的空隙拉大 */
     align-items: center;
     color: white;
 }
@@ -362,8 +362,8 @@ html {
 }
 
 .vinyl-record {
-    width: 320px;
-    height: 320px;
+    width: 400px;       /* 增大到 400px */
+    height: 400px;
     border-radius: 50%;
     background: #0a0a0a;
     box-shadow: 0 0 30px rgba(0,0,0,0.8), 
@@ -378,12 +378,18 @@ html {
 }
 
 .vinyl-record.playing { animation-play-state: running; }
-.vinyl-record img { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; }
+.vinyl-record img { 
+    width: 250px;       /* 封面也跟着变大 */
+    height: 250px; 
+    border-radius: 50%; 
+    object-fit: cover; 
+}
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
 /* 右侧：信息与控件 */
-.music-info-area { flex: 1; }
-.music-info-area h2 { font-size: 36px; margin-bottom: 8px; letter-spacing: 2px; }
+.music-info-area { flex: 1.2; } /* 稍微增加右侧区域权重 */
+
+.music-info-area h2 { font-size: 48px; margin-bottom: 12px; } /* 标题变大 */
 .music-info-area p { color: rgba(255,255,255,0.5); font-size: 16px; margin-bottom: 40px; letter-spacing: 1px;}
 
 .music-controls { display: flex; gap: 30px; align-items: center; margin-bottom: 40px; }
@@ -870,10 +876,10 @@ html {
     }
 }
 /* ================== 动态歌词样式 ================== */
-.lyrics-wrapper {
-    height: 180px; 
-    overflow-y: auto;
-    margin-bottom: 30px;
+.lyrics-wrapper { 
+    height: 400px;      /* 歌词区高度翻倍，不再是窄窄的一条 */
+    width: 100%; 
+    margin-bottom: 40px;
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
     mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
     scroll-behavior: smooth; 
