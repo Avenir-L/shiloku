@@ -945,12 +945,92 @@ html {
 @media (max-width: 768px) {
     .back-home-btn { top: 20px; left: 20px; padding: 8px 15px; font-size: 12px; }
 }
+/* ================== 音乐室 2.0 专属排版升级 ================== */
+    .music-blur-bg {
+        filter: blur(20px) brightness(0.75); /* 模糊度20，透明度/亮度75% */
+    }
+
+    .music-container {
+        width: 85%;
+        max-width: 1200px;
+        gap: 60px;
+    }
+
+    /* 唱片靠左摆放 */
+    .record-area {
+        flex: 1;
+        justify-content: flex-start; 
+        padding-left: 20px;
+    }
+
+    /* 信息区靠右，拉大歌词空间 */
+    .music-info-area {
+        flex: 1.5; 
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .music-header h2 { font-size: 38px; margin-bottom: 5px; }
+    .music-header #song-artist { color: rgba(255,255,255,0.6); font-size: 15px; margin-bottom: 25px; }
+    
+    .lyrics-wrapper { height: 260px; width: 100%; margin-bottom: 30px; }
+
+    /* 底部三合一操作区排版 */
+    .bottom-controls {
+        display: flex;
+        align-items: center;
+        gap: 25px; /* 播放器、音量、列表的间距 */
+    }
+
+    /* 音量条横向玻璃面板 */
+    .volume-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(5px);
+        padding: 8px 15px;
+        border-radius: 20px;
+    }
+    #volume-slider {
+        width: 90px;
+        cursor: pointer;
+        accent-color: #fff; /* 纯白滑块 */
+    }
+
+    /* 播放列表悬浮窗 */
+    .playlist-wrapper { position: relative; }
+    .list-btn {
+        font-size: 14px;
+        padding: 8px 18px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.05);
+    }
+    .list-btn:hover { background: rgba(255,255,255,0.15); }
+    
+    .playlist-panel {
+        position: absolute;
+        bottom: 55px; /* 悬浮在按钮上方 */
+        left: 0;
+        width: 320px;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        display: none; /* 默认隐藏 */
+        z-index: 100;
+    }
+    .playlist-panel.show { display: block; /* 激活时显示 */ }
 </style>
 <section id="music-room">
-        <div class="music-blur-bg" id="music-bg"></div>
         <a href="#" class="back-home-btn"><span>🔙</span> 返回主界面</a>
-
         
+        <div class="music-blur-bg" id="music-bg"></div>
+
         <div class="music-container">
             <div class="record-area">
                 <div class="vinyl-record" id="vinyl">
@@ -959,25 +1039,38 @@ html {
             </div>
 
             <div class="music-info-area">
-            <h2 id="song-title">等待播放...</h2>
-            <div id="song-artist" style="color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 20px;">-</div>
+                <div class="music-header">
+                    <h2 id="song-title">等待播放...</h2>
+                    <div id="song-artist">-</div>
+                </div>
 
-            <div class="lyrics-wrapper">
-                <ul id="lyrics-list">
-                    <li class="lyric-placeholder">纯音乐 / 歌词加载中...</li>
-                </ul>
-            </div>
+                <div class="lyrics-wrapper">
+                    <ul id="lyrics-list">
+                        <li class="lyric-placeholder">纯音乐 / 歌词加载中...</li>
+                    </ul>
+                </div>
 
-            <div class="music-controls">
-                <button id="prev-btn" class="ctrl-btn">⏮</button>
-                <button id="main-play-btn" class="ctrl-btn main-play">▶️</button>
-                <button id="next-btn" class="ctrl-btn">⏭</button>
-            </div>
+                <div class="bottom-controls">
+                    <div class="music-controls">
+                        <button id="prev-btn" class="ctrl-btn">⏮</button>
+                        <button id="main-play-btn" class="ctrl-btn main-play">▶️</button>
+                        <button id="next-btn" class="ctrl-btn">⏭</button>
+                    </div>
 
-                <div class="playlist-container">
-                    <div class="playlist-header">PLAYLIST</div>
-                    <ul id="playlist">
-                        </ul>
+                    <div class="volume-container">
+                        <span class="vol-icon">🔊</span>
+                        <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.8">
+                    </div>
+
+                    <div class="playlist-wrapper">
+                        <button id="playlist-toggle-btn" class="ctrl-btn list-btn">📜 播放列表</button>
+                        
+                        <div class="playlist-panel" id="playlist-panel">
+                            <div class="playlist-header">PLAYLIST</div>
+                            <ul id="playlist">
+                                </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1064,23 +1157,30 @@ const songs = [
         title: "beautiful world", 
         artist: "宇多田光", 
         src: "beautiful_world.mp3", 
-        cover: "avatar.jpg",
+        cover: "beautiful_world.jpg",
         lrc: "beautiful_world.lrc" 
     },
     { 
         title: "夕日坂", 
         artist: "doriko / 初音ミク", 
         src: "yuuhizaka.mp3", 
-        cover: "bg.jpg",
+        cover: "yuuhizaka.jpg",
         lrc: "yuuhizaka.lrc"
     },
     { 
         title: "Hypnotized", 
         artist: "Purple Disco Machine", 
         src: "Hypnotized.mp3", 
-        cover: "avatar.jpg",
+        cover: "Hypnotized.jpg",
         lrc: "Hypnotized.lrc"
-    }
+    },
+    { 
+        title: "mede:mede", 
+        artist: "Reol", 
+        src: "medemede.mp3", 
+        cover: "medemede.jpg",
+        lrc: "medemede.lrc"
+    },
 ];
 
 let currentSongIndex = 0;
@@ -1276,10 +1376,45 @@ function renderPlaylist() {
     });
     updatePlaylistHighlight();
 }
-
+// 补上这个函数，否则点击列表时会报错
+function updatePlaylistHighlight() {
+    const listItems = playlistEl.getElementsByTagName('li');
+    for (let i = 0; i < listItems.length; i++) {
+        if (i === currentSongIndex) {
+            listItems[i].classList.add('active');
+        } else {
+            listItems[i].classList.remove('active');
+        }
+    }
+}
 mainPlayBtn.addEventListener('click', togglePlay);
 document.getElementById('next-btn').addEventListener('click', nextSong);
 document.getElementById('prev-btn').addEventListener('click', prevSong);
+// ======= 新增：音量条与列表弹窗控制 =======
+    const volumeSlider = document.getElementById('volume-slider');
+    const playlistToggleBtn = document.getElementById('playlist-toggle-btn');
+    const playlistPanel = document.getElementById('playlist-panel');
+
+    // 初始化音量
+    audio.volume = volumeSlider.value;
+
+    // 拖动音量条，实时控制声音大小
+    volumeSlider.addEventListener('input', (e) => {
+        audio.volume = e.target.value;
+    });
+
+    // 点击按钮，弹出/收起播放列表
+    playlistToggleBtn.addEventListener('click', (e) => {
+        playlistPanel.classList.toggle('show');
+        e.stopPropagation(); // 阻止点击事件冒泡
+    });
+
+    // 极客细节：点击网页的其他空白处，列表会自动收起关闭
+    document.addEventListener('click', (e) => {
+        if (!playlistPanel.contains(e.target) && !playlistToggleBtn.contains(e.target)) {
+            playlistPanel.classList.remove('show');
+        }
+    });
 window.addEventListener('DOMContentLoaded', initPlayer);
 </script>
 
