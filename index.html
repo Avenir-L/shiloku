@@ -322,44 +322,39 @@ html {
 
 /* ================== 音乐室全屏区块 ================== */
 #music-room {
-    position: relative;
-    width: 100%;
-    height: 100vh; /* 占据整整一屏幕的高度 */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center; /* 保持音乐室整体在屏幕中间 */
+        overflow: hidden;
+    }
 
-/* 毛玻璃背景层 */
-.music-blur-bg {
-    position: absolute;
-    top: -5%; left: -5%; right: -5%; bottom: -5%;
-    background-image: url('bg.jpg'); /* 默认背景 */
-    background-size: cover;
-    background-position: center;
-    filter: blur(30px) brightness(0.4); /* 深度模糊+压暗，突出版权和高级感 */
-    z-index: 0;
-    transition: background-image 0.8s ease;
-}
+    .music-container {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        width: 90% !important;        /* 强制拉宽 */
+        max-width: 1400px !important; /* 允许展开 */
+        justify-content: space-between; /* 关键！这会让唱片和信息区左右推开 */
+        align-items: center;
+        gap: 50px;
+        color: white;
+    }
 
-.music-container {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    width: 90% !important;         /* 加个 !important */
-    max-width: 1400px !important;  /* 加个 !important */
-    gap: 100px;
-    align-items: center;
-    color: white;
-}
+    /* 左侧：黑胶唱片区域 */
+    .record-area {
+        flex: 1; 
+        display: flex;
+        justify-content: center; /* 在左侧空间内居中唱片 */
+    }
 
-/* 左侧：黑胶唱片 */
-.record-area {
-    flex: 1;
-    display: flex;
-    justify-content: flex-end;
-}
+    /* 右侧：信息与控件区域 */
+    .music-info-area { 
+        flex: 1; 
+        text-align: left; /* 靠左对齐 */
+    }
 
 .vinyl-record {
     width: 400px;       /* 增大到 400px */
