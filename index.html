@@ -989,44 +989,36 @@ html {
             sendMessage();
         }
     });
-// ================== 音乐室核心逻辑（搭载全自动 LRC 解析引擎） ==================
-
-// 歌单配置：现在彻底解放双手，直接写 lrc 文件的名字！
+// ================== 音乐室核心逻辑（搭载全自动 LRC 解析引擎 + 极限性能懒加载版） ==================
 const songs = [
     { 
         title: "beautiful world", 
         artist: "宇多田光", 
         src: "beautiful_world.mp3", 
-        cover: "beautiful_world.JPG",
-        lrc: "beautiful_world.lrc" // 👈 引擎会自动去抓取这个文件
+        cover: "avatar.jpg",
+        lrc: "beautiful_world.lrc" 
     },
     { 
         title: "夕日坂", 
         artist: "doriko / 初音ミク", 
         src: "yuuhizaka.mp3", 
-        cover: "yuuhizaka.JPG",
+        cover: "bg.jpg",
         lrc: "yuuhizaka.lrc"
     },
     { 
         title: "Hypnotized", 
         artist: "Purple Disco Machine", 
         src: "Hypnotized.mp3", 
-        cover: "Hypnotized.JPG",
+        cover: "avatar.jpg",
         lrc: "Hypnotized.lrc"
-    },
-  { 
-            title: "mede:mede", 
-            artist: "Reol", 
-            src: "medemede.mp3", 
-            cover: "medemede.JPG",
-            lrc: "medemede.lrc"
-        }   
+    }
 ];
 
 let currentSongIndex = 0;
 let isPlaying = false;
 let currentLyricIndex = -1; 
 let currentLyricsData = []; 
+let isAudioLoaded = false; // ✨ 新增的“水龙头开关”，专门用来拦截偷跑流量
 
 const audio = document.getElementById('bg-audio');
 const vinyl = document.getElementById('vinyl');
@@ -1039,12 +1031,10 @@ const mainPlayBtn = document.getElementById('main-play-btn');
 const lyricsList = document.getElementById('lyrics-list');
 const lyricsWrapper = document.querySelector('.lyrics-wrapper');
 
-// 🚀 核心组件：LRC 文件抓取与解析引擎
 async function fetchAndParseLRC(lrcUrl) {
     try {
         const response = await fetch(lrcUrl);
         if (!response.ok) throw new Error('未找到歌词文件');
-        // 将文件内容转成纯文本
         const lrcText = await response.text();
         return parseLRCText(lrcText);
     } catch (error) {
@@ -1053,12 +1043,11 @@ async function fetchAndParseLRC(lrcUrl) {
     }
 }
 
-// 🧠 核心组件：正则切片处理
 function parseLRCText(text) {
     const lines = text.split('\n');
     const timeExp = /\[(\d{2}):(\d{2}(?:\.\d{2,3})?)\]/;
     const result = [];
-    const timeMap = new Map(); // 用来智能配对原文和翻译
+    const timeMap = new Map(); 
 
     lines.forEach(line => {
         const match = timeExp.exec(line);
@@ -1069,7 +1058,6 @@ function parseLRCText(text) {
             const content = line.replace(timeExp, '').trim();
 
             if (content) {
-                // 双语歌词智能合并：如果这个时间点已经有一句歌词了，那新来的这句就被当成翻译！
                 if (timeMap.has(time)) {
                     timeMap.get(time).trans = content;
                 } else {
@@ -1089,21 +1077,24 @@ async function initPlayer() {
     audio.addEventListener('ended', nextSong);
 }
 
-// 🔄 异步加载控制器：等待歌词下载完毕后再行动
+// 🔄 异步加载控制器：现在只“虚空加载”颜值，绝对不碰音频文件
 async function loadSong(index) {
     const song = songs[index];
-    audio.src = song.src;
+    
+    // ✨ 关键优化：彻底掐断网络后台自动下载
+    isAudioLoaded = false;
+    audio.removeAttribute('src'); 
+    audio.load();
+
     songTitle.innerText = song.title;
     songArtist.innerText = song.artist;
     coverImg.src = song.cover;
     bgBlur.style.backgroundImage = `url('${song.cover}')`;
     
-    // 界面显示缓冲状态
     lyricsList.innerHTML = '<li class="lyric-placeholder">正在启动歌词引擎...</li>';
     currentLyricsData = [];
     currentLyricIndex = -1;
     
-    // 触发解析引擎抓取并处理数据
     if (song.lrc) {
         currentLyricsData = await fetchAndParseLRC(song.lrc);
     }
@@ -1121,7 +1112,6 @@ function renderLyrics() {
     currentLyricsData.forEach((line, i) => {
         const li = document.createElement('li');
         li.id = `lyric-${i}`;
-        // 智能排版：如果没有翻译，就隐藏翻译区域的排版
         const transHtml = line.trans ? `<div class="lyric-trans">${line.trans}</div>` : '';
         li.innerHTML = `
             <div class="lyric-text">${line.text}</div>
@@ -1132,14 +1122,12 @@ function renderLyrics() {
     lyricsWrapper.scrollTop = 0;
 }
 
-// 监听播放时间，驱动歌词滚动
 audio.addEventListener('timeupdate', () => {
     if (currentLyricsData.length === 0) return;
     const currentTime = audio.currentTime;
     let newIndex = -1;
 
     for (let i = 0; i < currentLyricsData.length; i++) {
-        // 加 0.2 秒的提前量，让歌词放大效果显得更跟手
         if (currentTime >= currentLyricsData[i].time - 0.2) {
             newIndex = i;
         }
@@ -1159,7 +1147,14 @@ audio.addEventListener('timeupdate', () => {
     }
 });
 
+// ⏯️ 播放控制器：真正赋予灵魂并下载的时刻！
 function togglePlay() {
+    // 如果这首歌还没加载音频，就瞬间连上网线
+    if (!isAudioLoaded) {
+        audio.src = songs[currentSongIndex].src;
+        isAudioLoaded = true;
+    }
+
     if (isPlaying) {
         audio.pause();
         vinyl.classList.remove('playing');
@@ -1175,13 +1170,21 @@ function togglePlay() {
 async function nextSong() {
     currentSongIndex = (currentSongIndex + 1) % songs.length;
     await loadSong(currentSongIndex);
-    if (isPlaying) audio.play();
+    if (isPlaying) {
+        audio.src = songs[currentSongIndex].src;
+        isAudioLoaded = true;
+        audio.play();
+    }
 }
 
 async function prevSong() {
     currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
     await loadSong(currentSongIndex);
-    if (isPlaying) audio.play();
+    if (isPlaying) {
+        audio.src = songs[currentSongIndex].src;
+        isAudioLoaded = true;
+        audio.play();
+    }
 }
 
 function renderPlaylist() {
@@ -1192,18 +1195,17 @@ function renderPlaylist() {
         li.addEventListener('click', async () => {
             currentSongIndex = index;
             await loadSong(currentSongIndex);
-            if (!isPlaying) togglePlay();
-            else audio.play();
+            if (!isPlaying) {
+                togglePlay();
+            } else {
+                audio.src = songs[currentSongIndex].src;
+                isAudioLoaded = true;
+                audio.play();
+            }
         });
         playlistEl.appendChild(li);
     });
     updatePlaylistHighlight();
-}
-
-function updatePlaylistHighlight() {
-    const items = playlistEl.querySelectorAll('li');
-    items.forEach(item => item.classList.remove('active'));
-    if(items[currentSongIndex]) items[currentSongIndex].classList.add('active');
 }
 
 mainPlayBtn.addEventListener('click', togglePlay);
