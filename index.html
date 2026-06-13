@@ -256,34 +256,52 @@
             border-color: #fff;
         }
 
-        /* ====== 手机端适配 (当屏幕宽度小于 768px 时生效) ====== */
+
+/* ================== 手机端终极适配方案 ================== */
 @media (max-width: 768px) {
-    .layout-container {
-        flex-direction: column; /* 变成上下结构 */
-        padding: 5vh 5vw;
-        overflow-y: auto; /* 允许内容过长时滚动 */
+    /* 1. 顶部按钮防重叠：缩小并重新定位 */
+    .back-home-btn { top: 15px; left: 15px; padding: 6px 12px; font-size: 12px; z-index: 100; }
+    .music-entrance-btn { top: 15px; right: 15px; padding: 6px 12px; font-size: 12px; z-index: 100; }
+
+    /* 2. 容器高度解放：不再强制垂直居中，改为顶部向下排布 */
+    #music-room {
+        height: 100dvh;          /* 使用动态视口高度，防手机浏览器底栏遮挡 */
+        align-items: flex-start; /* 关键：顶部对齐，不要居中了！ */
+        overflow-y: auto;        /* 允许内容过多时上下滑动 */
+        padding-top: 70px;       /* 给顶部的按钮留出绝对安全距离 */
+        padding-bottom: 40px;    /* 底部留白 */
     }
 
-    .left-column, .right-column {
-        width: 100%; /* 宽度占满 */
-        align-items: center; /* 内容居中 */
-        text-align: center;
-        height: auto; /* 高度自适应 */
-        margin-bottom: 30px;
+    .music-container { 
+        flex-direction: column; 
+        gap: 15px;               /* 大幅缩小各区块的间距 */
+        margin-top: 0; 
+        width: 95% !important;
     }
 
-    .avatar {
-        width: 100px;
-        height: 100px;
-        margin-top: 20px;
-    }
+    /* 3. 唱片大瘦身：给控制栏腾出空间 */
+    .vinyl-record { width: 160px; height: 160px; }
+    .vinyl-record img { width: 100px; height: 100px; }
 
-    .name { font-size: 28px; }
-    .bio { font-size: 16px; max-width: 100%; }
-    .time-display { font-size: 16vw; } /* 时间字号缩小 */
+    /* 4. 标题居中与歌词高度压缩 */
+    .music-info-area h2 { font-size: 26px; margin-bottom: 5px; text-align: center; }
+    .music-info-area p { font-size: 14px; margin-bottom: 10px; text-align: center; }
     
-    .link-group {
-        justify-content: center; /* 按钮居中 */
+    .lyrics-wrapper { 
+        height: 200px;           /* 从 400px 砍半，只显示几行歌词即可 */
+        margin-bottom: 15px;
+    }
+
+    /* 5. 底部控制栏防拥挤 */
+    .bottom-bar { gap: 15px; }
+    .progress-area { width: 100%; max-width: 100%; }
+    .main-controls { gap: 15px; width: 100%; }
+
+    /* 6. AI 悬浮球缩小并避开控制区 */
+    #ai-float-button {
+        transform: scale(0.8);
+        bottom: 15px;
+        right: 15px;
     }
 }
     /* ================== 全局平滑滚动（关键！） ================== */
