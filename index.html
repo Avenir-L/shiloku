@@ -1166,7 +1166,7 @@ progressBar.addEventListener('input', (e) => {
         <ul id="playlist"></ul>
     </div>
 </div>
-    <audio id="bg-audio" preload="none"></audio>
+    <audio id="bg-audio" preload="auto"></audio>
 </section>
 <script>
     // 1. 控制面板打开与关闭
@@ -1274,12 +1274,14 @@ const songs = [
     },
 ];
 
+
 let currentSongIndex = 0;
 let isPlaying = false;
 let currentLyricIndex = -1; 
 let currentLyricsData = []; 
 let isAudioLoaded = false; // ✨ 新增的“水龙头开关”，专门用来拦截偷跑流量
 
+const lyricsCache = {}; // 缓存池
 const audio = document.getElementById('bg-audio');
 const vinyl = document.getElementById('vinyl');
 const coverImg = document.getElementById('album-cover');
@@ -1364,11 +1366,15 @@ async function loadSong(index) {
 }
 
 function renderLyrics() {
-    lyricsList.innerHTML = '';
+    lyricsList.innerHTML = ''; // 清空
     if (currentLyricsData.length === 0) {
         lyricsList.innerHTML = '<li class="lyric-placeholder">纯音乐 / 暂无歌词数据</li>';
         return;
     }
+
+    // 关键：创建一个文档碎片
+    const fragment = document.createDocumentFragment();
+
     currentLyricsData.forEach((line, i) => {
         const li = document.createElement('li');
         li.id = `lyric-${i}`;
@@ -1377,8 +1383,12 @@ function renderLyrics() {
             <div class="lyric-text">${line.text}</div>
             ${transHtml}
         `;
-        lyricsList.appendChild(li);
+        // 先塞进碎片里，不直接修改页面
+        fragment.appendChild(li);
     });
+
+    // 最后一次性把所有 li 塞进页面
+    lyricsList.appendChild(fragment);
     lyricsWrapper.scrollTop = 0;
 }
 
