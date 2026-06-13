@@ -15,7 +15,7 @@
         }
 
         body {
-            background-image: url('bg.jpg'); 
+            background-image: url('https://shiloku.vercel.app/bg.jpg');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -257,55 +257,47 @@
         }
 
 
-/* ================== 手机端终极适配方案 ================== */
+/* ================== 手机端核弹级修复方案 ================== */
 @media (max-width: 768px) {
-    .layout-container {
-        height: auto !important;   /* 解除 100vh 的封印，允许内容撑开高度 */
-        min-height: 100vh;         /* 至少占满一屏 */
-        padding-bottom: 150px;     /* 和底部的音乐室拉开安全距离，彻底隔绝 */
+    /* 1. 强行解除所有的滚动锁定和高度锁定 */
+    html, body {
+        overflow-y: auto !important;
+        height: auto !important;
+        min-height: 100% !important;
     }
-    .back-home-btn { top: 15px; left: 15px; padding: 6px 12px; font-size: 12px; z-index: 100; }
-    .music-entrance-btn { top: 15px; right: 15px; padding: 6px 12px; font-size: 12px; z-index: 100; }
-
-    /* 2. 容器高度解放：不再强制垂直居中，改为顶部向下排布 */
-    #music-room {
-        height: 100dvh;          /* 使用动态视口高度，防手机浏览器底栏遮挡 */
-        align-items: flex-start; /* 关键：顶部对齐，不要居中了！ */
-        overflow-y: auto;        /* 允许内容过多时上下滑动 */
-        padding-top: 70px;       /* 给顶部的按钮留出绝对安全距离 */
-        padding-bottom: 40px;    /* 底部留白 */
-    }
-
-    .music-container { 
-        flex-direction: column; 
-        gap: 15px;               /* 大幅缩小各区块的间距 */
-        margin-top: 0; 
-        width: 95% !important;
-    }
-
-    /* 3. 唱片大瘦身：给控制栏腾出空间 */
-    .vinyl-record { width: 160px; height: 160px; }
-    .vinyl-record img { width: 100px; height: 100px; }
-
-    /* 4. 标题居中与歌词高度压缩 */
-    .music-info-area h2 { font-size: 26px; margin-bottom: 5px; text-align: center; }
-    .music-info-area p { font-size: 14px; margin-bottom: 10px; text-align: center; }
     
-    .lyrics-wrapper { 
-        height: 200px;           /* 从 400px 砍半，只显示几行歌词即可 */
-        margin-bottom: 15px;
+    .layout-container, #music-room {
+        height: auto !important;
+        min-height: 100vh !important;
+        align-items: flex-start !important; /* 顶部对齐，严禁居中 */
+        overflow: visible !important;
     }
 
-    /* 5. 底部控制栏防拥挤 */
-    .bottom-bar { gap: 15px; }
-    .progress-area { width: 100%; max-width: 100%; }
-    .main-controls { gap: 15px; width: 100%; }
+    /* 2. 强行缩小唱片和歌词 */
+    .vinyl-record { width: 160px !important; height: 160px !important; margin: 0 auto !important; }
+    .vinyl-record img { width: 100px !important; height: 100px !important; }
+    .lyrics-wrapper { height: 150px !important; margin-bottom: 20px !important; }
 
-    /* 6. AI 悬浮球缩小并避开控制区 */
+    /* 3. 给音乐室加上下内边距，防遮挡 */
+    #music-room {
+        padding-top: 80px !important;
+        padding-bottom: 80px !important;
+    }
+
+    /* 4. 修复按钮重叠 */
+    .music-entrance-btn { position: absolute !important; top: 15px !important; right: 15px !important; }
+    .back-home-btn { position: absolute !important; top: 15px !important; left: 15px !important; }
+    
+    /* 5. 底部控制栏防拥挤 */
+    .bottom-bar { gap: 15px !important; }
+    .progress-area { width: 100% !important; max-width: 100% !important; }
+    .main-controls { gap: 15px !important; width: 100% !important; }
+    
+    /* 6. 悬浮球缩小 */
     #ai-float-button {
-        transform: scale(0.8);
-        bottom: 15px;
-        right: 15px;
+        transform: scale(0.8) !important;
+        bottom: 15px !important;
+        right: 15px !important;
     }
 }
     /* ================== 全局平滑滚动（关键！） ================== */
@@ -857,7 +849,7 @@ html {
         
         <div class="column left-column">
             <div class="top-area animate-item delay-1">
-                <img src="avatar.jpg" alt="头像" class="avatar">
+                <img src="https://shiloku.vercel.app/avatar.jpg" alt="Avatar" class="avatar">
                 <div class="name-box">
                     <h1 class="name gradient-text-flow" id="name-text">栀落余殁</h1>
                     <p class="subtitle">Shiloku</p>
@@ -1270,28 +1262,28 @@ const songs = [
         title: "Beautiful World", 
         artist: "宇多田光", 
         src: "https://shiloku.vercel.app/beautiful_world.mp3", 
-        cover: "beautiful_world.jpg",
+        cover: "https://shiloku.vercel.app/beautiful_world.jpg",
         lrc: "https://shiloku.vercel.app/beautiful_world.lrc" 
 },
     { 
         title: "夕日坂", 
         artist: "doriko / 初音ミク", 
         src: "https://shiloku.vercel.app/yuuhizaka.mp3", 
-        cover: "yuuhizaka.jpg",
+        cover: "https://shiloku.vercel.app/yuuhizaka.jpg",
         lrc: "https://shiloku.vercel.app/yuuhizaka.lrc"
     },
     { 
         title: "Hypnotized", 
         artist: "Purple Disco Machine", 
         src: "https://shiloku.vercel.app/Hypnotized.mp3", 
-        cover: "Hypnotized.jpg",
+        cover: "https://shiloku.vercel.app/Hypnotized.jpg",
         lrc: "https://shiloku.vercel.app/Hypnotized.lrc"
     },
     { 
         title: "mede:mede", 
         artist: "Reol", 
         src: "https://shiloku.vercel.app/medemede.mp3", 
-        cover: "medemede.jpg",
+        cover: "https://shiloku.vercel.app/medemede.jpg",
         lrc: "https://shiloku.vercel.app/medemede.lrc"
     },
 ];
