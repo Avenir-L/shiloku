@@ -259,7 +259,11 @@
 
 /* ================== 手机端终极适配方案 ================== */
 @media (max-width: 768px) {
-    /* 1. 顶部按钮防重叠：缩小并重新定位 */
+    .layout-container {
+        height: auto !important;   /* 解除 100vh 的封印，允许内容撑开高度 */
+        min-height: 100vh;         /* 至少占满一屏 */
+        padding-bottom: 150px;     /* 和底部的音乐室拉开安全距离，彻底隔绝 */
+    }
     .back-home-btn { top: 15px; left: 15px; padding: 6px 12px; font-size: 12px; z-index: 100; }
     .music-entrance-btn { top: 15px; right: 15px; padding: 6px 12px; font-size: 12px; z-index: 100; }
 
@@ -311,7 +315,7 @@ html {
 
 /* ================== 右上角入口按钮 ================== */
 .music-entrance-btn {
-    position: fixed;
+    position: absolute !important; /* 强制绝对定位，确保它不受其他布局影响 */
     top: 30px;      /* 完美契合你红框的高度 */
     right: 40px;    /* 完美契合你红框的靠右位置 */
     z-index: 1000;
