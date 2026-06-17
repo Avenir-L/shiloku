@@ -1281,8 +1281,47 @@ html {
         // 在线状态：支持手动配置 + 远程 status.json + 音乐室播放覆盖
         let remoteStatus = '在线摸鱼中';
         let musicStatusOverride = null;
-        const STATUS_OFFLINE_MS = 3 * 60 * 1000; // 超过 3 分钟没更新 → 视为关机
+        const STATUS_OFFLINE_MS = 5 * 60 * 1000; // 超过 5 分钟没更新 → 视为关机
         const STATUS_OFFLINE_TEXT = '💤 电脑已关机';
+        const STATUS_SOURCES = [
+            'https://raw.githubusercontent.com/Avenir-L/shiloku/main/status.json',
+            'status.json'
+        ];
+
+        function parseStatusTime(iso) {
+            if (!iso) return NaN;
+            const normalized = String(iso).replace(/(\.\d{3})\d+Z$/i, '$1Z');
+            const t = Date.parse(normalized);
+            return Number.isFinite(t) ? t : NaN;
+        }
+
+        function applyRemoteStatus(data) {
+            const updated = parseStatusTime(data.updatedAt);
+            if (Number.isFinite(updated)) {
+                const age = Date.now() - updated;
+                if (age > STATUS_OFFLINE_MS) {
+                    setStatus(STATUS_OFFLINE_TEXT, { remote: true, offline: true });
+                    return;
+                }
+            } else if (!data.text) {
+                setStatus(STATUS_OFFLINE_TEXT, { remote: true, offline: true });
+                return;
+            }
+
+            if (data.text) setStatus(data.text, { remote: true, offline: false });
+        }
+
+        async function fetchRemoteStatus() {
+            for (const base of STATUS_SOURCES) {
+                try {
+                    const res = await fetch(base + (base.includes('?') ? '&' : '?') + 't=' + Date.now());
+                    if (!res.ok) continue;
+                    const data = await res.json();
+                    applyRemoteStatus(data);
+                    return;
+                } catch (_) { /* try next source */ }
+            }
+        }
 
         window.setStatus = function(text, options = {}) {
             const el = document.getElementById('status-text');
@@ -1309,27 +1348,6 @@ html {
             if (el) el.innerText = remoteStatus;
             fetchRemoteStatus();
         };
-
-        async function fetchRemoteStatus() {
-            try {
-                const res = await fetch('status.json?t=' + Date.now());
-                if (!res.ok) return;
-                const data = await res.json();
-
-                if (data.updatedAt) {
-                    const age = Date.now() - new Date(data.updatedAt).getTime();
-                    if (age > STATUS_OFFLINE_MS) {
-                        setStatus(STATUS_OFFLINE_TEXT, { remote: true, offline: true });
-                        return;
-                    }
-                } else if (!data.text) {
-                    setStatus(STATUS_OFFLINE_TEXT, { remote: true, offline: true });
-                    return;
-                }
-
-                if (data.text) setStatus(data.text, { remote: true, offline: false });
-            } catch (_) { /* 本地直接打开 html 时可能失败，忽略即可 */ }
-        }
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchRemoteStatus();

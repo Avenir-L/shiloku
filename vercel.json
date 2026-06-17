@@ -1,0 +1,14 @@
+{
+  "ignoreCommand": "bash -c 'c=$(git diff HEAD^ HEAD --name-only); [ \"$c\" = \"status.json\" ]'",
+  "headers": [
+    {
+      "source": "/status.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    }
+  ]
+}

@@ -11,6 +11,58 @@ $config = Get-Content $configFile -Raw -Encoding UTF8 | ConvertFrom-Json
 
 $script:MediaReady = $false
 $script:AwaitMethod = $null
+$script:ForegroundApiReady = $false
+
+function Initialize-ForegroundApi {
+    if ($script:ForegroundApiReady) { return $true }
+    try {
+        Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class ShilokuForeground {
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+}
+"@
+        $script:ForegroundApiReady = $true
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Get-ForegroundProcessName {
+    if (-not (Initialize-ForegroundApi)) { return $null }
+    try {
+        $hwnd = [ShilokuForeground]::GetForegroundWindow()
+        if ($hwnd -eq [IntPtr]::Zero) { return $null }
+        [uint32]$processId = 0
+        [void][ShilokuForeground]::GetWindowThreadProcessId($hwnd, [ref]$processId)
+        if ($processId -eq 0) { return $null }
+        $proc = Get-Process -Id $processId -ErrorAction SilentlyContinue
+        if ($proc) { return $proc.ProcessName }
+    } catch {}
+    return $null
+}
+
+$script:MusicProcessNames = @{
+    cloudmusic = @("cloudmusic", "CloudMusic")
+    QQMusic    = @("QQMusic", "QQMusicLite")
+    Spotify    = @("Spotify")
+}
+
+function Get-ForegroundMusicAppKey {
+    $fg = Get-ForegroundProcessName
+    if (-not $fg) { return $null }
+    foreach ($entry in $script:MusicProcessNames.GetEnumerator()) {
+        foreach ($name in $entry.Value) {
+            if ($fg -ieq $name) { return $entry.Key }
+        }
+    }
+    return $null
+}
 
 function Initialize-MediaControls {
     if ($script:MediaReady) { return $true }
@@ -91,49 +143,50 @@ function Get-MediaPlayingStatus {
     }
 }
 
-function Get-WindowTitleStatus {
-    param([string]$ProcessName, $Meta)
-
-    if (-not (Get-Process -Name $ProcessName -ErrorAction SilentlyContinue)) {
-        return $null
+function Get-AnyPlayingMusicStatus {
+    foreach ($prop in $config.musicApps.PSObject.Properties) {
+        $patterns = $script:MusicProcessNames[$prop.Name]
+        if (-not $patterns) { $patterns = @($prop.Name) }
+        $status = Get-MediaPlayingStatus -Meta $prop.Value -AppPatterns $patterns
+        if ($status) { return $status }
     }
+    return $null
+}
 
-    # 有进程但无法确认正在播放时，不显示歌名
+function Get-ForegroundProcessStatus {
+    $fg = Get-ForegroundProcessName
+    if (-not $fg) { return $null }
+    foreach ($prop in $config.processes.PSObject.Properties) {
+        if ($fg -ieq $prop.Name) {
+            return $prop.Value
+        }
+    }
     return $null
 }
 
 function Get-StatusText {
-    $musicMatchers = @{
-        cloudmusic = @("cloudmusic", "NetEase", "163", "CloudMusic")
-        QQMusic    = @("QQMusic", "QQMusicLite")
-        Spotify    = @("Spotify")
+    $parts = @()
+
+    $musicStatus = Get-AnyPlayingMusicStatus
+    if ($musicStatus) { $parts += $musicStatus }
+
+    $fgStatus = Get-ForegroundProcessStatus
+    if ($fgStatus -and -not (Get-ForegroundMusicAppKey)) {
+        $parts += $fgStatus
     }
 
-    foreach ($prop in $config.musicApps.PSObject.Properties) {
-        $patterns = $musicMatchers[$prop.Name]
-        if (-not $patterns) { $patterns = @($prop.Name) }
-
-        $status = Get-MediaPlayingStatus -Meta $prop.Value -AppPatterns $patterns
-        if ($status) { return $status }
-    }
-
-    $running = @(Get-Process -ErrorAction SilentlyContinue | ForEach-Object { $_.ProcessName } | Select-Object -Unique)
-    foreach ($prop in $config.processes.PSObject.Properties) {
-        if ($running -contains $prop.Name) {
-            return $prop.Value
-        }
-    }
-
-    return $config.default
+    if ($parts.Count -eq 0) { return $config.default }
+    return ($parts -join " · ")
 }
 
 $script:LastPushTime = [datetime]::MinValue
+$script:PushHeartbeatSeconds = 60
 
 function Update-StatusFile {
     $text = Get-StatusText
     $payload = @{
         text      = $text
-        updatedAt = (Get-Date).ToUniversalTime().ToString("o")
+        updatedAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
     } | ConvertTo-Json -Compress
 
     $prev = $null
@@ -147,9 +200,10 @@ function Update-StatusFile {
     if ($Push) {
         $elapsed = ((Get-Date) - $script:LastPushTime).TotalSeconds
         $textChanged = ($prev -ne $text)
-        if ($textChanged -or $elapsed -gt 90) {
-            Push-StatusToGit
-            $script:LastPushTime = Get-Date
+        if ($textChanged -or $elapsed -ge $script:PushHeartbeatSeconds) {
+            if (Push-StatusToGit) {
+                $script:LastPushTime = Get-Date
+            }
         }
     }
 }
@@ -157,14 +211,17 @@ function Update-StatusFile {
 function Push-StatusToGit {
     Push-Location $repoRoot
     try {
+        git pull --rebase --autostash origin main 2>&1 | Out-Host
         $dirty = git status --porcelain status.json 2>$null
-        if (-not $dirty) { return }
+        if (-not $dirty) { return $true }
         git add status.json
-        git commit -m "chore: update live status"
-        git push origin main
+        git commit -m "chore: update live status [skip vercel]"
+        git push origin main 2>&1 | Out-Host
         Write-Host "  pushed to GitHub"
+        return $true
     } catch {
         Write-Host "  push failed: $_"
+        return $false
     } finally {
         Pop-Location
     }
