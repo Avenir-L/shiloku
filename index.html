@@ -4,9 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shiloku - 个人主页</title>
+    <meta name="description" content="栀落余殁 (Shiloku) 的个人主页 — 绘画、音乐、游戏与二次元。">
+    <meta property="og:title" content="Shiloku - 个人主页">
+    <meta property="og:description" content="欢迎来访我的个人空间">
+    <meta property="og:image" content="https://shiloku.vercel.app/avatar.jpg">
     <link rel="icon" href="favicon.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Serif+JP:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.35);
+            --glass-blur: blur(12px);
+            --accent-glow: rgba(57, 197, 207, 0.45);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -21,8 +32,19 @@
             background-attachment: fixed;
             font-family: 'Noto Serif SC', 'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
             color: #2c2c2c; 
-            overflow: hidden; 
+            overflow-x: hidden;
+            overflow-y: auto;
             position: relative;
+            transition: filter 0.5s ease;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.12) 45%, rgba(0,0,0,0.38) 100%);
+            z-index: 1;
+            pointer-events: none;
         }
 
         #particle-canvas {
@@ -58,12 +80,12 @@
             height: 100vh;
             padding: 8vh 8vw; 
             position: relative;
-            z-index: 10; 
+            z-index: 10;
         }
 
         @keyframes fadeUp {
-            0% { opacity: 0; transform: translateY(40px); }
-            100% { opacity: 1; transform: translateY(0); }
+            0% { opacity: 0; transform: translateY(32px) scale(0.97); filter: blur(4px); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
         }
         
         .animate-item {
@@ -71,9 +93,76 @@
             opacity: 0; 
         }
         .delay-1 { animation-delay: 0.1s; }
-        .delay-2 { animation-delay: 0.3s; }
-        .delay-3 { animation-delay: 0.5s; }
-        .delay-4 { animation-delay: 0.7s; }
+        .delay-2 { animation-delay: 0.25s; }
+        .delay-3 { animation-delay: 0.45s; }
+        .delay-4 { animation-delay: 0.65s; }
+        .delay-5 { animation-delay: 0.85s; }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.8);
+            animation: pulse-dot 2s ease-in-out infinite;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        .status-pill.offline .status-dot {
+            background: #9ca3af;
+            box-shadow: 0 0 8px rgba(156, 163, 175, 0.5);
+            animation: none;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.85); }
+        }
+
+        .tag-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .tag {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .tag:hover {
+            background: rgba(255, 255, 255, 0.22);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
 
         .column {
             display: flex;
@@ -188,6 +277,14 @@
             text-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
 
+        .time-greeting {
+            font-size: 15px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.75);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
         .time-header {
             font-size: 26px; 
             letter-spacing: 6px;
@@ -195,6 +292,14 @@
             font-weight: 900; 
             margin-bottom: 10px; 
             text-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .time-date {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 3px;
+            margin-bottom: 12px;
         }
 
         .time-display {
@@ -205,6 +310,11 @@
             font-variant-numeric: tabular-nums; 
             color: #ffffff; 
             text-shadow: 0 0 20px rgba(255,255,255,0.4), 0 5px 20px rgba(0,0,0,0.2);
+            transition: opacity 0.3s ease;
+        }
+
+        .time-display.tick {
+            opacity: 0.85;
         }
 
         .link-group {
@@ -220,9 +330,10 @@
             font-size: 15px; 
             font-weight: 700; 
             padding: 10px 24px;
-            background: rgba(255, 255, 255, 0.1); 
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.4); 
+            background: var(--glass-bg); 
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border); 
             border-radius: 30px;
             transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
             letter-spacing: 1px;
@@ -273,6 +384,15 @@
         overflow: visible !important;
     }
 
+    #music-room {
+        position: relative !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        min-height: 100vh !important;
+        height: auto !important;
+    }
+
     /* 2. 强行缩小唱片和歌词 */
     .vinyl-record { width: 160px !important; height: 160px !important; margin: 0 auto !important; }
     .vinyl-record img { width: 100px !important; height: 100px !important; }
@@ -284,9 +404,8 @@
         padding-bottom: 80px !important;
     }
 
-    /* 4. 修复按钮重叠 */
-    .music-entrance-btn { position: absolute !important; top: 15px !important; right: 15px !important; }
-    .back-home-btn { position: absolute !important; top: 15px !important; left: 15px !important; }
+    /* 4. 导航按钮位置 */
+    .page-nav-btn { top: 15px !important; right: 15px !important; }
     
     /* 5. 底部控制栏防拥挤 */
     .bottom-bar { gap: 15px !important; }
@@ -305,11 +424,11 @@ html {
     scroll-behavior: smooth;
 }
 
-/* ================== 右上角入口按钮 ================== */
-.music-entrance-btn {
-    position: absolute !important; /* 强制绝对定位，确保它不受其他布局影响 */
-    top: 30px;      /* 完美契合你红框的高度 */
-    right: 40px;    /* 完美契合你红框的靠右位置 */
+/* ================== 右上角导航按钮（音乐室 / 返回主页 合并） ================== */
+.page-nav-btn {
+    position: fixed;
+    top: 30px;
+    right: 40px;
     z-index: 1000;
     display: flex;
     align-items: center;
@@ -326,9 +445,11 @@ html {
     letter-spacing: 1px;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    cursor: pointer;
+    font-family: inherit;
 }
 
-.music-entrance-btn:hover {
+.page-nav-btn:hover {
     background: rgba(255, 255, 255, 0.15);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0,0,0,0.3);
@@ -338,10 +459,10 @@ html {
 #music-room {
         position: relative;
         width: 100%;
-        height: 100vh;
+        min-height: 100vh;
         display: flex;
         align-items: center;
-        justify-content: center; /* 保持音乐室整体在屏幕中间 */
+        justify-content: center;
         overflow: hidden;
     }
 
@@ -454,7 +575,7 @@ html {
 
 /* 手机端适配 */
 @media (max-width: 768px) {
-    .music-entrance-btn { top: 20px; right: 20px; padding: 8px 15px; font-size: 12px; }
+    .page-nav-btn { top: 20px; right: 20px; padding: 8px 15px; font-size: 12px; }
     .music-container { flex-direction: column; gap: 40px; text-align: center; margin-top: 50px;}
     .record-area { justify-content: center; }
     .vinyl-record { width: 250px; height: 250px; }
@@ -684,45 +805,19 @@ html {
     margin-top: 4px;
 }
 
+#lyrics-list li.passed {
+    color: rgba(255, 255, 255, 0.22);
+    transform: scale(1);
+}
+
 #lyrics-list li.active {
     color: rgba(255, 255, 255, 1); 
-    transform: scale(1.1); 
-    transform-origin: left center; 
+    transform: scale(1.08); 
+    transform-origin: left center;
+    text-shadow: 0 0 24px var(--accent-glow);
 }
 #lyrics-list li.active .lyric-text { 
     font-weight: bold; 
-}
-        /* ================== 音乐室返回按钮 ================== */
-.back-home-btn {
-    position: absolute;
-    top: 40px;
-    left: 40px;
-    z-index: 10;
-    color: rgba(255, 255, 255, 0.6);
-    text-decoration: none;
-    font-size: 14px;
-    letter-spacing: 2px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    border-radius: 30px;
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.3s ease;
-}
-
-.back-home-btn:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.15);
-    transform: translateX(-5px); /* 鼠标悬浮时有一个往左指的微动效 */
-}
-
-/* 手机端稍微挪一下位置防遮挡 */
-@media (max-width: 768px) {
-    .back-home-btn { top: 20px; left: 20px; padding: 8px 15px; font-size: 12px; }
 }
 /* ================== 音乐室 2.0 专属排版升级 ================== */
     .music-blur-bg {
@@ -829,17 +924,25 @@ html {
 /* 手机端允许页面滚动，这样锚点跳转才能生效 */
 @media (max-width: 768px) {
     body {
-        overflow: hidden;    /* 原来的固定不变 */
-        overflow-y: auto;    /* 关键：允许纵向滚动 */
+        overflow-x: hidden;
+        overflow-y: auto;
     }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    .status-dot { animation: none; }
 }
     </style>
 </head>
 <body>
-    <a href="#music-room" class="music-entrance-btn">
-        <span class="music-icon">🎵</span>
-        <span class="music-text">Music Room</span>
-    </a>
+    <button type="button" id="page-nav-btn" class="page-nav-btn hover-target" aria-label="前往音乐室">
+        <span class="nav-icon">🎵</span>
+        <span class="nav-text">Music Room</span>
+    </button>
 
     <canvas id="particle-canvas"></canvas>
 
@@ -853,6 +956,10 @@ html {
                 <div class="name-box">
                     <h1 class="name gradient-text-flow" id="name-text">栀落余殁</h1>
                     <p class="subtitle">Shiloku</p>
+                    <div class="status-pill animate-item delay-2" id="status-pill">
+                        <span class="status-dot"></span>
+                        <span id="status-text">在线摸鱼中</span>
+                    </div>
                     <div class="divider"></div>
                 </div>
             </div>
@@ -862,6 +969,14 @@ html {
                 <div>
                     <p id="bio-p1">中国人。偶尔喜欢研究研究没接触过的领域</p>
                     <p id="bio-p2">热爱绘画(但是目前只会风景画QWQ),听歌,二次元,但都涉及的不多。也喜欢玩休闲类游戏(比如地平线6,杀戮尖塔,Minecraft等等)偶尔也会玩玩竞技类,或者Galgame。不太会社交,比较社恐。剩下不知道写什么了,下次想到了再说吧。Hatsune Miku!</p>
+                </div>
+                <div class="tag-group animate-item delay-3">
+                    <span class="tag">🎨 绘画</span>
+                    <span class="tag">🎵 初音未来</span>
+                    <span class="tag">🎮 Minecraft</span>
+                    <span class="tag">🏎️ 地平线</span>
+                    <span class="tag">🃏 杀戮尖塔</span>
+                    <span class="tag">💬 Galgame</span>
                 </div>
             </div>
 
@@ -877,7 +992,9 @@ html {
             <div class="top-area"></div>
 
             <div class="mid-area animate-item delay-2">
+                <div class="time-greeting" id="time-greeting">夜深了</div>
                 <div class="time-header">北京时间 / BEIJING TIME</div>
+                <div class="time-date" id="time-date">----年--月--日 · ---</div>
                 <div class="time-display" id="big-time">00:00:00</div>
             </div>
 
@@ -895,19 +1012,140 @@ html {
 
     <script>
         // 1. 实时更新北京时间
-        function updateBigTime() {
+        function getBeijingTime() {
             const now = new Date();
             const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const bjTime = new Date(utc + (3600000 * 8));
-            
-            let h = bjTime.getHours().toString().padStart(2, '0');
-            let m = bjTime.getMinutes().toString().padStart(2, '0');
-            let s = bjTime.getSeconds().toString().padStart(2, '0');
-            
-            document.getElementById('big-time').innerText = `${h}:${m}:${s}`;
+            return new Date(utc + (3600000 * 8));
+        }
+
+        function getGreeting(hour) {
+            if (hour >= 5 && hour < 11) return '早上好，今天也要开心';
+            if (hour >= 11 && hour < 14) return '中午好，记得吃饭';
+            if (hour >= 14 && hour < 18) return '下午好，摸鱼时间';
+            if (hour >= 18 && hour < 23) return '晚上好，欢迎来访';
+            return '夜深了，早点休息';
+        }
+
+        const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+
+        function updateBigTime() {
+            const bjTime = getBeijingTime();
+            const h = bjTime.getHours();
+            const timeEl = document.getElementById('big-time');
+
+            timeEl.innerText = `${h.toString().padStart(2, '0')}:${bjTime.getMinutes().toString().padStart(2, '0')}:${bjTime.getSeconds().toString().padStart(2, '0')}`;
+            document.getElementById('time-greeting').innerText = getGreeting(h);
+            document.getElementById('time-date').innerText =
+                `${bjTime.getFullYear()}年${bjTime.getMonth() + 1}月${bjTime.getDate()}日 · 星期${weekDays[bjTime.getDay()]}`;
+
+            timeEl.classList.add('tick');
+            setTimeout(() => timeEl.classList.remove('tick'), 150);
         }
         updateBigTime();
         setInterval(updateBigTime, 1000);
+
+        // 在线状态：支持手动配置 + 远程 status.json + 音乐室播放覆盖
+        let remoteStatus = '在线摸鱼中';
+        let musicStatusOverride = null;
+        const STATUS_OFFLINE_MS = 3 * 60 * 1000; // 超过 3 分钟没更新 → 视为关机
+        const STATUS_OFFLINE_TEXT = '💤 电脑已关机';
+
+        window.setStatus = function(text, options = {}) {
+            const el = document.getElementById('status-text');
+            const pill = document.getElementById('status-pill');
+            if (!el) return;
+            if (options.override) {
+                musicStatusOverride = text;
+            } else if (options.remote) {
+                remoteStatus = text;
+            } else {
+                remoteStatus = text;
+                musicStatusOverride = null;
+            }
+            el.innerText = musicStatusOverride || remoteStatus;
+            if (pill) {
+                const offline = options.offline || false;
+                pill.classList.toggle('offline', offline && !musicStatusOverride);
+            }
+        };
+
+        window.clearMusicStatusOverride = function() {
+            musicStatusOverride = null;
+            const el = document.getElementById('status-text');
+            if (el) el.innerText = remoteStatus;
+            fetchRemoteStatus();
+        };
+
+        async function fetchRemoteStatus() {
+            try {
+                const res = await fetch('status.json?t=' + Date.now());
+                if (!res.ok) return;
+                const data = await res.json();
+
+                if (data.updatedAt) {
+                    const age = Date.now() - new Date(data.updatedAt).getTime();
+                    if (age > STATUS_OFFLINE_MS) {
+                        setStatus(STATUS_OFFLINE_TEXT, { remote: true, offline: true });
+                        return;
+                    }
+                } else if (!data.text) {
+                    setStatus(STATUS_OFFLINE_TEXT, { remote: true, offline: true });
+                    return;
+                }
+
+                if (data.text) setStatus(data.text, { remote: true, offline: false });
+            } catch (_) { /* 本地直接打开 html 时可能失败，忽略即可 */ }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchRemoteStatus();
+            setInterval(fetchRemoteStatus, 15000);
+        });
+
+        // 音乐室导航：合并按钮，平滑下滑切换
+        document.addEventListener('DOMContentLoaded', () => {
+            const musicRoom = document.getElementById('music-room');
+            const navBtn = document.getElementById('page-nav-btn');
+            const navIcon = navBtn?.querySelector('.nav-icon');
+            const navText = navBtn?.querySelector('.nav-text');
+            if (!musicRoom || !navBtn) return;
+
+            let inMusicRoom = false;
+
+            function setNavToMusic() {
+                inMusicRoom = false;
+                navIcon.textContent = '🎵';
+                navText.textContent = 'Music Room';
+                navBtn.setAttribute('aria-label', '前往音乐室');
+            }
+
+            function setNavToHome() {
+                inMusicRoom = true;
+                navIcon.textContent = '🏠';
+                navText.textContent = '返回主页';
+                navBtn.setAttribute('aria-label', '返回主页');
+            }
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && entry.intersectionRatio > 0.35) {
+                        setNavToHome();
+                    } else {
+                        setNavToMusic();
+                    }
+                });
+            }, { threshold: [0, 0.35, 0.6] });
+
+            observer.observe(musicRoom);
+
+            navBtn.addEventListener('click', () => {
+                if (inMusicRoom) {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    musicRoom.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
 
         // 2. 悬浮拆字放大特效
         function wrapCharacters(elementId) {
@@ -943,9 +1181,9 @@ html {
         window.addEventListener('mousemove', (e) => {
             mouseX = e.clientX;
             mouseY = e.clientY;
-            
-            // 每次鼠标移动时，生成1-2个尾迹粒子
-            trails.push(new TrailParticle(mouseX, mouseY));
+            if (!isMobile) {
+                trails.push(new TrailParticle(mouseX, mouseY));
+            }
         });
 
         function renderCursor() {
@@ -976,7 +1214,8 @@ html {
         const canvas = document.getElementById('particle-canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
-        const particleCount = 60; 
+        const isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
+        const particleCount = isMobile ? 25 : 60;
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
@@ -1070,47 +1309,6 @@ html {
             requestAnimationFrame(animateParticles);
         }
         animateParticles();
-        // 封装：根据当前时间查找并高亮歌词
-function syncLyrics(currentTime) {
-    if (!currentLyricsData || currentLyricsData.length === 0) return;
-
-    // 1. 查找当前时间对应的歌词行
-    let newIndex = -1;
-    for (let i = 0; i < currentLyricsData.length; i++) {
-        // 给一点点误差余量 (0.2s) 让体验更平滑
-        if (currentTime >= currentLyricsData[i].time - 0.2) {
-            newIndex = i;
-        }
-    }
-
-    // 2. 如果行数改变了，才执行 DOM 操作（避免频繁闪烁）
-    if (newIndex !== currentLyricIndex && newIndex !== -1) {
-        // 移除旧的高亮
-        const oldLi = document.getElementById(`lyric-${currentLyricIndex}`);
-        if (oldLi) oldLi.classList.remove('active');
-
-        currentLyricIndex = newIndex;
-
-        // 添加新高亮
-        const activeLi = document.getElementById(`lyric-${currentLyricIndex}`);
-        if (activeLi) {
-            activeLi.classList.add('active');
-            // 滚动到该行
-            const offset = activeLi.offsetTop - lyricsWrapper.clientHeight / 2 + activeLi.clientHeight / 2;
-            lyricsWrapper.scrollTo({ top: offset, behavior: 'smooth' });
-        }
-    }
-}
-
-
-const progressBar = document.getElementById('progress-bar');
-progressBar.addEventListener('input', (e) => {
-    const time = (e.target.value / 100) * audio.duration;
-    audio.currentTime = time;
-
-    // 关键：拖动时强制同步一次
-    syncLyrics(time); 
-});
     </script>
     <div id="ai-float-button" class="hover-target">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1136,7 +1334,6 @@ progressBar.addEventListener('input', (e) => {
 
 
 <section id="music-room">
-    <a href="#" class="back-home-btn"><span>🔙</span> 返回主界面</a>
     <div class="music-blur-bg" id="music-bg"></div>
 
     <div class="music-container">
@@ -1428,6 +1625,13 @@ function syncLyrics(currentTime) {
             lyricsWrapper.scrollTo({ top: offset, behavior: 'smooth' });
         }
     }
+
+    currentLyricsData.forEach((_, i) => {
+        const li = document.getElementById(`lyric-${i}`);
+        if (!li) return;
+        if (i < newIndex) li.classList.add('passed');
+        else li.classList.remove('passed');
+    });
 }
 audio.addEventListener('timeupdate', () => {
     
@@ -1462,7 +1666,6 @@ function formatTime(seconds) {
 
 // ⏯️ 播放控制器：真正赋予灵魂并下载的时刻！
 function togglePlay() {
-    // 如果这首歌还没加载音频，就瞬间连上网线
     if (!isAudioLoaded) {
         audio.src = songs[currentSongIndex].src;
         isAudioLoaded = true;
@@ -1472,10 +1675,12 @@ function togglePlay() {
         audio.pause();
         vinyl.classList.remove('playing');
         mainPlayBtn.innerText = "▶️";
+        clearMusicStatusOverride();
     } else {
         audio.play();
         vinyl.classList.add('playing');
         mainPlayBtn.innerText = "⏸️";
+        setStatus('🎵 听歌中', { override: true });
     }
     isPlaying = !isPlaying;
 }

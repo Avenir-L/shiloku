@@ -1,0 +1,19 @@
+{
+  "default": "在线摸鱼中",
+  "offline": "💤 电脑已关机",
+  "processes": {
+    "javaw": "🎮 在玩 Minecraft",
+    "minecraft": "🎮 在玩 Minecraft",
+    "ForzaHorizon5": "🏎️ 在玩地平线",
+    "Forza": "🏎️ 在玩地平线",
+    "SlayTheSpire": "🃏 在爬尖塔",
+    "steam": "🎮 在 Steam 闲逛",
+    "Cursor": "💻 在写代码",
+    "Code": "💻 在写代码"
+  },
+  "musicApps": {
+    "cloudmusic": { "icon": "🎵", "fallback": "在听网易云" },
+    "QQMusic": { "icon": "🎵", "fallback": "在听 QQ 音乐" },
+    "Spotify": { "icon": "🎵", "fallback": "在听 Spotify" }
+  }
+}
