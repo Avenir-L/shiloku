@@ -19,11 +19,20 @@ function Initialize-ForegroundApi {
         Add-Type @"
 using System;
 using System.Runtime.InteropServices;
+
+[StructLayout(LayoutKind.Sequential)]
+public struct LASTINPUTINFO {
+    public uint cbSize;
+    public uint dwTime;
+}
+
 public class ShilokuForeground {
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+    [DllImport("user32.dll")]
+    public static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
 }
 "@
         $script:ForegroundApiReady = $true
@@ -45,6 +54,20 @@ function Get-ForegroundProcessName {
         if ($proc) { return $proc.ProcessName }
     } catch {}
     return $null
+}
+
+function Get-IdleSeconds {
+    if (-not (Initialize-ForegroundApi)) { return 0 }
+    try {
+        $info = New-Object ShilokuForeground+LASTINPUTINFO
+        $info.cbSize = [uint32][System.Runtime.InteropServices.Marshal]::SizeOf($info)
+        if (-not [ShilokuForeground]::GetLastInputInfo([ref]$info)) { return 0 }
+        $idleMs = [Environment]::TickCount - [int]$info.dwTime
+        if ($idleMs -lt 0) { $idleMs += [uint32]::MaxValue + 1 }
+        return $idleMs / 1000.0
+    } catch {
+        return 0
+    }
 }
 
 $script:MusicProcessNames = @{
@@ -165,6 +188,12 @@ function Get-ForegroundProcessStatus {
 }
 
 function Get-StatusText {
+    $idleThreshold = if ($config.idleSeconds) { [int]$config.idleSeconds } else { 300 }
+    if ((Get-IdleSeconds) -ge $idleThreshold) {
+        if ($config.idle) { return [string]$config.idle }
+        return 'zzz'
+    }
+
     $parts = @()
 
     $musicStatus = Get-AnyPlayingMusicStatus
@@ -176,7 +205,8 @@ function Get-StatusText {
     }
 
     if ($parts.Count -eq 0) { return $config.default }
-    return ($parts -join " · ")
+    $sep = ' ' + [char]0x00B7 + ' '
+    return ($parts -join $sep)
 }
 
 $script:LastPushTime = [datetime]::MinValue
