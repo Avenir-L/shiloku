@@ -191,10 +191,12 @@ function Get-MusicInfoFromWindowTitle {
         $title = [string]$proc.MainWindowTitle.Trim()
         if (-not $title) { continue }
 
-        $title = $title -replace '\s*-\s*网易云音乐.*$',''
-        $title = $title -replace '\s*-\s*NetEase.*$',''
-        $title = $title -replace '\s*-\s*QQ音乐.*$',''
-        $title = $title.Trim()
+        foreach ($suffix in @($config.windowTitleSuffixes)) {
+            if ($suffix -and $title.Contains($suffix)) {
+                $title = ($title -split [regex]::Escape($suffix))[0].Trim()
+                $title = $title.TrimEnd('-').Trim()
+            }
+        }
         if (-not $title) { continue }
 
         if ($title -match '^(?<song>.+?)\s*-\s*(?<artist>.+)$') {

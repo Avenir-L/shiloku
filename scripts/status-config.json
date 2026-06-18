@@ -6,6 +6,7 @@
   "listeningPrefix": "正在听",
   "statusSeparator": " · ",
   "unknownProcessPrefix": "在用",
+  "windowTitleSuffixes": ["网易云音乐", "NetEase Cloud Music", "QQ音乐", "QQ Music", "Spotify"],
   "processes": {
     "javaw": "🎮 在玩 Minecraft",
     "minecraft": "🎮 在玩 Minecraft",
