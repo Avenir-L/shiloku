@@ -1,4 +1,18 @@
 export default async function handler(req, res) {
+    const origin = req.headers.origin || '';
+    const allowLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+    const allowProd = /^https:\/\/(www\.)?shiloku\.cn$/i.test(origin);
+    if (allowLocal || allowProd) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Vary', 'Origin');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(204).end();
+    }
+
     // 1. 只允许网页发过来的 POST 请求
     if (req.method !== 'POST') {
         return res.status(405).json({ error: '只允许 POST 请求' });

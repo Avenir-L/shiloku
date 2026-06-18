@@ -11,7 +11,11 @@
     "SlayTheSpire": "🃏 在爬尖塔",
     "steam": "🎮 在 Steam 闲逛",
     "Cursor": "💻 在写代码",
-    "Code": "💻 在写代码"
+    "Code": "💻 在写代码",
+    "msedge": "🌐 在浏览网页",
+    "chrome": "🌐 在浏览网页",
+    "firefox": "🌐 在浏览网页",
+    "cloudmusic": "🎵 在听网易云"
   },
   "musicApps": {
     "cloudmusic": { "icon": "🎵", "fallback": "在听网易云" },

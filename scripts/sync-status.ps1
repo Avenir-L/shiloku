@@ -71,9 +71,42 @@ function Get-IdleSeconds {
 }
 
 $script:MusicProcessNames = @{
-    cloudmusic = @("cloudmusic", "CloudMusic")
+    cloudmusic = @("cloudmusic", "CloudMusic", "NetEase", "Netease", "163", "wangyi", "orpheus")
     QQMusic    = @("QQMusic", "QQMusicLite")
     Spotify    = @("Spotify")
+}
+
+function Get-SessionMusicLine {
+    param($Session, [string]$Icon = '🎵', [string]$Fallback = '')
+
+    if (-not $Session) { return $null }
+
+    try {
+        $status = $Session.GetPlaybackInfo().PlaybackStatus
+        $playing = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing
+        if ($status -ne $playing) { return $null }
+
+        $props = Await-WinRTTask ($Session.TryGetMediaPropertiesAsync()) ([Windows.Media.MediaProperties.MusicDisplayProperties])
+        $title = $props.Title
+        $artist = $props.Artist
+
+        if ($title -and $artist) { return "$Icon $title - $artist" }
+        if ($title) { return "$Icon $title" }
+        if ($Fallback) { return "$Icon $Fallback" }
+    } catch {}
+
+    return $null
+}
+
+function Get-MediaManager {
+    if (-not (Initialize-MediaControls)) { return $null }
+    try {
+        return Await-WinRTTask `
+            ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) `
+            ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
+    } catch {
+        return $null
+    }
 }
 
 function Get-ForegroundMusicAppKey {
@@ -123,13 +156,10 @@ function Test-AppMatch {
 function Get-MediaPlayingStatus {
     param($Meta, [string[]]$AppPatterns)
 
-    if (-not (Initialize-MediaControls)) { return $null }
+    $manager = Get-MediaManager
+    if (-not $manager) { return $null }
 
     try {
-        $manager = Await-WinRTTask `
-            ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) `
-            ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
-
         $session = $null
         foreach ($s in $manager.GetSessions()) {
             if (Test-AppMatch $s.SourceAppUserModelId $AppPatterns) {
@@ -147,20 +177,7 @@ function Get-MediaPlayingStatus {
 
         if (-not $session) { return $null }
 
-        $status = $session.GetPlaybackInfo().PlaybackStatus
-        $playing = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing
-
-        # 暂停 / 停止时不显示歌名，返回 null 继续检测其他状态
-        if ($status -ne $playing) { return $null }
-
-        $props = Await-WinRTTask ($session.TryGetMediaPropertiesAsync()) ([Windows.Media.MediaProperties.MusicDisplayProperties])
-        $icon = $Meta.icon
-        $title = $props.Title
-        $artist = $props.Artist
-
-        if ($title -and $artist) { return "$icon $title - $artist" }
-        if ($title) { return "$icon $title" }
-        return "$icon $($Meta.fallback)"
+        return Get-SessionMusicLine -Session $session -Icon $Meta.icon -Fallback $Meta.fallback
     } catch {
         return $null
     }
@@ -173,6 +190,21 @@ function Get-AnyPlayingMusicStatus {
         $status = Get-MediaPlayingStatus -Meta $prop.Value -AppPatterns $patterns
         if ($status) { return $status }
     }
+
+    $manager = Get-MediaManager
+    if (-not $manager) { return $null }
+
+    try {
+        $current = $manager.GetCurrentSession()
+        $line = Get-SessionMusicLine -Session $current
+        if ($line) { return $line }
+
+        foreach ($s in $manager.GetSessions()) {
+            $line = Get-SessionMusicLine -Session $s
+            if ($line) { return $line }
+        }
+    } catch {}
+
     return $null
 }
 
@@ -183,6 +215,14 @@ function Get-ForegroundProcessStatus {
         if ($fg -ieq $prop.Name) {
             return $prop.Value
         }
+    }
+    $skip = @(
+        'explorer', 'SearchHost', 'ShellExperienceHost', 'ApplicationFrameHost',
+        'SystemSettings', 'powershell', 'pwsh', 'cmd', 'WindowsTerminal',
+        'python', 'TextInputHost', 'StartMenuExperienceHost', 'msedgewebview2'
+    )
+    if ($skip -notcontains $fg) {
+        return "💻 在用 $fg"
     }
     return $null
 }
@@ -195,12 +235,18 @@ function Get-StatusText {
     }
 
     $parts = @()
+    $fgMusicKey = Get-ForegroundMusicAppKey
 
     $musicStatus = Get-AnyPlayingMusicStatus
-    if ($musicStatus) { $parts += $musicStatus }
+    if ($musicStatus) {
+        $parts += $musicStatus
+    } elseif ($fgMusicKey -and $config.musicApps.PSObject.Properties.Name -contains $fgMusicKey) {
+        $meta = $config.musicApps.$fgMusicKey
+        $parts += "$($meta.icon) $($meta.fallback)"
+    }
 
     $fgStatus = Get-ForegroundProcessStatus
-    if ($fgStatus -and -not (Get-ForegroundMusicAppKey)) {
+    if ($fgStatus -and -not $fgMusicKey) {
         $parts += $fgStatus
     }
 
