@@ -3,6 +3,9 @@
   "offline": "💤 电脑已关机",
   "idle": "💤 zzz 离开中",
   "idleSeconds": 300,
+  "listeningPrefix": "正在听",
+  "statusSeparator": " · ",
+  "unknownProcessPrefix": "在用",
   "processes": {
     "javaw": "🎮 在玩 Minecraft",
     "minecraft": "🎮 在玩 Minecraft",
@@ -14,12 +17,11 @@
     "Code": "💻 在写代码",
     "msedge": "🌐 在浏览网页",
     "chrome": "🌐 在浏览网页",
-    "firefox": "🌐 在浏览网页",
-    "cloudmusic": "🎵 在听网易云"
+    "firefox": "🌐 在浏览网页"
   },
   "musicApps": {
-    "cloudmusic": { "icon": "🎵", "fallback": "在听网易云" },
-    "QQMusic": { "icon": "🎵", "fallback": "在听 QQ 音乐" },
-    "Spotify": { "icon": "🎵", "fallback": "在听 Spotify" }
+    "cloudmusic": { "name": "网易云音乐", "match": ["cloudmusic", "CloudMusic", "NetEase", "Netease", "163", "wangyi", "orpheus"] },
+    "QQMusic": { "name": "QQ 音乐", "match": ["QQMusic", "QQMusicLite"] },
+    "Spotify": { "name": "Spotify", "match": ["Spotify"] }
   }
 }

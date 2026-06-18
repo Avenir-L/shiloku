@@ -4,6 +4,7 @@ param(
     [int]$IntervalSeconds = 15
 )
 
+$ErrorActionPreference = 'Continue'
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $statusFile = Join-Path $repoRoot "status.json"
 $configFile = Join-Path $PSScriptRoot "status-config.json"
@@ -12,6 +13,7 @@ $config = Get-Content $configFile -Raw -Encoding UTF8 | ConvertFrom-Json
 $script:MediaReady = $false
 $script:AwaitMethod = $null
 $script:ForegroundApiReady = $false
+$script:MusicExeNames = @('cloudmusic', 'CloudMusic', 'NeteaseCloudMusic', 'QQMusic', 'QQMusicLite', 'Spotify')
 
 function Initialize-ForegroundApi {
     if ($script:ForegroundApiReady) { return $true }
@@ -19,27 +21,17 @@ function Initialize-ForegroundApi {
         Add-Type @"
 using System;
 using System.Runtime.InteropServices;
-
 [StructLayout(LayoutKind.Sequential)]
-public struct LASTINPUTINFO {
-    public uint cbSize;
-    public uint dwTime;
-}
-
+public struct LASTINPUTINFO { public uint cbSize; public uint dwTime; }
 public class ShilokuForeground {
-    [DllImport("user32.dll")]
-    public static extern IntPtr GetForegroundWindow();
-    [DllImport("user32.dll")]
-    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
-    [DllImport("user32.dll")]
-    public static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
+    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+    [DllImport("user32.dll")] public static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
 }
 "@
         $script:ForegroundApiReady = $true
         return $true
-    } catch {
-        return $false
-    }
+    } catch { return $false }
 }
 
 function Get-ForegroundProcessName {
@@ -65,54 +57,25 @@ function Get-IdleSeconds {
         $idleMs = [Environment]::TickCount - [int]$info.dwTime
         if ($idleMs -lt 0) { $idleMs += [uint32]::MaxValue + 1 }
         return $idleMs / 1000.0
-    } catch {
-        return 0
+    } catch { return 0 }
+}
+
+function Get-MusicProcessNamesFromConfig {
+    $map = @{}
+    foreach ($prop in $config.musicApps.PSObject.Properties) {
+        $names = @()
+        if ($prop.Value.match) { $names = @($prop.Value.match) }
+        if ($names.Count -eq 0) { $names = @($prop.Name) }
+        $map[$prop.Name] = $names
     }
-}
-
-$script:MusicProcessNames = @{
-    cloudmusic = @("cloudmusic", "CloudMusic", "NetEase", "Netease", "163", "wangyi", "orpheus")
-    QQMusic    = @("QQMusic", "QQMusicLite")
-    Spotify    = @("Spotify")
-}
-
-function Get-SessionMusicLine {
-    param($Session, [string]$Icon = '🎵', [string]$Fallback = '')
-
-    if (-not $Session) { return $null }
-
-    try {
-        $status = $Session.GetPlaybackInfo().PlaybackStatus
-        $playing = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing
-        if ($status -ne $playing) { return $null }
-
-        $props = Await-WinRTTask ($Session.TryGetMediaPropertiesAsync()) ([Windows.Media.MediaProperties.MusicDisplayProperties])
-        $title = $props.Title
-        $artist = $props.Artist
-
-        if ($title -and $artist) { return "$Icon $title - $artist" }
-        if ($title) { return "$Icon $title" }
-        if ($Fallback) { return "$Icon $Fallback" }
-    } catch {}
-
-    return $null
-}
-
-function Get-MediaManager {
-    if (-not (Initialize-MediaControls)) { return $null }
-    try {
-        return Await-WinRTTask `
-            ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) `
-            ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
-    } catch {
-        return $null
-    }
+    return $map
 }
 
 function Get-ForegroundMusicAppKey {
     $fg = Get-ForegroundProcessName
     if (-not $fg) { return $null }
-    foreach ($entry in $script:MusicProcessNames.GetEnumerator()) {
+    $musicMap = Get-MusicProcessNamesFromConfig
+    foreach ($entry in $musicMap.GetEnumerator()) {
         foreach ($name in $entry.Value) {
             if ($fg -ieq $name) { return $entry.Key }
         }
@@ -125,17 +88,15 @@ function Initialize-MediaControls {
     try {
         Add-Type -AssemblyName System.Runtime.WindowsRuntime
         $script:AwaitMethod = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
-            $_.Name -eq "AsTask" -and
-            $_.GetParameters().Count -eq 1 -and
+            $_.Name -eq "AsTask" -and $_.GetParameters().Count -eq 1 -and
             $_.GetParameters()[0].ParameterType.Name -eq "IAsyncOperation`1"
         })[0]
         [void][Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime]
         [void][Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus, Windows.Media.Control, ContentType = WindowsRuntime]
+        [void][Windows.Media.MediaProperties.MusicDisplayProperties, Windows.Media, ContentType = WindowsRuntime]
         $script:MediaReady = $true
         return $true
-    } catch {
-        return $false
-    }
+    } catch { return $false }
 }
 
 function Await-WinRTTask {
@@ -147,64 +108,122 @@ function Await-WinRTTask {
 
 function Test-AppMatch {
     param([string]$AppId, [string[]]$Patterns)
+    if (-not $AppId) { return $false }
     foreach ($pat in $Patterns) {
         if ($AppId -match $pat) { return $true }
     }
     return $false
 }
 
-function Get-MediaPlayingStatus {
-    param($Meta, [string[]]$AppPatterns)
-
-    $manager = Get-MediaManager
-    if (-not $manager) { return $null }
-
-    try {
-        $session = $null
-        foreach ($s in $manager.GetSessions()) {
-            if (Test-AppMatch $s.SourceAppUserModelId $AppPatterns) {
-                $session = $s
-                break
-            }
-        }
-
-        if (-not $session) {
-            $current = $manager.GetCurrentSession()
-            if ($current -and (Test-AppMatch $current.SourceAppUserModelId $AppPatterns)) {
-                $session = $current
-            }
-        }
-
-        if (-not $session) { return $null }
-
-        return Get-SessionMusicLine -Session $session -Icon $Meta.icon -Fallback $Meta.fallback
-    } catch {
-        return $null
+function Get-AllMusicAppPatterns {
+    $patterns = @()
+    foreach ($prop in $config.musicApps.PSObject.Properties) {
+        if ($prop.Value.match) { $patterns += @($prop.Value.match) }
     }
+    return ($patterns | Select-Object -Unique)
 }
 
-function Get-AnyPlayingMusicStatus {
-    foreach ($prop in $config.musicApps.PSObject.Properties) {
-        $patterns = $script:MusicProcessNames[$prop.Name]
-        if (-not $patterns) { $patterns = @($prop.Name) }
-        $status = Get-MediaPlayingStatus -Meta $prop.Value -AppPatterns $patterns
-        if ($status) { return $status }
-    }
+function Get-MediaManager {
+    if (-not (Initialize-MediaControls)) { return $null }
+    try {
+        return Await-WinRTTask `
+            ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) `
+            ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
+    } catch { return $null }
+}
 
+function Get-SessionPlaybackInfo {
+    param($Session)
+    if (-not $Session) { return $null }
+    try {
+        $playing = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing
+        if ($Session.GetPlaybackInfo().PlaybackStatus -ne $playing) { return $null }
+        $props = Await-WinRTTask ($Session.TryGetMediaPropertiesAsync()) ([Windows.Media.MediaProperties.MusicDisplayProperties])
+        return @{
+            Title  = [string]$props.Title
+            Artist = [string]$props.Artist
+            AppId  = [string]$Session.SourceAppUserModelId
+        }
+    } catch { return $null }
+}
+
+function Get-AnyPlayingMusicInfo {
     $manager = Get-MediaManager
     if (-not $manager) { return $null }
 
-    try {
-        $current = $manager.GetCurrentSession()
-        $line = Get-SessionMusicLine -Session $current
-        if ($line) { return $line }
+    $knownPatterns = Get-AllMusicAppPatterns
+    $genericMatch = $null
+    $seen = @{}
 
+    try {
         foreach ($s in $manager.GetSessions()) {
-            $line = Get-SessionMusicLine -Session $s
-            if ($line) { return $line }
+            $info = Get-SessionPlaybackInfo $s
+            if (-not $info) { continue }
+            if ($seen[$info.AppId]) { continue }
+            $seen[$info.AppId] = $true
+            if (Test-AppMatch $info.AppId $knownPatterns) { return $info }
+            if (-not $genericMatch -and ($info.Title -or $info.Artist)) { $genericMatch = $info }
+        }
+
+        $current = $manager.GetCurrentSession()
+        $currentInfo = Get-SessionPlaybackInfo $current
+        if ($currentInfo) {
+            if (Test-AppMatch $currentInfo.AppId $knownPatterns) { return $currentInfo }
+            if (-not $genericMatch) { $genericMatch = $currentInfo }
         }
     } catch {}
 
+    return $genericMatch
+}
+
+function Test-MusicPlayerRunning {
+    foreach ($name in $script:MusicExeNames) {
+        if (Get-Process -Name $name -ErrorAction SilentlyContinue) { return $true }
+    }
+    return $false
+}
+
+function Get-MusicInfoFromWindowTitle {
+    foreach ($name in $script:MusicExeNames) {
+        $proc = Get-Process -Name $name -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle } | Select-Object -First 1
+        if (-not $proc) { continue }
+
+        $title = [string]$proc.MainWindowTitle.Trim()
+        if (-not $title) { continue }
+
+        $title = $title -replace '\s*-\s*网易云音乐.*$',''
+        $title = $title -replace '\s*-\s*NetEase.*$',''
+        $title = $title -replace '\s*-\s*QQ音乐.*$',''
+        $title = $title.Trim()
+        if (-not $title) { continue }
+
+        if ($title -match '^(?<song>.+?)\s*-\s*(?<artist>.+)$') {
+            return @{ Title = $matches.song.Trim(); Artist = $matches.artist.Trim(); AppId = $name }
+        }
+        return @{ Title = $title; Artist = ''; AppId = $name }
+    }
+    return $null
+}
+
+function Get-MusicAppLabel {
+    param([string]$Key)
+    if (-not $Key) { return $null }
+    if ($config.musicApps.PSObject.Properties.Name -contains $Key) {
+        return [string]$config.musicApps.$Key.name
+    }
+    return $null
+}
+
+function Format-ListeningLine {
+    param($Info, [string]$FallbackName = '')
+    $pfx = [string]$config.listeningPrefix
+    if (-not $pfx) { $pfx = 'listening' }
+
+    if ($Info -and $Info.Title) {
+        if ($Info.Artist) { return "$pfx $($Info.Title) - $($Info.Artist)" }
+        return "$pfx $($Info.Title)"
+    }
+    if ($FallbackName) { return "$pfx $FallbackName" }
     return $null
 }
 
@@ -212,17 +231,14 @@ function Get-ForegroundProcessStatus {
     $fg = Get-ForegroundProcessName
     if (-not $fg) { return $null }
     foreach ($prop in $config.processes.PSObject.Properties) {
-        if ($fg -ieq $prop.Name) {
-            return $prop.Value
-        }
+        if ($fg -ieq $prop.Name) { return $prop.Value }
     }
-    $skip = @(
-        'explorer', 'SearchHost', 'ShellExperienceHost', 'ApplicationFrameHost',
-        'SystemSettings', 'powershell', 'pwsh', 'cmd', 'WindowsTerminal',
-        'python', 'TextInputHost', 'StartMenuExperienceHost', 'msedgewebview2'
-    )
+    $skip = @('explorer','SearchHost','ShellExperienceHost','ApplicationFrameHost','SystemSettings',
+        'powershell','pwsh','cmd','WindowsTerminal','python','TextInputHost','StartMenuExperienceHost','msedgewebview2')
     if ($skip -notcontains $fg) {
-        return "💻 在用 $fg"
+        $pfx = [string]$config.unknownProcessPrefix
+        if (-not $pfx) { $pfx = 'using' }
+        return "$pfx $fg"
     }
     return $null
 }
@@ -234,25 +250,39 @@ function Get-StatusText {
         return 'zzz'
     }
 
-    $parts = @()
     $fgMusicKey = Get-ForegroundMusicAppKey
-
-    $musicStatus = Get-AnyPlayingMusicStatus
-    if ($musicStatus) {
-        $parts += $musicStatus
-    } elseif ($fgMusicKey -and $config.musicApps.PSObject.Properties.Name -contains $fgMusicKey) {
-        $meta = $config.musicApps.$fgMusicKey
-        $parts += "$($meta.icon) $($meta.fallback)"
-    }
-
+    $musicInfo = Get-AnyPlayingMusicInfo
+    if (-not $musicInfo) { $musicInfo = Get-MusicInfoFromWindowTitle }
     $fgStatus = Get-ForegroundProcessStatus
-    if ($fgStatus -and -not $fgMusicKey) {
-        $parts += $fgStatus
+    $sep = [string]$config.statusSeparator
+    if (-not $sep) { $sep = ' | ' }
+
+    $listenLine = $null
+    if ($musicInfo) {
+        $listenLine = Format-ListeningLine $musicInfo
+    } elseif ($fgMusicKey) {
+        $listenLine = Format-ListeningLine $null (Get-MusicAppLabel $fgMusicKey)
+    } elseif (Test-MusicPlayerRunning) {
+        $listenLine = Format-ListeningLine $null (Get-MusicAppLabel 'cloudmusic')
     }
 
-    if ($parts.Count -eq 0) { return $config.default }
-    $sep = ' ' + [char]0x00B7 + ' '
-    return ($parts -join $sep)
+    if ($listenLine -and $fgStatus -and -not $fgMusicKey) {
+        return "$listenLine$sep$fgStatus"
+    }
+    if ($listenLine) { return $listenLine }
+    if ($fgStatus) { return $fgStatus }
+    return $config.default
+}
+
+function Invoke-GitStep {
+    param([string[]]$Args)
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $output = & git @Args 2>&1
+    $code = $LASTEXITCODE
+    $ErrorActionPreference = $prev
+    foreach ($line in $output) { if ($line) { Write-Host "  $line" } }
+    return ($code -eq 0)
 }
 
 $script:LastPushTime = [datetime]::MinValue
@@ -277,9 +307,7 @@ function Update-StatusFile {
         $elapsed = ((Get-Date) - $script:LastPushTime).TotalSeconds
         $textChanged = ($prev -ne $text)
         if ($textChanged -or $elapsed -ge $script:PushHeartbeatSeconds) {
-            if (Push-StatusToGit) {
-                $script:LastPushTime = Get-Date
-            }
+            if (Push-StatusToGit) { $script:LastPushTime = Get-Date }
         }
     }
 }
@@ -287,12 +315,12 @@ function Update-StatusFile {
 function Push-StatusToGit {
     Push-Location $repoRoot
     try {
-        git pull --rebase --autostash origin main 2>&1 | Out-Host
+        [void](Invoke-GitStep -Args @('pull','--rebase','--autostash','origin','main'))
         $dirty = git status --porcelain status.json 2>$null
         if (-not $dirty) { return $true }
-        git add status.json
-        git commit -m "chore: update live status [skip vercel]"
-        git push origin main 2>&1 | Out-Host
+        if (-not (Invoke-GitStep -Args @('add','status.json'))) { return $false }
+        if (-not (Invoke-GitStep -Args @('commit','-m','chore: update live status [skip vercel]'))) { return $false }
+        if (-not (Invoke-GitStep -Args @('push','origin','main'))) { return $false }
         Write-Host "  pushed to GitHub"
         return $true
     } catch {
