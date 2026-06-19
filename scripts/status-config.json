@@ -8,7 +8,7 @@
   "statusSeparator": " · ",
   "displayMode": "merge",
   "carouselSeconds": 8,
-  "pushHeartbeatSeconds": 5,
+  "pushHeartbeatSeconds": 60,
   "syncIntervalSeconds": 5,
   "statusPostUrl": "https://www.shiloku.cn/api/status/update",
   "unknownProcessPrefix": "在用",
@@ -35,7 +35,9 @@
     "obs64": "OBS",
     "blender": "Blender",
     "Unity": "Unity",
-    "UnrealEditor": "Unreal Engine"
+    "UnrealEditor": "Unreal Engine",
+    "clash-verge": "Clash Verge",
+    "Clash Verge": "Clash Verge"
   },
   "windowTitleSuffixes": ["网易云音乐", "NetEase Cloud Music", "QQ音乐", "QQ Music", "Spotify"],
   "neteaseIdleWindowTitles": ["私人漫游", "Private Radio", "云音乐"],

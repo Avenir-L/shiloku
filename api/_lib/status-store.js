@@ -68,21 +68,35 @@ async function readFromGist() {
 
 export async function writeToGist(payload) {
     if (!hasGist()) return false;
-    const response = await fetch(`https://api.github.com/gists/${process.env.STATUS_GIST_ID}`, {
-        method: 'PATCH',
-        headers: {
-            Accept: 'application/vnd.github+json',
-            Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-            'Content-Type': 'application/json',
-            'User-Agent': 'shiloku-status',
+    const body = JSON.stringify({
+        files: {
+            'status.json': { content: JSON.stringify(payload) },
         },
-        body: JSON.stringify({
-            files: {
-                'status.json': { content: JSON.stringify(payload) },
-            },
-        }),
     });
-    return response.ok;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+            const response = await fetch(`https://api.github.com/gists/${process.env.STATUS_GIST_ID}`, {
+                method: 'PATCH',
+                headers: {
+                    Accept: 'application/vnd.github+json',
+                    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'shiloku-status',
+                },
+                body,
+            });
+            if (response.ok) return true;
+            if (response.status === 403 || response.status === 429) {
+                await new Promise((resolve) => setTimeout(resolve, 800 * (attempt + 1)));
+                continue;
+            }
+            return false;
+        } catch {
+            if (attempt === 2) return false;
+            await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+        }
+    }
+    return false;
 }
 
 async function fetchLegacyUrl(url) {

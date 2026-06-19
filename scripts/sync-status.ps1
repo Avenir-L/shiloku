@@ -582,17 +582,18 @@ function Get-ForegroundProcessStatus {
 }
 
 $script:LastPushTime = [datetime]::MinValue
+$script:RemotePostBlockedUntil = [datetime]::MinValue
 
 function Get-PushHeartbeatSeconds {
+    $sec = 60
     if ($config.pushHeartbeatSeconds) {
         $sec = [int]$config.pushHeartbeatSeconds
-        if ($sec -ge 3) { return $sec }
-    }
-    if ($config.syncIntervalSeconds) {
+    } elseif ($config.syncIntervalSeconds) {
         $sec = [int]$config.syncIntervalSeconds
-        if ($sec -ge 3) { return $sec }
     }
-    return 5
+    if ($Post -and $sec -lt 30) { $sec = 30 }
+    if ($sec -lt 3) { $sec = 3 }
+    return $sec
 }
 
 function Get-StatusFingerprint {
@@ -724,11 +725,6 @@ function Update-StatusFile {
     $heartbeatDue = ($script:LastPushTime -eq [datetime]::MinValue) -or ($elapsed -ge $heartbeatSec)
     $shouldWrite = $textChanged -or $heartbeatDue -or -not (Test-Path $statusFile)
 
-    if ($Post) {
-        $shouldWrite = $true
-        $heartbeatDue = $true
-    }
-
     if (-not $shouldWrite) {
         Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (unchanged) $text"
         return
@@ -757,7 +753,11 @@ function Update-StatusFile {
     }
 
     if ($Post) {
-        if (Send-StatusRemote -PayloadJson $payloadJson) { $script:LastPushTime = Get-Date }
+        if (-not $textChanged -and -not (Test-RemotePostAllowed)) {
+            Write-Host '  (skip post: rate limit cooldown)'
+        } elseif (Send-StatusRemote -PayloadJson $payloadJson) {
+            $script:LastPushTime = Get-Date
+        }
     } elseif ($Push -and ($textChanged -or $heartbeatDue)) {
         Write-Host '  (warning: -Push uses Git and may trigger Vercel; use -Post instead)'
         if (Push-StatusToGit -PayloadJson $payloadJson) { $script:LastPushTime = Get-Date }
@@ -780,13 +780,60 @@ function Get-StatusSyncSecret {
     return [string]$env:STATUS_SYNC_SECRET
 }
 
+function Test-RemotePostAllowed {
+    return (Get-Date) -ge $script:RemotePostBlockedUntil
+}
+
+function Set-RemotePostRateLimited {
+    param([int]$Seconds = 300)
+    $script:RemotePostBlockedUntil = (Get-Date).AddSeconds($Seconds)
+    Write-Host "  (remote post paused ${Seconds}s: GitHub rate limit)"
+}
+
+function Send-StatusGistDirect {
+    param([string]$PayloadJson)
+    $metaFile = Join-Path $PSScriptRoot '.status-remote.json'
+    if (-not (Test-Path $metaFile)) { return $false }
+
+    $gistId = $null
+    try {
+        $gistId = [string](Get-Content $metaFile -Raw -Encoding UTF8 | ConvertFrom-Json).gistId
+    } catch {}
+    if (-not $gistId) { return $false }
+
+    $token = $null
+    try { $token = (& gh auth token 2>$null) } catch {}
+    if (-not $token) { return $false }
+    $token = $token.Trim()
+    if (-not $token) { return $false }
+
+    try {
+        $body = @{
+            files = @{
+                'status.json' = @{ content = $PayloadJson }
+            }
+        } | ConvertTo-Json -Depth 4 -Compress
+        Invoke-RestMethod -Uri "https://api.github.com/gists/$gistId" -Method Patch -Headers @{
+            Authorization = "Bearer $token"
+            Accept        = 'application/vnd.github+json'
+            'User-Agent'  = 'shiloku-sync'
+        } -Body $body -ContentType 'application/json; charset=utf-8' -TimeoutSec 20 | Out-Null
+        Write-Host '  posted to gist directly (API fallback)'
+        return $true
+    } catch {
+        Write-Host "  gist direct failed: $_"
+        if ("$_" -match 'rate limit') { Set-RemotePostRateLimited -Seconds 600 }
+        return $false
+    }
+}
+
 function Send-StatusRemote {
     param([string]$PayloadJson)
     $url = Get-StatusPostUrl
     $secret = Get-StatusSyncSecret
     if (-not $url -or -not $secret) {
         Write-Host '  (skip post: missing statusPostUrl or statusSyncSecret)'
-        return $false
+        return (Send-StatusGistDirect -PayloadJson $PayloadJson)
     }
     try {
         $payloadObj = $PayloadJson | ConvertFrom-Json
@@ -796,7 +843,8 @@ function Send-StatusRemote {
         return $true
     } catch {
         Write-Host "  post failed: $_"
-        return $false
+        if ("$_" -match 'rate limit|写入状态失败') { Set-RemotePostRateLimited -Seconds 120 }
+        return (Send-StatusGistDirect -PayloadJson $PayloadJson)
     }
 }
 
