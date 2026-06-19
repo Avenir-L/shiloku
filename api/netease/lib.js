@@ -3,6 +3,29 @@ const neteaseHeaders = {
     'User-Agent': 'Mozilla/5.0',
 };
 
+const PAGE_RAW_SIZE = 30;
+
+function parseNeteaseCookie(raw) {
+    const cookie = String(raw || '').trim();
+    if (!cookie) return '';
+    if (!cookie.startsWith('# Netscape') && !cookie.includes('\t')) return cookie;
+    const parts = [];
+    for (const line of cookie.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const cols = trimmed.split('\t');
+        if (cols.length >= 7 && cols[5]) parts.push(`${cols[5]}=${cols[6]}`);
+    }
+    return parts.join('; ');
+}
+
+function getNeteaseHeaders(extra = {}) {
+    const headers = { ...neteaseHeaders, ...extra };
+    const cookie = parseNeteaseCookie(process.env.NETEASE_COOKIE);
+    if (cookie) headers.Cookie = cookie;
+    return headers;
+}
+
 const playableUrlCache = new Map();
 const searchCache = new Map();
 const playableUrlCacheTtl = 1000 * 60 * 10;
@@ -27,7 +50,7 @@ export async function getNeteasePlayableUrl(id) {
     if (cached && cached.expiresAt > Date.now()) return cached.url;
 
     const url = `https://music.163.com/api/song/enhance/player/url?id=${encodeURIComponent(id)}&ids=%5B${encodeURIComponent(id)}%5D&br=320000`;
-    const response = await fetch(url, { headers: neteaseHeaders });
+    const response = await fetch(url, { headers: getNeteaseHeaders() });
     const data = await response.json();
     const playableUrl = data?.data?.[0]?.url || null;
     playableUrlCache.set(id, { url: playableUrl, expiresAt: Date.now() + playableUrlCacheTtl });
@@ -54,31 +77,31 @@ export async function filterPlayableSongs(rawSongs, resultLimit) {
     return playableSongs;
 }
 
-export async function searchNetease(keywords, resultLimit = 12) {
-    const cacheKey = `${keywords.toLowerCase()}::${resultLimit}`;
+export async function searchNetease(keywords, resultLimit = 12, offset = 0) {
+    offset = Math.max(0, Number(offset) || 0);
+    const fetchLimit = PAGE_RAW_SIZE;
+    const cacheKey = `${keywords.toLowerCase()}::${offset}::${resultLimit}::${fetchLimit}`;
     const cached = searchCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
-        return { songs: cached.songs, cached: true };
+        return { ...cached.payload, cached: true };
     }
 
     const body = new URLSearchParams({
         s: keywords,
         type: '1',
-        offset: '0',
+        offset: String(offset),
         total: 'true',
-        limit: String(Math.min(resultLimit * 3, 60)),
+        limit: String(fetchLimit),
     });
 
     const response = await fetch('https://music.163.com/api/search/get/web', {
         method: 'POST',
-        headers: {
-            ...neteaseHeaders,
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: getNeteaseHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
         body,
     });
     const data = await response.json();
-    const rawSongs = (data?.result?.songs || []).map((song) => ({
+    const result = data?.result || {};
+    const rawSongs = (result.songs || []).map((song) => ({
         id: song.id,
         name: song.name,
         artist: (song.artists || []).map((artist) => artist.name).filter(Boolean).join(' / '),
@@ -88,14 +111,25 @@ export async function searchNetease(keywords, resultLimit = 12) {
         fee: song.fee,
     }));
     const songs = await filterPlayableSongs(rawSongs, resultLimit);
-    searchCache.set(cacheKey, { songs, expiresAt: Date.now() + searchCacheTtl });
-    return { songs };
+    const total = Number(result.songCount || 0);
+    const fetched = rawSongs.length;
+    const hasMore = offset + fetched < total;
+    const payload = {
+        songs,
+        total,
+        offset,
+        pageSize: PAGE_RAW_SIZE,
+        hasMore,
+        nextOffset: hasMore ? offset + fetched : offset,
+    };
+    searchCache.set(cacheKey, { payload, expiresAt: Date.now() + searchCacheTtl });
+    return payload;
 }
 
 export async function fetchNeteaseLyric(id) {
     const response = await fetch(
         `https://music.163.com/api/song/lyric?id=${encodeURIComponent(id)}&lv=-1&kv=-1&tv=-1`,
-        { headers: neteaseHeaders }
+        { headers: getNeteaseHeaders() }
     );
     const data = await response.json();
     return {
@@ -108,7 +142,7 @@ export async function proxyNeteaseAudio(id, reqHeaders) {
     const playableUrl = await getNeteasePlayableUrl(id);
     if (!playableUrl) return null;
 
-    const headers = { ...neteaseHeaders };
+    const headers = getNeteaseHeaders();
     if (reqHeaders.range) headers.Range = reqHeaders.range;
 
     const audioResponse = await fetch(playableUrl, { headers });

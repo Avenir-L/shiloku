@@ -1,5 +1,5 @@
 {
-  "ignoreCommand": "bash -c 'c=$(git diff HEAD^ HEAD --name-only); [ \"$c\" = \"status.json\" ]'",
+  "ignoreCommand": "bash -c 'files=$(git diff --name-only HEAD^ HEAD 2>/dev/null | tr -d \"\\r\"); if [ \"$files\" = \"status.json\" ]; then exit 0; else exit 1; fi'",
   "headers": [
     {
       "source": "/status.json",

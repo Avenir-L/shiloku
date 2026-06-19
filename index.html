@@ -1681,12 +1681,51 @@ body.music-room-open .footer-notice {
 }
 
 #netease-results li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     padding: 12px;
     border-radius: 12px;
     cursor: pointer;
     margin-bottom: 6px;
     color: rgba(255,255,255,0.78);
     transition: background 0.25s ease;
+}
+
+#netease-results .result-body {
+    flex: 1;
+    min-width: 0;
+}
+
+#netease-results .result-add-btn {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.85);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+#netease-results .result-add-btn:hover {
+    background: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.35);
+    transform: scale(1.05);
+}
+
+#netease-results .result-add-btn.in-list {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+#playlist li .playlist-tag {
+    font-size: 10px;
+    opacity: 0.55;
+    letter-spacing: 0.5px;
 }
 
 #netease-results li:hover { background: rgba(255,255,255,0.08); }
@@ -2293,15 +2332,26 @@ body.music-room-open .footer-notice {
         }
 
         async function fetchRemoteStatus() {
+            const payloads = [];
             for (const base of STATUS_SOURCES) {
                 try {
                     const res = await fetch(base + (base.includes('?') ? '&' : '?') + 't=' + Date.now());
                     if (!res.ok) continue;
-                    const data = await res.json();
-                    applyRemoteStatus(data);
-                    return;
+                    payloads.push(await res.json());
                 } catch (_) { /* try next source */ }
             }
+            if (!payloads.length) return;
+
+            let best = payloads[0];
+            let bestTime = parseStatusTime(best.updatedAt);
+            for (let i = 1; i < payloads.length; i++) {
+                const t = parseStatusTime(payloads[i].updatedAt);
+                if (Number.isFinite(t) && (!Number.isFinite(bestTime) || t > bestTime)) {
+                    best = payloads[i];
+                    bestTime = t;
+                }
+            }
+            applyRemoteStatus(best);
         }
 
         window.setStatus = function(text, options = {}) {
@@ -2674,7 +2724,7 @@ body.music-room-open .footer-notice {
             <span id="netease-page-info"></span>
             <button type="button" id="netease-next-btn" disabled>下一页</button>
         </div>
-        <p class="netease-tip">仅供个人学习使用，会员歌曲可能无法播放。</p>
+        <p class="netease-tip">点击歌曲播放；点右侧 + 加入播放列表（刷新后列表恢复为本地歌曲）。</p>
     </aside>
 
     <div class="aether-ui">
@@ -2838,7 +2888,7 @@ body.music-room-open .footer-notice {
         }
     });
 // ================== 音乐室核心逻辑（搭载全自动 LRC 解析引擎 + 极限性能懒加载版） ==================
-const songs = [
+const LOCAL_SONGS = [
     {
         title: "Listen",
         artist: "ONE OK ROCK / Avril Lavigne",
@@ -2877,7 +2927,7 @@ const songs = [
     },
 ];
 
-
+let songs = [...LOCAL_SONGS];
 let currentSongIndex = 0;
 let isPlaying = false;
 let currentLyricIndex = -1; 
@@ -2886,9 +2936,6 @@ let isAudioLoaded = false;
 let playMode = 'list'; // list | one
 let shuffleOn = false;
 let playHistory = [];
-let playbackSource = 'local';
-let neteaseQueue = [];
-let currentNeteaseId = null;
 let neteaseResults = [];
 let neteaseSearchOffset = 0;
 let neteaseSearchTotal = 0;
@@ -3084,13 +3131,48 @@ async function initPlayer() {
 }
 
 function getListenText() {
-    if (playbackSource === 'netease') {
-        const song = neteaseQueue.find((item) => item.id === currentNeteaseId);
-        if (!song) return '正在听歌';
-        return song.artist ? `正在听 ${song.name} - ${song.artist}` : `正在听 ${song.name}`;
-    }
     const song = songs[currentSongIndex];
+    if (!song) return '正在听歌';
     return song.artist ? `正在听 ${song.title} - ${song.artist}` : `正在听 ${song.title}`;
+}
+
+function neteaseSongToPlaylistEntry(song) {
+    return {
+        title: song.name,
+        artist: song.artist || '未知歌手',
+        neteaseId: song.id,
+        cover: song.cover || '',
+        isNeteaseOnly: true,
+    };
+}
+
+function findNeteasePlaylistIndex(neteaseId) {
+    return songs.findIndex((item) => item.isNeteaseOnly && item.neteaseId === neteaseId);
+}
+
+function isNeteaseSongInPlaylist(neteaseId) {
+    return findNeteasePlaylistIndex(neteaseId) >= 0;
+}
+
+async function addNeteaseSongToPlaylist(song, { play = false } = {}) {
+    let index = findNeteasePlaylistIndex(song.id);
+    if (index < 0) {
+        songs.push(neteaseSongToPlaylistEntry(song));
+        index = songs.length - 1;
+        renderPlaylist();
+        if (neteaseSearchStatus) neteaseSearchStatus.textContent = `已加入播放列表：${song.name}`;
+    } else if (neteaseSearchStatus) {
+        neteaseSearchStatus.textContent = `已在列表中：${song.name}`;
+    }
+    renderNeteaseResults();
+    if (play) {
+        playHistory = [];
+        togglePlaylist(false);
+        toggleNeteaseDrawer(false);
+        await playSongAt(index, false);
+        if (!isPlaying) await togglePlay();
+    }
+    return index;
 }
 
 function renderNeteaseResults() {
@@ -3099,11 +3181,19 @@ function renderNeteaseResults() {
     neteaseResults.forEach((song) => {
         const li = document.createElement('li');
         li.dataset.id = String(song.id);
+        const inList = isNeteaseSongInPlaylist(song.id);
         li.innerHTML = `
-            <div class="result-name">${song.name}</div>
-            <div class="result-meta">${song.artist || '未知歌手'}${song.album ? ` · ${song.album}` : ''}</div>
+            <div class="result-body">
+                <div class="result-name">${song.name}</div>
+                <div class="result-meta">${song.artist || '未知歌手'}${song.album ? ` · ${song.album}` : ''}</div>
+            </div>
+            <button type="button" class="result-add-btn${inList ? ' in-list' : ''}" title="${inList ? '已在列表' : '加入播放列表'}" aria-label="${inList ? '已在列表' : '加入播放列表'}">+</button>
         `;
-        li.addEventListener('click', () => playNeteaseSong(song, neteaseResults));
+        li.querySelector('.result-body').addEventListener('click', () => playNeteaseSong(song));
+        li.querySelector('.result-add-btn').addEventListener('click', (event) => {
+            event.stopPropagation();
+            addNeteaseSongToPlaylist(song);
+        });
         neteaseResultsEl.appendChild(li);
     });
     updateNeteaseHighlight();
@@ -3111,8 +3201,10 @@ function renderNeteaseResults() {
 
 function updateNeteaseHighlight() {
     if (!neteaseResultsEl) return;
+    const current = songs[currentSongIndex];
+    const activeId = current?.isNeteaseOnly ? current.neteaseId : null;
     neteaseResultsEl.querySelectorAll('li').forEach((li) => {
-        li.classList.toggle('active', playbackSource === 'netease' && li.dataset.id === String(currentNeteaseId));
+        li.classList.toggle('active', activeId && li.dataset.id === String(activeId));
     });
 }
 
@@ -3208,81 +3300,14 @@ async function checkNeteaseApi() {
     }
 }
 
-async function loadNeteaseSong(song, queue) {
-    playbackSource = 'netease';
-    if (queue) neteaseQueue = queue;
-    currentNeteaseId = song.id;
-
-    isAudioLoaded = false;
-    audio.pause();
-    audio.removeAttribute('src');
-    audio.load();
-    updateProgressUI();
-
-    songTitle.innerText = song.name;
-    songArtist.innerText = `${song.artist || '未知歌手'} · NETEASE`;
-    if (song.cover) {
-        crossfadeCover(song.cover);
-        applyCoverAccent(song.cover);
-    } else {
-        crossfadeCover('avatar.jpg');
-    }
-
-    lyricsList.innerHTML = '<li class="lyric-placeholder"><span class="lyric-dot"></span><div class="lyric-body"><div class="lyric-text">正在加载歌词...</div></div></li>';
-    currentLyricsData = [];
-    currentLyricIndex = -1;
-    lyricItemsCache = [];
-    lyricAnchorCenters = [];
-    lyricScrollY = 0;
-    resetLyricScrollTransform();
-
-    try {
-        const lyricRes = await fetch(`/api/netease/lyric?id=${encodeURIComponent(song.id)}`);
-        const lyricData = await lyricRes.json();
-        const lyricText = lyricData.lyric || lyricData.translatedLyric || '';
-        currentLyricsData = lyricText ? parseLRCText(lyricText) : [];
-    } catch (error) {
-        currentLyricsData = [];
-    }
-    renderLyrics();
-
-    const urlRes = await fetch(`/api/netease/url?id=${encodeURIComponent(song.id)}`);
-    const urlData = await urlRes.json();
-    if (!urlData.url) throw new Error('无法播放');
-
-    audio.src = `/api/netease/audio?id=${encodeURIComponent(song.id)}`;
-    isAudioLoaded = true;
-    audio.addEventListener('loadedmetadata', updateProgressUI, { once: true });
-    updatePlaylistHighlight();
-    updateNeteaseHighlight();
-}
-
-async function playNeteaseSong(song, queue) {
+async function playNeteaseSong(song) {
     try {
         if (neteaseSearchStatus) neteaseSearchStatus.textContent = '正在加载...';
-        await loadNeteaseSong(song, queue || neteaseResults);
-        toggleNeteaseDrawer(false);
-        togglePlaylist(false);
-        if (!isPlaying) togglePlay();
-        else await audio.play();
+        await addNeteaseSongToPlaylist(song, { play: true });
         if (neteaseSearchStatus) neteaseSearchStatus.textContent = '';
     } catch (error) {
         if (neteaseSearchStatus) neteaseSearchStatus.textContent = '这首歌暂时播不了，换一首试试';
     }
-}
-
-function getNeteaseStepIndex(direction) {
-    if (!neteaseQueue.length) return -1;
-    const currentIndex = neteaseQueue.findIndex((song) => song.id === currentNeteaseId);
-    const baseIndex = currentIndex >= 0 ? currentIndex : 0;
-    if (shuffleOn && neteaseQueue.length > 1) {
-        let nextIndex = baseIndex;
-        do {
-            nextIndex = Math.floor(Math.random() * neteaseQueue.length);
-        } while (nextIndex === currentIndex);
-        return nextIndex;
-    }
-    return (baseIndex + direction + neteaseQueue.length) % neteaseQueue.length;
 }
 
 function setupNeteaseSearch() {
@@ -3352,11 +3377,21 @@ async function applySongAudioSrc(song) {
     return true;
 }
 
+async function loadNeteaseLyrics(neteaseId) {
+    try {
+        const lyricRes = await fetch(`/api/netease/lyric?id=${encodeURIComponent(neteaseId)}`);
+        const lyricData = await lyricRes.json();
+        const lyricText = lyricData.lyric || lyricData.translatedLyric || '';
+        return lyricText ? parseLRCText(lyricText) : [];
+    } catch {
+        return [];
+    }
+}
+
 // 🔄 异步加载控制器：现在只“虚空加载”颜值，绝对不碰音频文件
 async function loadSong(index) {
-    playbackSource = 'local';
-    currentNeteaseId = null;
     const song = songs[index];
+    if (!song) return;
 
     isAudioLoaded = false;
     audio.removeAttribute('src');
@@ -3364,10 +3399,16 @@ async function loadSong(index) {
     updateProgressUI();
 
     songTitle.innerText = song.title;
-    songArtist.innerText = `${song.artist} · LOCAL`;
-    crossfadeCover(song.cover);
-    crossfadeBg();
-    applyCoverAccent(song.cover);
+    songArtist.innerText = song.isNeteaseOnly
+        ? `${song.artist} · NETEASE`
+        : `${song.artist} · LOCAL`;
+
+    const coverUrl = song.cover || (song.isNeteaseOnly ? 'avatar.jpg' : song.cover);
+    if (coverUrl) {
+        crossfadeCover(coverUrl);
+        crossfadeBg();
+        applyCoverAccent(coverUrl);
+    }
 
     lyricsList.innerHTML = '<li class="lyric-placeholder"><span class="lyric-dot"></span><div class="lyric-body"><div class="lyric-text">正在启动歌词引擎...</div></div></li>';
     currentLyricsData = [];
@@ -3379,6 +3420,8 @@ async function loadSong(index) {
 
     if (song.lrc) {
         currentLyricsData = await fetchAndParseLRC(song.lrc);
+    } else if (song.isNeteaseOnly && song.neteaseId) {
+        currentLyricsData = await loadNeteaseLyrics(song.neteaseId);
     }
 
     renderLyrics();
@@ -3855,11 +3898,7 @@ function formatTime(seconds) {
 async function togglePlay() {
     if (!isAudioLoaded) {
         const loaded = await applySongAudioSrc(songs[currentSongIndex]);
-        if (!loaded && playbackSource === 'netease' && currentNeteaseId) {
-            audio.src = `/api/netease/audio?id=${encodeURIComponent(currentNeteaseId)}`;
-            isAudioLoaded = true;
-            audio.addEventListener('loadedmetadata', updateProgressUI, { once: true });
-        }
+        if (!loaded) return;
     }
 
     if (isPlaying) {
@@ -3898,29 +3937,14 @@ async function onTrackEnded() {
         await audio.play();
         return;
     }
-    if (playbackSource === 'netease' && neteaseQueue.length > 0) {
-        const nextIndex = getNeteaseStepIndex(1);
-        if (nextIndex >= 0) await playNeteaseSong(neteaseQueue[nextIndex], neteaseQueue);
-        return;
-    }
     await playSongAt(getNextIndex(), shuffleOn);
 }
 
 async function nextSong() {
-    if (playbackSource === 'netease' && neteaseQueue.length > 0) {
-        const nextIndex = getNeteaseStepIndex(1);
-        if (nextIndex >= 0) await playNeteaseSong(neteaseQueue[nextIndex], neteaseQueue);
-        return;
-    }
     await playSongAt(getNextIndex(), shuffleOn);
 }
 
 async function prevSong() {
-    if (playbackSource === 'netease' && neteaseQueue.length > 0) {
-        const prevIndex = getNeteaseStepIndex(-1);
-        if (prevIndex >= 0) await playNeteaseSong(neteaseQueue[prevIndex], neteaseQueue);
-        return;
-    }
     if (shuffleOn && playHistory.length > 0) {
         await playSongAt(playHistory.pop(), false);
     } else {
@@ -3932,24 +3956,23 @@ function renderPlaylist() {
     playlistEl.innerHTML = '';
     songs.forEach((song, index) => {
         const li = document.createElement('li');
-        li.innerHTML = `<span>${song.title}</span> <span style="opacity: 0.5; font-size: 12px;">${song.artist}</span>`;
+        const tag = song.isNeteaseOnly ? '<span class="playlist-tag">NETEASE</span>' : '<span class="playlist-tag">LOCAL</span>';
+        li.innerHTML = `<span>${song.title}</span> ${tag} <span style="opacity: 0.5; font-size: 12px;">${song.artist}</span>`;
         li.addEventListener('click', async () => {
             playHistory = [];
-            document.getElementById('playlist-drawer').classList.remove('show');
-            document.getElementById('playlist-backdrop').classList.remove('show');
+            togglePlaylist(false);
             await playSongAt(index, false);
-            if (!isPlaying) togglePlay();
+            if (!isPlaying) await togglePlay();
         });
         playlistEl.appendChild(li);
     });
     updatePlaylistHighlight();
 }
-// 补上这个函数，否则点击列表时会报错
+
 function updatePlaylistHighlight() {
     const listItems = playlistEl.getElementsByTagName('li');
     for (let i = 0; i < listItems.length; i++) {
-        const active = playbackSource === 'local' && i === currentSongIndex;
-        listItems[i].classList.toggle('active', active);
+        listItems[i].classList.toggle('active', i === currentSongIndex);
     }
     updateNeteaseHighlight();
 }
@@ -3981,7 +4004,7 @@ function togglePlaylist(open) {
 
 // ======= 音量条与列表弹窗控制 =======
 const VOLUME_UI_MAX = 1;
-const VOLUME_OUTPUT_MAX = 0.65;
+const VOLUME_OUTPUT_MAX = 0.5;
 const PAUSE_FADE_MS = 600;
 const volumeSlider = document.getElementById('volume-slider');
 let volumeFadeRafId = null;

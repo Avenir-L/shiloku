@@ -1,5 +1,6 @@
 """Netease Cloud Music proxy helpers (sonic-topography style)."""
 import json
+import os
 import time
 import urllib.parse
 import urllib.request
@@ -14,10 +15,37 @@ _search_cache = {}
 _playable_ttl = 600
 _search_ttl = 300
 PAGE_RAW_SIZE = 30
+_COOKIE_FILE = os.path.join(os.path.dirname(__file__), "netease.cookies.txt")
+
+
+def _cookie_header():
+    cookie = os.environ.get("NETEASE_COOKIE", "").strip()
+    if not cookie and os.path.isfile(_COOKIE_FILE):
+        try:
+            with open(_COOKIE_FILE, encoding="utf-8") as f:
+                cookie = f.read().strip()
+        except OSError:
+            cookie = ""
+    if not cookie:
+        return {}
+    # Netscape cookie jar: extract name=value pairs if user pasted full export
+    if cookie.startswith("# Netscape") or "\t" in cookie:
+        parts = []
+        for line in cookie.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            cols = line.split("\t")
+            if len(cols) >= 7 and cols[5]:
+                parts.append(f"{cols[5]}={cols[6]}")
+        if parts:
+            cookie = "; ".join(parts)
+    return {"Cookie": cookie}
 
 
 def _fetch_json(url, method="GET", data=None, extra_headers=None):
     headers = dict(NETEASE_HEADERS)
+    headers.update(_cookie_header())
     if extra_headers:
         headers.update(extra_headers)
     body = None
@@ -131,6 +159,7 @@ def open_audio_stream(song_id, range_header=None):
     if not playable:
         return None, None
     headers = dict(NETEASE_HEADERS)
+    headers.update(_cookie_header())
     if range_header:
         headers["Range"] = range_header
     req = urllib.request.Request(playable, headers=headers, method="GET")

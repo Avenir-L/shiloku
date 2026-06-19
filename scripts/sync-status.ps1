@@ -245,10 +245,10 @@ function Get-ForegroundProcessStatus {
     return $null
 }
 
-$script:LastPushTime = [datetime]::MinValue
-$script:PushHeartbeatSeconds = 60
 $script:PausedSince = $null
 $script:LastListenLine = $null
+$script:LastPushTime = [datetime]::MinValue
+$script:PushHeartbeatSeconds = 120
 
 function Get-ListeningGraceSeconds {
     if ($config.listeningGraceSeconds) { return [int]$config.listeningGraceSeconds }
@@ -299,37 +299,40 @@ function Get-StatusText {
 }
 
 function Invoke-GitStep {
-    param([string[]]$Args)
+    param([string[]]$GitArguments)
     $prev = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-    $output = & git @Args 2>&1
+    $output = & git @GitArguments 2>&1
     $code = $LASTEXITCODE
     $ErrorActionPreference = $prev
     foreach ($line in $output) { if ($line) { Write-Host "  $line" } }
     return ($code -eq 0)
 }
 
-$script:LastPushTime = [datetime]::MinValue
-$script:PushHeartbeatSeconds = 60
-
 function Update-StatusFile {
     $text = Get-StatusText
+
+    $prevText = $null
+    if (Test-Path $statusFile) {
+        try { $prevText = (Get-Content $statusFile -Raw -Encoding UTF8 | ConvertFrom-Json).text } catch {}
+    }
+
+    $textChanged = ($prevText -ne $text)
     $payload = @{
         text      = $text
         updatedAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
     } | ConvertTo-Json -Compress
 
-    $prev = $null
-    if (Test-Path $statusFile) {
-        try { $prev = (Get-Content $statusFile -Raw -Encoding UTF8 | ConvertFrom-Json).text } catch {}
-    }
-
     [System.IO.File]::WriteAllText($statusFile, $payload, [System.Text.UTF8Encoding]::new($false))
-    Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $text"
+
+    if ($textChanged) {
+        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $text"
+    } else {
+        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (无变化) $text"
+    }
 
     if ($Push) {
         $elapsed = ((Get-Date) - $script:LastPushTime).TotalSeconds
-        $textChanged = ($prev -ne $text)
         if ($textChanged -or $elapsed -ge $script:PushHeartbeatSeconds) {
             if (Push-StatusToGit) { $script:LastPushTime = Get-Date }
         }
@@ -339,12 +342,12 @@ function Update-StatusFile {
 function Push-StatusToGit {
     Push-Location $repoRoot
     try {
-        [void](Invoke-GitStep -Args @('pull','--rebase','--autostash','origin','main'))
+        [void](Invoke-GitStep -GitArguments @('pull','--rebase','--autostash','origin','main'))
         $dirty = git status --porcelain status.json 2>$null
         if (-not $dirty) { return $true }
-        if (-not (Invoke-GitStep -Args @('add','status.json'))) { return $false }
-        if (-not (Invoke-GitStep -Args @('commit','-m','chore: update live status [skip vercel]'))) { return $false }
-        if (-not (Invoke-GitStep -Args @('push','origin','main'))) { return $false }
+        if (-not (Invoke-GitStep -GitArguments @('add','status.json'))) { return $false }
+        if (-not (Invoke-GitStep -GitArguments @('commit','-m','chore: update live status'))) { return $false }
+        if (-not (Invoke-GitStep -GitArguments @('push','origin','main'))) { return $false }
         Write-Host "  pushed to GitHub"
         return $true
     } catch {
