@@ -843,7 +843,7 @@ function Send-StatusRemote {
         return $true
     } catch {
         Write-Host "  post failed: $_"
-        if ("$_" -match 'rate limit|写入状态失败') { Set-RemotePostRateLimited -Seconds 120 }
+        if ("$_" -match 'rate limit|status 500|write') { Set-RemotePostRateLimited -Seconds 120 }
         return (Send-StatusGistDirect -PayloadJson $PayloadJson)
     }
 }
