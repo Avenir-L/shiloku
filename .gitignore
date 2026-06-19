@@ -1,5 +1,6 @@
 scripts/secrets.local.json
 scripts/.preview-server.pid
 scripts/netease.cookies.txt
+scripts/.vercel-token
 scripts/__pycache__/
 .scratch/
