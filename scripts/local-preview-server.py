@@ -181,13 +181,26 @@ class PreviewHandler(SimpleHTTPRequestHandler):
                     chunk = stream.read(64 * 1024)
                     if not chunk:
                         break
-                    self.wfile.write(chunk)
+                    if not self._safe_write(chunk):
+                        break
                 stream.close()
                 return
 
             self._json(404, {"error": "接口不存在"})
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+            return
         except Exception as e:
-            self._json(500, {"error": f"网易云请求失败: {e}"})
+            try:
+                self._json(500, {"error": f"网易云请求失败: {e}"})
+            except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+                return
+
+    def _safe_write(self, data):
+        try:
+            self.wfile.write(data)
+            return True
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+            return False
 
     def _json(self, code, obj):
         raw = json.dumps(obj, ensure_ascii=False).encode("utf-8")
@@ -196,7 +209,7 @@ class PreviewHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(raw)))
         self.end_headers()
-        self.wfile.write(raw)
+        self._safe_write(raw)
 
     def log_message(self, fmt, *args):
         if args and str(args[0]).startswith("POST /api/chat"):
