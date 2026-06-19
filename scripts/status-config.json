@@ -6,6 +6,8 @@
   "listeningPrefix": "正在听",
   "listeningGraceSeconds": 60,
   "statusSeparator": " · ",
+  "displayMode": "merge",
+  "carouselSeconds": 8,
   "unknownProcessPrefix": "在用",
   "windowTitleSuffixes": ["网易云音乐", "NetEase Cloud Music", "QQ音乐", "QQ Music", "Spotify"],
   "processes": {

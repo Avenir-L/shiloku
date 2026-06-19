@@ -433,6 +433,7 @@
             max-width: min(520px, 100%);
         }
 
+        #status-primary,
         #status-text {
             line-height: 1.45;
             word-break: break-word;
@@ -458,6 +459,37 @@
             opacity: 0.85;
             animation: none;
             transform: none;
+        }
+
+        .status-pill.idle .status-dot {
+            background: #f59e0b;
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.45);
+            animation: status-breathe 2.8s ease-in-out infinite;
+        }
+
+        .status-body {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .status-primary {
+            line-height: 1.45;
+            word-break: break-word;
+        }
+
+        .status-secondary {
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.35;
+            color: rgba(255, 255, 255, 0.62);
+            word-break: break-word;
+        }
+
+        .status-pill.is-carousel .status-primary {
+            transition: opacity 0.35s ease;
         }
 
         @keyframes status-breathe {
@@ -2063,8 +2095,11 @@ body.music-room-open .footer-notice {
                     <p class="subtitle">Shiloku</p>
                     <div class="divider"></div>
                     <div class="status-pill" id="status-pill">
-                        <span class="status-dot"></span>
-                        <span id="status-text">在线摸鱼中</span>
+                        <span class="status-dot" aria-hidden="true"></span>
+                        <div class="status-body" id="status-body">
+                            <span class="status-primary" id="status-primary">在线摸鱼中</span>
+                            <span class="status-secondary" id="status-secondary" hidden></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2244,12 +2279,18 @@ body.music-room-open .footer-notice {
         updateBigTime();
         setInterval(updateBigTime, 1000);
 
-        // 在线状态：支持手动配置 + 远程 status.json + 音乐室播放覆盖
+        // 在线状态（FlowTrak / Steam Rich Presence 风格：主行 + 副行，可合并或轮播）
         let remoteStatus = '在线摸鱼中';
+        let remotePresence = { text: '在线摸鱼中', mode: 'online', primary: '在线摸鱼中', lines: ['在线摸鱼中'] };
         let musicStatusOverride = null;
         let musicPausedAt = null;
         let musicPauseTimer = null;
         let statusOffline = false;
+        let statusCarouselTimer = null;
+        let statusCarouselIndex = 0;
+        const statusPrimaryEl = document.getElementById('status-primary');
+        const statusSecondaryEl = document.getElementById('status-secondary');
+        const statusPillEl = document.getElementById('status-pill');
         const MUSIC_PAUSE_GRACE_MS = 60 * 1000;
         const STATUS_OFFLINE_MS = 15 * 60 * 1000;
         const STATUS_OFFLINE_TEXT = '💤 电脑已关机';
@@ -2259,38 +2300,100 @@ body.music-room-open .footer-notice {
             ? ['/api/status', 'status.json']
             : ['/api/status'];
 
-        function stripListeningFromStatus(text) {
-            if (!text || !text.includes('正在听')) return text;
+        function stripListeningFromLines(lines) {
+            if (!Array.isArray(lines) || !lines.length) return lines;
             const sep = ' · ';
-            const parts = text.split(sep);
-            if (parts[0].trim().startsWith('正在听')) {
-                const rest = parts.slice(1).join(sep).trim();
-                return rest || '在线摸鱼中';
-            }
-            return text;
+            const joined = lines.join(sep);
+            if (!joined.includes('正在听')) return lines;
+            const parts = joined.split(sep).filter((p) => !p.trim().startsWith('正在听'));
+            return parts.length ? parts : ['在线摸鱼中'];
         }
 
         function shouldHideListeningStatus() {
             return musicPausedAt && (Date.now() - musicPausedAt >= MUSIC_PAUSE_GRACE_MS);
         }
 
-        function getShownStatusText() {
-            let text = musicStatusOverride || remoteStatus;
-            if (shouldHideListeningStatus()) {
-                text = stripListeningFromStatus(text);
+        function stopStatusCarousel() {
+            if (statusCarouselTimer) {
+                clearInterval(statusCarouselTimer);
+                statusCarouselTimer = null;
             }
-            return text;
+            statusPillEl?.classList.remove('is-carousel');
+        }
+
+        function showPresenceLines(primary, secondary = '') {
+            if (!statusPrimaryEl) return;
+            statusPrimaryEl.textContent = primary || '';
+            if (statusSecondaryEl) {
+                const showSecondary = secondary && secondary !== primary;
+                statusSecondaryEl.textContent = showSecondary ? secondary : '';
+                statusSecondaryEl.hidden = !showSecondary;
+            }
+        }
+
+        function startStatusCarousel(lines, intervalSec = 8) {
+            stopStatusCarousel();
+            if (!lines || lines.length < 2) {
+                showPresenceLines(lines?.[0] || remoteStatus);
+                return;
+            }
+            statusPillEl?.classList.add('is-carousel');
+            statusCarouselIndex = 0;
+            const tick = () => {
+                const line = lines[statusCarouselIndex % lines.length];
+                showPresenceLines(line);
+                statusCarouselIndex += 1;
+            };
+            tick();
+            statusCarouselTimer = setInterval(tick, Math.max(3, intervalSec) * 1000);
+        }
+
+        function renderPresenceView(presence) {
+            const lines = Array.isArray(presence.lines) && presence.lines.length
+                ? presence.lines
+                : [presence.primary || presence.text || remoteStatus];
+            const primary = presence.primary || lines[0] || remoteStatus;
+            const secondary = presence.secondary || (lines.length > 1 ? lines[1] : '');
+
+            if (presence.displayMode === 'carousel' && lines.length > 1) {
+                startStatusCarousel(lines, presence.carouselSeconds || 8);
+                return;
+            }
+            stopStatusCarousel();
+            showPresenceLines(primary, secondary);
         }
 
         function renderStatusText() {
-            const el = document.getElementById('status-text');
-            const pill = document.getElementById('status-pill');
-            if (!el) return;
-            el.innerText = getShownStatusText();
-            if (pill) {
-                const isOffline = statusOffline && !musicStatusOverride;
-                pill.classList.toggle('offline', isOffline);
-                pill.classList.toggle('online', !isOffline);
+            if (!statusPrimaryEl) return;
+
+            if (musicStatusOverride) {
+                stopStatusCarousel();
+                showPresenceLines(musicStatusOverride);
+            } else if (statusOffline) {
+                stopStatusCarousel();
+                showPresenceLines(STATUS_OFFLINE_TEXT);
+            } else {
+                let presence = { ...remotePresence };
+                if (shouldHideListeningStatus()) {
+                    const lines = stripListeningFromLines(presence.lines);
+                    presence = {
+                        ...presence,
+                        lines,
+                        primary: lines[0],
+                        secondary: lines.length > 1 ? lines[1] : '',
+                        text: lines.join(' · '),
+                    };
+                }
+                renderPresenceView(presence);
+            }
+
+            if (statusPillEl) {
+                const mode = statusOffline && !musicStatusOverride
+                    ? 'offline'
+                    : (remotePresence.mode || 'online');
+                statusPillEl.classList.toggle('offline', mode === 'offline' || (statusOffline && !musicStatusOverride));
+                statusPillEl.classList.toggle('idle', mode === 'idle' && !musicStatusOverride && !statusOffline);
+                statusPillEl.classList.toggle('online', mode === 'online' && !musicStatusOverride && !statusOffline);
             }
         }
 
@@ -2320,15 +2423,38 @@ body.music-room-open .footer-notice {
             if (Number.isFinite(updated)) {
                 const age = Date.now() - updated;
                 if (age > STATUS_OFFLINE_MS) {
+                    remotePresence = {
+                        text: STATUS_OFFLINE_TEXT,
+                        mode: 'offline',
+                        primary: STATUS_OFFLINE_TEXT,
+                        lines: [STATUS_OFFLINE_TEXT],
+                    };
                     setStatus(STATUS_OFFLINE_TEXT, { remote: true, offline: true });
                     return;
                 }
             } else if (!data.text) {
+                remotePresence = {
+                    text: STATUS_OFFLINE_TEXT,
+                    mode: 'offline',
+                    primary: STATUS_OFFLINE_TEXT,
+                    lines: [STATUS_OFFLINE_TEXT],
+                };
                 setStatus(STATUS_OFFLINE_TEXT, { remote: true, offline: true });
                 return;
             }
 
-            if (data.text) setStatus(data.text, { remote: true, offline: false });
+            if (data.text) {
+                remotePresence = {
+                    text: data.text,
+                    mode: data.mode || 'online',
+                    primary: data.primary || data.text,
+                    secondary: data.secondary || '',
+                    lines: Array.isArray(data.lines) && data.lines.length ? data.lines : [data.primary || data.text],
+                    displayMode: data.displayMode || 'merge',
+                    carouselSeconds: data.carouselSeconds || 8,
+                };
+                setStatus(data.text, { remote: true, offline: false });
+            }
         }
 
         async function fetchRemoteStatus() {

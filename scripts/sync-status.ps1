@@ -279,25 +279,54 @@ function Get-ListeningLineWithGrace {
     return $null
 }
 
-function Get-StatusText {
+function Get-StatusPayload {
+    $sep = [string]$config.statusSeparator
+    if (-not $sep) { $sep = ' · ' }
+    $displayMode = [string]$config.displayMode
+    if (-not $displayMode) { $displayMode = 'merge' }
+    $carouselSeconds = if ($config.carouselSeconds) { [int]$config.carouselSeconds } else { 8 }
+
     $idleThreshold = if ($config.idleSeconds) { [int]$config.idleSeconds } else { 300 }
     if ((Get-IdleSeconds) -ge $idleThreshold) {
-        if ($config.idle) { return [string]$config.idle }
-        return 'zzz'
+        $idleText = if ($config.idle) { [string]$config.idle } else { 'zzz' }
+        return @{
+            text           = $idleText
+            mode           = 'idle'
+            primary        = $idleText
+            secondary      = ''
+            lines          = @($idleText)
+            displayMode    = $displayMode
+            carouselSeconds = $carouselSeconds
+        }
     }
-
-    $fgStatus = Get-ForegroundProcessStatus
-    $sep = [string]$config.statusSeparator
-    if (-not $sep) { $sep = ' | ' }
 
     $listenLine = Get-ListeningLineWithGrace
-
-    if ($listenLine -and $fgStatus) {
-        return "$listenLine$sep$fgStatus"
+    $activityLine = Get-ForegroundProcessStatus
+    $lines = @()
+    if ($activityLine) { $lines += $activityLine }
+    if ($listenLine -and ($lines -notcontains $listenLine)) { $lines += $listenLine }
+    if ($lines.Count -eq 0) {
+        $default = [string]$config.default
+        if (-not $default) { $default = [string]$config.default }
+        if (-not $default) { $default = 'online' }
+        $lines = @($default)
     }
-    if ($listenLine) { return $listenLine }
-    if ($fgStatus) { return $fgStatus }
-    return $config.default
+
+    $primary = $lines[0]
+    $secondary = ''
+    if ($lines.Count -gt 1) { $secondary = $lines[1] }
+
+    $text = if ($displayMode -eq 'carousel') { $primary } else { ($lines -join $sep) }
+
+    return @{
+        text              = $text
+        mode              = 'online'
+        primary           = $primary
+        secondary         = $secondary
+        lines             = $lines
+        displayMode       = $displayMode
+        carouselSeconds   = $carouselSeconds
+    }
 }
 
 function Invoke-GitStep {
@@ -312,7 +341,8 @@ function Invoke-GitStep {
 }
 
 function Update-StatusFile {
-    $text = Get-StatusText
+    $status = Get-StatusPayload
+    $text = [string]$status.text
 
     $prevText = $null
     if (Test-Path $statusFile) {
@@ -321,11 +351,18 @@ function Update-StatusFile {
 
     $textChanged = ($prevText -ne $text)
     $payload = @{
-        text      = $text
-        updatedAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-    } | ConvertTo-Json -Compress
+        text              = $text
+        updatedAt         = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+        mode              = $status.mode
+        primary           = $status.primary
+        secondary         = $status.secondary
+        lines             = $status.lines
+        displayMode       = $status.displayMode
+        carouselSeconds   = $status.carouselSeconds
+    }
+    $payloadJson = $payload | ConvertTo-Json -Compress -Depth 4
 
-    [System.IO.File]::WriteAllText($statusFile, $payload, [System.Text.UTF8Encoding]::new($false))
+    [System.IO.File]::WriteAllText($statusFile, $payloadJson, [System.Text.UTF8Encoding]::new($false))
 
     if ($textChanged) {
         Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $text"
@@ -336,7 +373,7 @@ function Update-StatusFile {
     if ($Push) {
         $elapsed = ((Get-Date) - $script:LastPushTime).TotalSeconds
         if ($textChanged -or $elapsed -ge $script:PushHeartbeatSeconds) {
-            if (Push-StatusToGit -PayloadJson $payload) { $script:LastPushTime = Get-Date }
+            if (Push-StatusToGit -PayloadJson $payloadJson) { $script:LastPushTime = Get-Date }
         }
     }
 }
