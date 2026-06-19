@@ -276,7 +276,7 @@ function Parse-NeteaseWindowTitle {
     return @{ Title = $title; Artist = ''; AppId = 'cloudmusic' }
 }
 
-function Get-NeteaseMusicFromMediaSession {
+function Get-NeteaseAppPatterns {
     $patterns = @()
     if ($config.musicApps.PSObject.Properties.Name -contains 'cloudmusic') {
         if ($config.musicApps.cloudmusic.match) {
@@ -286,7 +286,43 @@ function Get-NeteaseMusicFromMediaSession {
     if ($patterns.Count -eq 0) {
         $patterns = @('cloudmusic', 'CloudMusic', 'NetEase', 'Netease', '163', 'wangyi', 'orpheus')
     }
+    return $patterns
+}
 
+function Get-NeteasePlaybackState {
+    $patterns = Get-NeteaseAppPatterns
+    $manager = Get-MediaManager
+    if (-not $manager) { return 'none' }
+
+    $playing = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing
+    $found = $false
+
+    try {
+        foreach ($s in $manager.GetSessions()) {
+            $appId = [string]$s.SourceAppUserModelId
+            if (-not (Test-AppMatch $appId $patterns)) { continue }
+            $found = $true
+            if ($s.GetPlaybackInfo().PlaybackStatus -eq $playing) { return 'playing' }
+        }
+
+        $current = $manager.GetCurrentSession()
+        if ($current) {
+            $appId = [string]$current.SourceAppUserModelId
+            if (Test-AppMatch $appId $patterns) {
+                $found = $true
+                if ($current.GetPlaybackInfo().PlaybackStatus -eq $playing) { return 'playing' }
+            }
+        }
+    } catch {}
+
+    if ($found) { return 'paused' }
+    return 'none'
+}
+
+function Get-NeteaseMusicFromMediaSession {
+    if ((Get-NeteasePlaybackState) -ne 'playing') { return $null }
+
+    $patterns = Get-NeteaseAppPatterns
     $manager = Get-MediaManager
     if (-not $manager) { return $null }
 
@@ -704,14 +740,18 @@ function Get-StatusFingerprint {
 }
 
 function Get-ListeningLine {
+    $neteaseState = Get-NeteasePlaybackState
+
     $neteaseMedia = Get-NeteaseMusicFromMediaSession
     if ($neteaseMedia) {
         return Format-ListeningLine $neteaseMedia
     }
 
-    $neteaseInfo = Get-NeteaseMusicFromWindow
-    if ($neteaseInfo) {
-        return Format-ListeningLine $neteaseInfo
+    if ($neteaseState -ne 'paused') {
+        $neteaseInfo = Get-NeteaseMusicFromWindow
+        if ($neteaseInfo) {
+            return Format-ListeningLine $neteaseInfo
+        }
     }
 
     $otherInfo = Get-NonNeteasePlayingMusicInfo
@@ -721,6 +761,9 @@ function Get-ListeningLine {
 
     $fgMusicKey = Get-ForegroundMusicAppKey
     if ($fgMusicKey) {
+        if (($fgMusicKey -ieq 'cloudmusic') -and ($neteaseState -eq 'paused')) {
+            return $null
+        }
         $label = Get-MusicAppLabel $fgMusicKey
         if ($label) {
             $fromTitle = Get-MusicInfoFromWindowTitle
