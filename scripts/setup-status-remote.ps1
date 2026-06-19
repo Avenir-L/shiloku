@@ -1,4 +1,5 @@
 # Setup remote status sync: GitHub secret Gist + Vercel env (no Git push)
+param([switch]$NewGist)
 $ErrorActionPreference = 'Stop'
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 $statusFile = Join-Path $repoRoot 'status.json'
@@ -32,22 +33,26 @@ function Write-JsonFile {
 }
 
 function Ensure-SecretGist {
-    param([string]$GhToken)
-    $meta = Read-JsonFile $remoteMetaFile
-    if ($meta -and $meta.gistId) {
-        try {
-            $check = Invoke-RestMethod -Uri "https://api.github.com/gists/$($meta.gistId)" -Headers @{
-                Authorization = "Bearer $GhToken"
-                'User-Agent'  = 'shiloku-setup'
-                Accept        = 'application/vnd.github+json'
+    param([string]$GhToken, [switch]$ForceNew)
+    if (-not $ForceNew) {
+        $meta = Read-JsonFile $remoteMetaFile
+        if ($meta -and $meta.gistId) {
+            try {
+                $check = Invoke-RestMethod -Uri "https://api.github.com/gists/$($meta.gistId)" -Headers @{
+                    Authorization = "Bearer $GhToken"
+                    'User-Agent'  = 'shiloku-setup'
+                    Accept        = 'application/vnd.github+json'
+                }
+                if ($check.id) {
+                    Write-Host "Reuse gist: $($meta.gistId)"
+                    return [string]$meta.gistId
+                }
+            } catch {
+                Write-Host 'Old gist missing, creating new one...'
             }
-            if ($check.id) {
-                Write-Host "Reuse gist: $($meta.gistId)"
-                return [string]$meta.gistId
-            }
-        } catch {
-            Write-Host 'Old gist missing, creating new one...'
         }
+    } else {
+        Write-Host 'Creating new gist (rotate)...'
     }
 
     $inputPath = $statusFile
@@ -147,7 +152,7 @@ function Upsert-VercelEnv {
 }
 
 $ghToken = Get-GhToken
-$gistId = Ensure-SecretGist -GhToken $ghToken
+$gistId = Ensure-SecretGist -GhToken $ghToken -ForceNew:$NewGist
 
 $secretsObj = Read-JsonFile $secretsFile
 $secretsHash = @{}
