@@ -4,6 +4,7 @@
   "idle": "💤 zzz 离开中",
   "idleSeconds": 300,
   "listeningPrefix": "正在听",
+  "listeningGraceSeconds": 60,
   "statusSeparator": " · ",
   "unknownProcessPrefix": "在用",
   "windowTitleSuffixes": ["网易云音乐", "NetEase Cloud Music", "QQ音乐", "QQ Music", "Spotify"],

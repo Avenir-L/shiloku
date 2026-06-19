@@ -1,13 +1,21 @@
-"""Local preview: static files + /api/chat proxy for AI assistant."""
+"""Local preview: static files + /api/chat + /api/netease proxy."""
 import json
 import os
+import sys
 import urllib.error
 import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlparse
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SECRETS_FILE = os.path.join(os.path.dirname(__file__), "secrets.local.json")
-PORT = 8765
+SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, SCRIPTS_DIR)
+
+import netease_api
+from preview_port import PORT, prepare_preview_port, register_shutdown, write_pid_file
+
+SECRETS_FILE = os.path.join(SCRIPTS_DIR, "secrets.local.json")
 
 
 def load_api_key():
@@ -26,12 +34,19 @@ class PreviewHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=ROOT, **kwargs)
 
     def do_OPTIONS(self):
-        if self.path == "/api/chat":
+        if self.path.startswith("/api/"):
             self.send_response(204)
             self._cors()
             self.end_headers()
             return
         super().do_OPTIONS()
+
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/netease/"):
+            self._handle_netease_get(parsed)
+            return
+        super().do_GET()
 
     def do_POST(self):
         if self.path != "/api/chat":
@@ -99,8 +114,80 @@ class PreviewHandler(SimpleHTTPRequestHandler):
 
     def _cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Range")
+
+    def _handle_netease_get(self, parsed):
+        query = parse_qs(parsed.query)
+        action = parsed.path.replace("/api/netease/", "", 1)
+
+        try:
+            if action == "ping":
+                self._json(200, {"ok": True})
+                return
+
+            if action == "search":
+                keywords = (query.get("keywords") or [""])[0].strip()
+                limit = int((query.get("limit") or ["12"])[0])
+                offset = int((query.get("offset") or ["0"])[0])
+                limit = max(1, min(limit, 20))
+                offset = max(0, offset)
+                if not keywords:
+                    self._json(400, {"error": "请输入搜索关键词"})
+                    return
+                self._json(200, netease_api.search_songs(keywords, limit, offset))
+                return
+
+            if action == "url":
+                song_id = (query.get("id") or [""])[0].strip()
+                if not song_id:
+                    self._json(400, {"error": "缺少歌曲 id"})
+                    return
+                self._json(200, {"url": netease_api.get_playable_url(song_id)})
+                return
+
+            if action == "lyric":
+                song_id = (query.get("id") or [""])[0].strip()
+                if not song_id:
+                    self._json(400, {"error": "缺少歌曲 id"})
+                    return
+                self._json(200, netease_api.fetch_lyric(song_id))
+                return
+
+            if action == "audio":
+                song_id = (query.get("id") or [""])[0].strip()
+                if not song_id:
+                    self._json(400, {"error": "缺少歌曲 id"})
+                    return
+                range_header = self.headers.get("Range")
+                try:
+                    stream, _req = netease_api.open_audio_stream(song_id, range_header)
+                except urllib.error.HTTPError as e:
+                    self.send_error(e.code)
+                    return
+                if not stream:
+                    self._json(404, {"error": "这首歌暂时无法播放"})
+                    return
+                self.send_response(stream.status)
+                self._cors()
+                for header in ("Content-Type", "Content-Length", "Content-Range", "Accept-Ranges"):
+                    value = stream.headers.get(header)
+                    if value:
+                        self.send_header(header, value)
+                if not stream.headers.get("Content-Type"):
+                    self.send_header("Content-Type", "audio/mpeg")
+                self.end_headers()
+                while True:
+                    chunk = stream.read(64 * 1024)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                stream.close()
+                return
+
+            self._json(404, {"error": "接口不存在"})
+        except Exception as e:
+            self._json(500, {"error": f"网易云请求失败: {e}"})
 
     def _json(self, code, obj):
         raw = json.dumps(obj, ensure_ascii=False).encode("utf-8")
@@ -122,6 +209,10 @@ class PreviewHandler(SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     os.chdir(ROOT)
+    killed = prepare_preview_port(PORT)
+    if killed:
+        print(f"[preview] 已结束占用 {PORT} 端口的旧进程: {', '.join(map(str, killed))}")
+
     key = load_api_key()
     print("=" * 40)
     print("  Shiloku 本地预览")
@@ -131,9 +222,23 @@ if __name__ == "__main__":
         print("  AI小助手: 已配置 API Key")
     else:
         print("  AI小助手: 需配置 scripts/secrets.local.json")
+    print("  网易云: /api/netease/search 已启用")
     print("=" * 40)
-    server = ThreadingHTTPServer(("0.0.0.0", PORT), PreviewHandler)
+
+    try:
+        server = ThreadingHTTPServer(("0.0.0.0", PORT), PreviewHandler)
+    except OSError:
+        print(f"\n[preview] 端口 {PORT} 仍被占用。")
+        print("请先运行 scripts/stop-local-preview.bat，再重新启动。")
+        print("不要用 python -m http.server 8765，请只用 start-local-preview.bat。")
+        sys.exit(1)
+
+    write_pid_file()
+    register_shutdown(server.shutdown)
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\n已停止")
+    finally:
+        server.server_close()

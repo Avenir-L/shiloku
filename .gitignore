@@ -1,1 +1,5 @@
 scripts/secrets.local.json
+scripts/.preview-server.pid
+scripts/netease.cookies.txt
+scripts/__pycache__/
+.scratch/

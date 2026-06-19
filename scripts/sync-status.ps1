@@ -245,6 +245,38 @@ function Get-ForegroundProcessStatus {
     return $null
 }
 
+$script:LastPushTime = [datetime]::MinValue
+$script:PushHeartbeatSeconds = 60
+$script:PausedSince = $null
+$script:LastListenLine = $null
+
+function Get-ListeningGraceSeconds {
+    if ($config.listeningGraceSeconds) { return [int]$config.listeningGraceSeconds }
+    return 60
+}
+
+function Get-ListeningLineWithGrace {
+    $musicInfo = Get-AnyPlayingMusicInfo
+    if ($musicInfo) {
+        $script:PausedSince = $null
+        $line = Format-ListeningLine $musicInfo
+        if ($line) { $script:LastListenLine = $line }
+        return $line
+    }
+
+    if ($script:LastListenLine) {
+        if (-not $script:PausedSince) { $script:PausedSince = Get-Date }
+        $grace = Get-ListeningGraceSeconds
+        if (((Get-Date) - $script:PausedSince).TotalSeconds -lt $grace) {
+            return $script:LastListenLine
+        }
+        $script:LastListenLine = $null
+        $script:PausedSince = $null
+    }
+
+    return $null
+}
+
 function Get-StatusText {
     $idleThreshold = if ($config.idleSeconds) { [int]$config.idleSeconds } else { 300 }
     if ((Get-IdleSeconds) -ge $idleThreshold) {
@@ -252,23 +284,13 @@ function Get-StatusText {
         return 'zzz'
     }
 
-    $fgMusicKey = Get-ForegroundMusicAppKey
-    $musicInfo = Get-AnyPlayingMusicInfo
-    if (-not $musicInfo) { $musicInfo = Get-MusicInfoFromWindowTitle }
     $fgStatus = Get-ForegroundProcessStatus
     $sep = [string]$config.statusSeparator
     if (-not $sep) { $sep = ' | ' }
 
-    $listenLine = $null
-    if ($musicInfo) {
-        $listenLine = Format-ListeningLine $musicInfo
-    } elseif ($fgMusicKey) {
-        $listenLine = Format-ListeningLine $null (Get-MusicAppLabel $fgMusicKey)
-    } elseif (Test-MusicPlayerRunning) {
-        $listenLine = Format-ListeningLine $null (Get-MusicAppLabel 'cloudmusic')
-    }
+    $listenLine = Get-ListeningLineWithGrace
 
-    if ($listenLine -and $fgStatus -and -not $fgMusicKey) {
+    if ($listenLine -and $fgStatus) {
         return "$listenLine$sep$fgStatus"
     }
     if ($listenLine) { return $listenLine }
