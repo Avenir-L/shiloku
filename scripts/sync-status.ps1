@@ -289,10 +289,20 @@ function Get-NeteaseAppPatterns {
     return $patterns
 }
 
+function Test-NeteaseProcessRunning {
+    foreach ($name in (Get-NeteaseProcessNames)) {
+        if (Get-Process -Name $name -ErrorAction SilentlyContinue) { return $true }
+    }
+    return $false
+}
+
 function Get-NeteasePlaybackState {
     $patterns = Get-NeteaseAppPatterns
     $manager = Get-MediaManager
-    if (-not $manager) { return 'none' }
+    if (-not $manager) {
+        if (Test-NeteaseProcessRunning) { return 'paused' }
+        return 'none'
+    }
 
     $playing = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing
     $found = $false
@@ -316,6 +326,17 @@ function Get-NeteasePlaybackState {
     } catch {}
 
     if ($found) { return 'paused' }
+
+    if (Test-NeteaseProcessRunning) {
+        try {
+            $current = $manager.GetCurrentSession()
+            if ($current -and ($current.GetPlaybackInfo().PlaybackStatus -ne $playing)) {
+                return 'paused'
+            }
+        } catch {}
+        return 'paused'
+    }
+
     return 'none'
 }
 
