@@ -249,19 +249,55 @@ function Parse-NeteaseWindowTitle {
     return @{ Title = $title; Artist = ''; AppId = 'cloudmusic' }
 }
 
-function Get-NeteaseMusicFromWindow {
-    foreach ($name in (Get-NeteaseProcessNames)) {
-        $proc = Get-Process -Name $name -ErrorAction SilentlyContinue |
-            Where-Object { $_.MainWindowTitle } |
-            Select-Object -First 1
-        if (-not $proc) { continue }
-        $parsed = Parse-NeteaseWindowTitle ([string]$proc.MainWindowTitle)
-        if ($parsed) { return $parsed }
+function Get-NeteaseMusicFromMediaSession {
+    $patterns = @()
+    if ($config.musicApps.PSObject.Properties.Name -contains 'cloudmusic') {
+        if ($config.musicApps.cloudmusic.match) {
+            $patterns = @($config.musicApps.cloudmusic.match)
+        }
     }
+    if ($patterns.Count -eq 0) {
+        $patterns = @('cloudmusic', 'CloudMusic', 'NetEase', 'Netease', '163', 'wangyi', 'orpheus')
+    }
+
+    $manager = Get-MediaManager
+    if (-not $manager) { return $null }
+
+    try {
+        foreach ($s in $manager.GetSessions()) {
+            $info = Get-SessionPlaybackInfo $s
+            if (-not $info) { continue }
+            if (Test-AppMatch $info.AppId $patterns) { return $info }
+        }
+        $current = $manager.GetCurrentSession()
+        $currentInfo = Get-SessionPlaybackInfo $current
+        if ($currentInfo -and (Test-AppMatch $currentInfo.AppId $patterns)) {
+            return $currentInfo
+        }
+    } catch {}
+
     return $null
 }
 
+function Get-NeteaseMusicFromWindow {
+    $best = $null
+    foreach ($name in (Get-NeteaseProcessNames)) {
+        foreach ($proc in (Get-Process -Name $name -ErrorAction SilentlyContinue)) {
+            $rawTitle = [string]$proc.MainWindowTitle
+            if (-not $rawTitle.Trim()) { continue }
+            $parsed = Parse-NeteaseWindowTitle $rawTitle
+            if (-not $parsed) { continue }
+            if ($parsed.Artist -and $parsed.Title) { return $parsed }
+            if (-not $best) { $best = $parsed }
+        }
+    }
+    return $best
+}
+
 function Get-NonNeteasePlayingMusicInfo {
+    $fgMusicKey = Get-ForegroundMusicAppKey
+    if (-not $fgMusicKey -or ($fgMusicKey -ieq 'cloudmusic')) { return $null }
+
     $manager = Get-MediaManager
     if (-not $manager) { return $null }
 
@@ -276,18 +312,12 @@ function Get-NonNeteasePlayingMusicInfo {
         return $true
     }
 
-    $genericMatch = $null
-    $seen = @{}
-
     try {
         foreach ($s in $manager.GetSessions()) {
             $info = Get-SessionPlaybackInfo $s
             if (-not $info) { continue }
-            if ($seen[$info.AppId]) { continue }
-            $seen[$info.AppId] = $true
             if (Test-AppMatch $info.AppId $neteasePatterns) { continue }
             if (Test-AppMatch $info.AppId $otherPatterns) { return $info }
-            if (-not $genericMatch -and ($info.Title -or $info.Artist)) { $genericMatch = $info }
         }
 
         $current = $manager.GetCurrentSession()
@@ -295,11 +325,10 @@ function Get-NonNeteasePlayingMusicInfo {
         if ($currentInfo) {
             if (Test-AppMatch $currentInfo.AppId $neteasePatterns) { return $null }
             if (Test-AppMatch $currentInfo.AppId $otherPatterns) { return $currentInfo }
-            if (-not $genericMatch) { $genericMatch = $currentInfo }
         }
     } catch {}
 
-    return $genericMatch
+    return $null
 }
 
 function Get-MusicInfoFromWindowTitle {
@@ -483,6 +512,23 @@ function Get-SteamGameFromForeground {
     return $null
 }
 
+function Get-SteamGameExeForAppId {
+    param([int]$AppId, [string[]]$LibraryPaths)
+    if ($AppId -le 0) { return $null }
+    foreach ($lib in $LibraryPaths) {
+        $manifest = Join-Path $lib "steamapps\appmanifest_$AppId.acf"
+        if (-not (Test-Path $manifest)) { continue }
+        try {
+            $text = Get-Content $manifest -Raw -Encoding UTF8
+            foreach ($m in [regex]::Matches($text, '"name"\s+"([^"]+\.exe)"')) {
+                $exe = [System.IO.Path]::GetFileNameWithoutExtension($m.Groups[1].Value)
+                if ($exe) { return $exe }
+            }
+        } catch {}
+    }
+    return $null
+}
+
 function Get-SteamPlayingGameLine {
     $steamEnabled = $true
     if ($config.steam -and $null -ne $config.steam.enabled) {
@@ -500,14 +546,18 @@ function Get-SteamPlayingGameLine {
         $prefix = [string]$config.steam.gamePrefix
     }
 
-    $appId = Get-SteamRunningAppId -SteamPath $steamPath
-    if ($appId -gt 0) {
-        $name = Get-SteamAppDisplayName -AppId $appId -LibraryPaths $libraries
-        if ($name) { return "$prefix $name" }
-    }
-
     $fgName = Get-SteamGameFromForeground -SteamPath $steamPath -LibraryPaths $libraries
     if ($fgName) { return "$prefix $fgName" }
+
+    $fg = Get-ForegroundProcessName
+    $appId = Get-SteamRunningAppId -SteamPath $steamPath
+    if ($appId -gt 0 -and $fg) {
+        $gameExe = Get-SteamGameExeForAppId -AppId $appId -LibraryPaths $libraries
+        if ($gameExe -and ($fg -ieq $gameExe)) {
+            $name = Get-SteamAppDisplayName -AppId $appId -LibraryPaths $libraries
+            if ($name) { return "$prefix $name" }
+        }
+    }
 
     return $null
 }
@@ -523,7 +573,8 @@ function Get-ForegroundProcessStatus {
         if ($fg -ieq $prop.Name) { return [string]$prop.Value }
     }
     $skip = @('explorer','SearchHost','ShellExperienceHost','ApplicationFrameHost','SystemSettings',
-        'powershell','pwsh','cmd','WindowsTerminal','python','TextInputHost','StartMenuExperienceHost','msedgewebview2')
+        'powershell','pwsh','cmd','WindowsTerminal','python','TextInputHost','StartMenuExperienceHost','msedgewebview2',
+        'msedgewebview2','WidgetBoard','WidgetService','PhoneExperienceHost','ShellHost','System')
     if ($skip -notcontains $fg) {
         return Format-ActivityLine $fg
     }
@@ -556,6 +607,11 @@ function Get-StatusFingerprint {
 }
 
 function Get-ListeningLine {
+    $neteaseMedia = Get-NeteaseMusicFromMediaSession
+    if ($neteaseMedia) {
+        return Format-ListeningLine $neteaseMedia
+    }
+
     $neteaseInfo = Get-NeteaseMusicFromWindow
     if ($neteaseInfo) {
         return Format-ListeningLine $neteaseInfo
@@ -566,12 +622,21 @@ function Get-ListeningLine {
         return Format-ListeningLine $otherInfo
     }
 
+    $fgMusicKey = Get-ForegroundMusicAppKey
+    if ($fgMusicKey) {
+        $label = Get-MusicAppLabel $fgMusicKey
+        if ($label) {
+            $fromTitle = Get-MusicInfoFromWindowTitle
+            if ($fromTitle) { return Format-ListeningLine $fromTitle }
+        }
+    }
+
     return $null
 }
 
 function Get-StatusPayload {
     $sep = [string]$config.statusSeparator
-    if (-not $sep) { $sep = ' | ' }
+    if (-not $sep) { $sep = ' · ' }
     $displayMode = [string]$config.displayMode
     if (-not $displayMode) { $displayMode = 'merge' }
     $carouselSeconds = if ($config.carouselSeconds) { [int]$config.carouselSeconds } else { 8 }
@@ -596,8 +661,16 @@ function Get-StatusPayload {
     $default = [string]$config.default
     if (-not $default) { $default = 'online' }
 
-    $primary = if ($activityLine) { $activityLine } else { $default }
-    $secondary = if ($listenLine) { $listenLine } else { '' }
+    if ($activityLine) {
+        $primary = $activityLine
+        $secondary = if ($listenLine) { $listenLine } else { '' }
+    } elseif ($listenLine) {
+        $primary = $listenLine
+        $secondary = ''
+    } else {
+        $primary = $default
+        $secondary = ''
+    }
 
     $lines = @($primary)
     if ($secondary) { $lines += $secondary }

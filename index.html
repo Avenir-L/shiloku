@@ -422,12 +422,10 @@
             align-items: flex-start;
             gap: 8px;
             margin-top: 0;
-            padding: 8px 14px;
-            border-radius: 20px;
-            background: var(--glass-bg);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--glass-border);
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+            border: none;
             font-size: 13px;
             font-weight: 600;
             color: #fff;
@@ -2412,18 +2410,7 @@ body.music-room-open .footer-notice {
                 stopStatusCarousel();
                 showPresenceLines(STATUS_OFFLINE_TEXT);
             } else {
-                let presence = { ...remotePresence };
-                if (shouldHideListeningStatus()) {
-                    const lines = stripListeningFromLines(presence.lines);
-                    presence = {
-                        ...presence,
-                        lines,
-                        primary: lines[0],
-                        secondary: lines.length > 1 ? lines[1] : '',
-                        text: lines.join(' · '),
-                    };
-                }
-                renderPresenceView(presence);
+                renderPresenceView({ ...remotePresence });
             }
 
             if (statusPillEl) {
@@ -2440,7 +2427,11 @@ body.music-room-open .footer-notice {
             if (musicPausedAt) return;
             musicPausedAt = Date.now();
             clearTimeout(musicPauseTimer);
-            musicPauseTimer = setTimeout(renderStatusText, MUSIC_PAUSE_GRACE_MS);
+            musicPauseTimer = setTimeout(() => {
+                musicStatusOverride = null;
+                musicPausedAt = null;
+                renderStatusText();
+            }, MUSIC_PAUSE_GRACE_MS);
             renderStatusText();
         };
 
@@ -2614,6 +2605,8 @@ body.music-room-open .footer-notice {
                 setNavToMusic();
                 document.body.classList.remove('music-room-open', 'in-music-room');
                 musicRoom.classList.remove('is-visible');
+                window.clearMusicStatusOverride?.();
+                window.markMusicPlaying?.();
             }
 
             window.__shilokuOpenMusicRoom = openMusicRoom;
