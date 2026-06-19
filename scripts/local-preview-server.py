@@ -46,10 +46,53 @@ class PreviewHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/status":
             self._handle_status()
             return
+        if parsed.path == "/api/guestbook":
+            self._handle_guestbook_get()
+            return
         if parsed.path.startswith("/api/netease/"):
             self._handle_netease_get(parsed)
             return
         super().do_GET()
+
+    def _guestbook_path(self):
+        return os.path.join(ROOT, "guestbook.json")
+
+    def _read_guestbook(self):
+        path = self._guestbook_path()
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data.get("messages") if isinstance(data, dict) else []
+        except (OSError, json.JSONDecodeError):
+            return []
+
+    def _write_guestbook(self, messages):
+        path = self._guestbook_path()
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"messages": messages[:80]}, f, ensure_ascii=False, indent=2)
+
+    def _handle_guestbook_get(self):
+        self._json(200, {"messages": self._read_guestbook()[:80]})
+
+    def _handle_guestbook_post(self, payload):
+        name = (payload.get("name") or "访客").strip()[:32] or "访客"
+        message = (payload.get("message") or "").strip()[:280]
+        if len(message) < 2:
+            self._json(400, {"error": "留言太短了"})
+            return
+        entry = {
+            "id": f"gb-{int(__import__('time').time() * 1000)}",
+            "name": name,
+            "message": message,
+            "time": int(__import__('time').time() * 1000),
+        }
+        messages = self._read_guestbook()
+        messages.insert(0, entry)
+        try:
+            self._write_guestbook(messages)
+            self._json(200, {"ok": True, "message": entry})
+        except OSError as e:
+            self._json(500, {"error": f"保存失败: {e}"})
 
     def _handle_status(self):
         status_path = os.path.join(ROOT, "status.json")
@@ -68,6 +111,18 @@ class PreviewHandler(SimpleHTTPRequestHandler):
         self._safe_write(raw)
 
     def do_POST(self):
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length) if length else b"{}"
+        try:
+            payload = json.loads(body.decode("utf-8"))
+        except json.JSONDecodeError:
+            self._json(400, {"error": "请求格式错误"})
+            return
+
+        if self.path == "/api/guestbook":
+            self._handle_guestbook_post(payload)
+            return
+
         if self.path != "/api/chat":
             self.send_error(404)
             return
@@ -79,25 +134,30 @@ class PreviewHandler(SimpleHTTPRequestHandler):
             })
             return
 
-        length = int(self.headers.get("Content-Length", 0))
-        body = self.rfile.read(length) if length else b"{}"
-        try:
-            payload = json.loads(body.decode("utf-8"))
-            user_message = (payload.get("message") or "").strip()
-        except json.JSONDecodeError:
-            self._json(400, {"error": "请求格式错误"})
-            return
-
+        user_message = (payload.get("message") or "").strip()
         if not user_message:
             self._json(400, {"error": "消息不能为空"})
             return
+
+        now_playing = payload.get("nowPlaying") or {}
+        lang = payload.get("lang") or "zh"
+        music_context = ""
+        if now_playing.get("title") or now_playing.get("artist"):
+            title = now_playing.get("title") or "未知"
+            artist = now_playing.get("artist") or "未知"
+            music_context = f"\n访客当前在音乐室收听：「{title}」— {artist}。若问题与音乐相关，可结合这首歌作答。"
+        lang_hint = ""
+        if lang == "en":
+            lang_hint = " Reply in English unless the visitor writes in another language."
+        elif lang == "ja":
+            lang_hint = " 访客界面为日语时，请用日语回答。"
 
         req_body = json.dumps({
             "model": "deepseek-chat",
             "messages": [
                 {
                     "role": "system",
-                    "content": "你现在的身份是栀落余殁（Shiloku）的专属网页AI助理。请用高冷、简短的语气回答访客问题。"
+                    "content": f"你现在的身份是栀落余殁（Shiloku）的专属网页AI助理。请用高冷、简短的语气回答访客问题。{lang_hint}{music_context}"
                 },
                 {"role": "user", "content": user_message}
             ],

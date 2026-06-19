@@ -368,7 +368,145 @@ function Format-ActivityLine {
     return "$pfx $(Get-ProcessDisplayName $ProcessName)"
 }
 
+function Get-SteamInstallPath {
+    try {
+        $regPath = 'HKCU:\Software\Valve\Steam'
+        if (Test-Path $regPath) {
+            $p = (Get-ItemProperty -Path $regPath -Name SteamPath -ErrorAction SilentlyContinue).SteamPath
+            if ($p -and (Test-Path $p)) { return $p.TrimEnd('\', '/') }
+        }
+    } catch {}
+    $fallback = "${env:ProgramFiles(x86)}\Steam"
+    if (Test-Path $fallback) { return $fallback }
+    return $null
+}
+
+function Get-SteamLibraryPaths {
+    param([string]$SteamPath)
+    $paths = @($SteamPath)
+    if (-not $SteamPath) { return $paths }
+    $libVdf = Join-Path $SteamPath 'steamapps\libraryfolders.vdf'
+    if (-not (Test-Path $libVdf)) { return $paths }
+    try {
+        $content = Get-Content $libVdf -Raw -Encoding UTF8
+        foreach ($m in [regex]::Matches($content, '"path"\s+"([^"]+)"')) {
+            $lib = $m.Groups[1].Value -replace '\\\\', '\'
+            if ($lib -and (Test-Path $lib)) { $paths += $lib }
+        }
+    } catch {}
+    return ($paths | Select-Object -Unique)
+}
+
+function Get-SteamAppDisplayName {
+    param([int]$AppId, [string[]]$LibraryPaths)
+    if ($AppId -le 0) { return $null }
+    foreach ($lib in $LibraryPaths) {
+        $manifest = Join-Path $lib "steamapps\appmanifest_$AppId.acf"
+        if (-not (Test-Path $manifest)) { continue }
+        try {
+            $text = Get-Content $manifest -Raw -Encoding UTF8
+            if ($text -match '"name"\s+"([^"]+)"') { return $Matches[1] }
+        } catch {}
+    }
+    return $null
+}
+
+function Get-SteamRunningAppId {
+    param([string]$SteamPath)
+    if (-not $SteamPath) { return 0 }
+    if (-not (Get-Process -Name steam -ErrorAction SilentlyContinue)) { return 0 }
+    $userRoot = Join-Path $SteamPath 'userdata'
+    if (-not (Test-Path $userRoot)) { return 0 }
+    foreach ($userDir in Get-ChildItem $userRoot -Directory -ErrorAction SilentlyContinue) {
+        $localConfig = Join-Path $userDir.FullName 'config\localconfig.vdf'
+        if (-not (Test-Path $localConfig)) { continue }
+        try {
+            $content = Get-Content $localConfig -Raw -Encoding UTF8
+            if ($content -match '"RunningAppID"\s+"(\d+)"') {
+                $appId = [int]$Matches[1]
+                if ($appId -gt 0) { return $appId }
+            }
+        } catch {}
+    }
+    return 0
+}
+
+function Test-ProcessTreeHasSteam {
+    param([int]$ProcessId, [int]$Depth = 0)
+    if ($ProcessId -le 0 -or $Depth -gt 8) { return $false }
+    try {
+        $proc = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+        if (-not $proc) { return $false }
+        if ($proc.ProcessName -ieq 'steam') { return $true }
+        return Test-ProcessTreeHasSteam -ProcessId $proc.Parent.Id -Depth ($Depth + 1)
+    } catch { return $false }
+}
+
+function Get-SteamGameFromForeground {
+    param([string]$SteamPath, [string[]]$LibraryPaths)
+    $fg = Get-ForegroundProcessName
+    if (-not $fg) { return $null }
+    if ($fg -ieq 'steam') { return $null }
+    if ((Get-AllMusicProcessExeNames) -icontains $fg) { return $null }
+    try {
+        $proc = Get-Process -Name $fg -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $proc) { return $null }
+        if (-not (Test-ProcessTreeHasSteam -ProcessId $proc.Id)) { return $null }
+    } catch { return $null }
+
+    foreach ($lib in $LibraryPaths) {
+        $manifestDir = Join-Path $lib 'steamapps'
+        if (-not (Test-Path $manifestDir)) { continue }
+        foreach ($manifest in Get-ChildItem $manifestDir -Filter 'appmanifest_*.acf' -ErrorAction SilentlyContinue) {
+            try {
+                $text = Get-Content $manifest.FullName -Raw -Encoding UTF8
+                if ($text -notmatch '"name"\s+"([^"]+)"') { continue }
+                $gameName = $Matches[1]
+                $exeHit = $false
+                foreach ($m in [regex]::Matches($text, '"name"\s+"([^"]+\.exe)"')) {
+                    $exeName = [System.IO.Path]::GetFileNameWithoutExtension($m.Groups[1].Value)
+                    if ($exeName -ieq $fg) { $exeHit = $true; break }
+                }
+                if ($exeHit) { return $gameName }
+            } catch {}
+        }
+    }
+    return $null
+}
+
+function Get-SteamPlayingGameLine {
+    $steamEnabled = $true
+    if ($config.steam -and $null -ne $config.steam.enabled) {
+        $steamEnabled = [bool]$config.steam.enabled
+    }
+    if (-not $steamEnabled) { return $null }
+
+    $steamPath = Get-SteamInstallPath
+    if (-not $steamPath) { return $null }
+    if (-not (Get-Process -Name steam -ErrorAction SilentlyContinue)) { return $null }
+
+    $libraries = Get-SteamLibraryPaths -SteamPath $steamPath
+    $prefix = '🎮 正在玩'
+    if ($config.steam -and $config.steam.gamePrefix) {
+        $prefix = [string]$config.steam.gamePrefix
+    }
+
+    $appId = Get-SteamRunningAppId -SteamPath $steamPath
+    if ($appId -gt 0) {
+        $name = Get-SteamAppDisplayName -AppId $appId -LibraryPaths $libraries
+        if ($name) { return "$prefix $name" }
+    }
+
+    $fgName = Get-SteamGameFromForeground -SteamPath $steamPath -LibraryPaths $libraries
+    if ($fgName) { return "$prefix $fgName" }
+
+    return $null
+}
+
 function Get-ForegroundProcessStatus {
+    $steamLine = Get-SteamPlayingGameLine
+    if ($steamLine) { return $steamLine }
+
     $fg = Get-ForegroundProcessName
     if (-not $fg) { return $null }
     if ((Get-AllMusicProcessExeNames) -icontains $fg) { return $null }

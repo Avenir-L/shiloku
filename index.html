@@ -13,6 +13,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Serif+JP:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css">
     <link rel="stylesheet" href="aether-music.css">
+    <link rel="stylesheet" href="site-extensions.css">
+    <script type="module" src="scripts/site-extensions.js"></script>
     <script type="importmap">
     {
         "imports": {
@@ -2097,7 +2099,7 @@ body.music-room-open .footer-notice {
                     <div class="status-pill" id="status-pill">
                         <span class="status-dot" aria-hidden="true"></span>
                         <div class="status-body" id="status-body">
-                            <span class="status-primary" id="status-primary">在线摸鱼中</span>
+                            <span class="status-primary" id="status-primary" data-i18n="statusDefault">在线摸鱼中</span>
                             <span class="status-secondary" id="status-secondary" hidden></span>
                         </div>
                     </div>
@@ -2105,12 +2107,12 @@ body.music-room-open .footer-notice {
             </div>
 
             <div class="mid-area bio animate-item delay-2">
-                <h2 class="bio-title gradient-text-flow">个人简介</h2>
+                <h2 class="bio-title gradient-text-flow" data-i18n="bioTitle">个人简介</h2>
                 <div>
-                    <p id="bio-p1">中国人，偶尔捣鼓些没接触过的东西。</p>
-                    <p id="bio-p2">爱画画、听歌、打游戏，也混二次元。比较社恐，更爱打字聊天。</p>
+                    <p id="bio-p1" data-i18n="bioP1">中国人，偶尔捣鼓些没接触过的东西。</p>
+                    <p id="bio-p2" data-i18n="bioP2">爱画画、听歌、打游戏，也混二次元。比较社恐，更爱打字聊天。</p>
                 </div>
-                <button type="button" class="about-more-btn hover-target" id="about-more-btn">了解更多</button>
+                <button type="button" class="about-more-btn hover-target" id="about-more-btn" data-i18n="aboutMore">了解更多</button>
                 <div class="tag-group animate-item delay-3">
                     <span class="tag">绘画</span>
                     <span class="tag">初音未来</span>
@@ -2122,7 +2124,7 @@ body.music-room-open .footer-notice {
             </div>
 
             <div class="bottom-area animate-item delay-3">
-                <div class="section-title">Contact</div>
+                <div class="section-title" data-i18n="contact">Contact</div>
                 <div class="email-text">
                     520avenir@gmail.com
                 </div>
@@ -2134,17 +2136,21 @@ body.music-room-open .footer-notice {
 
             <div class="mid-area animate-item delay-2">
                 <div class="time-greeting" id="time-greeting">夜深了</div>
-                <div class="time-header">北京时间 / BEIJING TIME</div>
+                <div class="daily-quote-wrap">
+                    <div class="daily-quote-label" data-i18n="dailyQuoteLabel">今日一句</div>
+                    <div class="daily-quote" id="daily-quote"></div>
+                </div>
+                <div class="time-header" data-i18n="timeHeader">北京时间 / BEIJING TIME</div>
                 <div class="time-date" id="time-date">----年--月--日 · ---</div>
                 <div class="time-display" id="big-time">00:00:00</div>
             </div>
 
             <div class="bottom-area animate-item delay-4">
-                <div class="section-title">Other Pages</div>
+                <div class="section-title" data-i18n="otherPages">Other Pages</div>
                 <div class="link-group">
-                    <a href="https://space.bilibili.com/479198505?spm_id_from=333.788.0.0" target="_blank" rel="noopener noreferrer" class="btn hover-target">B站主页</a>
-                    <a href="https://steamcommunity.com/profiles/76561199236026651/" target="_blank" rel="noopener noreferrer" class="btn hover-target">Steam 主页</a>
-                    <a href="https://user.qzone.qq.com/2780932701/main" target="_blank" rel="noopener noreferrer" class="btn hover-target">个人动态</a>
+                    <a href="https://space.bilibili.com/479198505?spm_id_from=333.788.0.0" target="_blank" rel="noopener noreferrer" class="btn hover-target" data-i18n="btnBilibili">B站主页</a>
+                    <a href="https://steamcommunity.com/profiles/76561199236026651/" target="_blank" rel="noopener noreferrer" class="btn hover-target" data-i18n="btnSteam">Steam 主页</a>
+                    <a href="https://user.qzone.qq.com/2780932701/main" target="_blank" rel="noopener noreferrer" class="btn hover-target" data-i18n="btnQzone">个人动态</a>
                 </div>
             </div>
         </div>
@@ -2153,12 +2159,30 @@ body.music-room-open .footer-notice {
 
     <div id="about-modal" class="about-modal hidden" aria-hidden="true">
         <div class="about-modal-panel" role="dialog" aria-labelledby="about-modal-title">
-            <h3 id="about-modal-title" class="gradient-text-flow">关于我</h3>
+            <h3 id="about-modal-title" class="gradient-text-flow" data-i18n="aboutTitle">关于我</h3>
             <p>中国人。偶尔喜欢研究研究没接触过的领域。</p>
             <p>热爱绘画（但是目前只会风景画 QWQ），听歌，二次元，但都涉及的不多。也喜欢玩休闲类游戏（比如地平线、杀戮尖塔、Minecraft 等等），偶尔也会玩玩竞技类，或者 Galgame。不太会社交，比较社恐。剩下不知道写什么了，下次想到了再说吧。</p>
             <p>Hatsune Miku!</p>
-            <button type="button" class="about-modal-close hover-target" id="about-modal-close">关闭</button>
+            <button type="button" class="about-modal-close hover-target" id="about-modal-close" data-i18n="aboutClose">关闭</button>
         </div>
+    </div>
+
+    <div class="corner-tools" id="corner-tools">
+        <div class="lang-switcher" id="lang-switcher" aria-label="语言"></div>
+        <button type="button" class="corner-tool-btn hover-target" id="guestbook-toggle" data-i18n="guestbookToggle">留言</button>
+    </div>
+
+    <div id="guestbook-panel" class="hidden" aria-hidden="true">
+        <div class="guestbook-header">
+            <span data-i18n="guestbookTitle">访客留言</span>
+            <button type="button" class="guestbook-close hover-target" id="guestbook-close" aria-label="关闭">×</button>
+        </div>
+        <div id="guestbook-messages"></div>
+        <form id="guestbook-form">
+            <input type="text" id="guestbook-name" maxlength="32" data-i18n-placeholder="guestbookNamePlaceholder" placeholder="昵称（可选）" autocomplete="nickname">
+            <textarea id="guestbook-message" maxlength="280" required data-i18n-placeholder="guestbookPlaceholder" placeholder="写下你想说的话…"></textarea>
+            <button type="submit" data-i18n="guestbookSubmit">发送留言</button>
+        </form>
     </div>
 
     <script>
@@ -2242,12 +2266,24 @@ body.music-room-open .footer-notice {
         }
 
         function getGreeting(hour) {
+            if (window.shilokuI18n?.getGreetingForHour) {
+                return window.shilokuI18n.getGreetingForHour(hour);
+            }
             if (hour >= 5 && hour < 11) return '早上好，今天也要开心';
             if (hour >= 11 && hour < 14) return '中午好，记得吃饭';
             if (hour >= 14 && hour < 18) return '下午好，摸鱼时间';
             if (hour >= 18 && hour < 23) return '晚上好，欢迎来访';
             return '夜深了，早点休息';
         }
+
+        window.__shilokuRefreshTime = function refreshTimeUi() {
+            const bjTime = getBeijingTime();
+            const h = bjTime.getHours();
+            document.getElementById('time-greeting').innerText = getGreeting(h);
+            document.getElementById('time-date').innerText = window.shilokuI18n?.formatDateLine
+                ? window.shilokuI18n.formatDateLine(bjTime, weekDays)
+                : `${bjTime.getFullYear()}年${bjTime.getMonth() + 1}月${bjTime.getDate()}日 · 星期${weekDays[bjTime.getDay()]}`;
+        };
 
         const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
         const TIME_MOOD_CLASSES = ['time-dawn', 'time-morning', 'time-noon', 'time-afternoon', 'time-evening', 'time-night'];
@@ -2269,8 +2305,9 @@ body.music-room-open .footer-notice {
 
             timeEl.innerText = `${h.toString().padStart(2, '0')}:${bjTime.getMinutes().toString().padStart(2, '0')}:${bjTime.getSeconds().toString().padStart(2, '0')}`;
             document.getElementById('time-greeting').innerText = getGreeting(h);
-            document.getElementById('time-date').innerText =
-                `${bjTime.getFullYear()}年${bjTime.getMonth() + 1}月${bjTime.getDate()}日 · 星期${weekDays[bjTime.getDay()]}`;
+            document.getElementById('time-date').innerText = window.shilokuI18n?.formatDateLine
+                ? window.shilokuI18n.formatDateLine(bjTime, weekDays)
+                : `${bjTime.getFullYear()}年${bjTime.getMonth() + 1}月${bjTime.getDate()}日 · 星期${weekDays[bjTime.getDay()]}`;
             updateTimeMood(h);
 
             timeEl.classList.add('tick');
@@ -2279,8 +2316,10 @@ body.music-room-open .footer-notice {
         updateBigTime();
         setInterval(updateBigTime, 1000);
 
+        window.addEventListener('shiloku:langchange', () => window.__shilokuRefreshTime?.());
+
         // 在线状态（FlowTrak / Steam Rich Presence 风格：主行 + 副行，可合并或轮播）
-        let remoteStatus = '在线摸鱼中';
+        let remoteStatus = window.shilokuI18n?.t?.('statusDefault') || '在线摸鱼中';
         let remotePresence = { text: '在线摸鱼中', mode: 'online', primary: '在线摸鱼中', lines: ['在线摸鱼中'] };
         let musicStatusOverride = null;
         let musicPausedAt = null;
@@ -2293,7 +2332,7 @@ body.music-room-open .footer-notice {
         const statusPillEl = document.getElementById('status-pill');
         const MUSIC_PAUSE_GRACE_MS = 60 * 1000;
         const STATUS_OFFLINE_MS = 15 * 60 * 1000;
-        const STATUS_OFFLINE_TEXT = '💤 电脑已关机';
+        const STATUS_OFFLINE_TEXT = window.shilokuI18n?.t?.('statusOffline') || '💤 电脑已关机';
         const IS_LOCAL_PREVIEW = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
         const CHAT_API = '/api/chat';
         const STATUS_SOURCES = IS_LOCAL_PREVIEW
@@ -2577,6 +2616,9 @@ body.music-room-open .footer-notice {
                 musicRoom.classList.remove('is-visible');
             }
 
+            window.__shilokuOpenMusicRoom = openMusicRoom;
+            window.__shilokuCloseMusicRoom = closeMusicRoom;
+
             navBtn.addEventListener('click', () => {
                 if (inMusicRoom) closeMusicRoom();
                 else openMusicRoom();
@@ -2820,17 +2862,21 @@ body.music-room-open .footer-notice {
 
 <div id="ai-chat-panel" class="hidden">
     <div class="chat-header">
-        <span class="chat-title">✨ DeepSeek Pro</span>
+        <span class="chat-title" data-i18n="aiTitle">✨ DeepSeek Pro</span>
         <button id="close-chat" class="hover-target">×</button>
     </div>
-    
+    <div id="ai-now-playing" class="ai-now-playing" hidden></div>
+    <div class="ai-music-actions">
+        <button type="button" id="ai-ask-song-btn" data-i18n="aiAskAboutSong">介绍这首歌</button>
+        <button type="button" id="ai-recommend-btn" data-i18n="aiRecommendSimilar">推荐类似的歌</button>
+    </div>
     <div id="chat-history" class="chat-history">
-        <div class="message ai-message">你好，我是 Shiloku 的专属 AI 助理。有什么我可以帮你的吗？</div>
+        <div class="message ai-message" data-i18n="aiWelcome">你好，我是 Shiloku 的专属 AI 助理。有什么我可以帮你的吗？</div>
     </div>
     
     <div class="chat-input-area">
-        <input type="text" id="chat-input" placeholder="输入你想说的话 (按回车发送)..." autocomplete="off">
-        <button onclick="sendMessage()" id="send-btn" class="hover-target">发送</button>
+        <input type="text" id="chat-input" data-i18n-placeholder="aiInputPlaceholder" placeholder="输入你想说的话 (按回车发送)..." autocomplete="off">
+        <button onclick="sendMessage()" id="send-btn" class="hover-target" data-i18n="aiSend">发送</button>
     </div>
 </div>
 
@@ -2859,7 +2905,7 @@ body.music-room-open .footer-notice {
             <span id="netease-page-info"></span>
             <button type="button" id="netease-next-btn" disabled>下一页</button>
         </div>
-        <p class="netease-tip">点击歌曲播放；点右侧 + 加入播放列表（刷新后列表恢复为本地歌曲）。</p>
+        <p class="netease-tip" data-i18n="neteaseTip">点击歌曲播放；点右侧 + 加入播放列表（列表会自动保存在浏览器里）。</p>
     </aside>
 
     <div class="aether-ui">
@@ -2872,6 +2918,13 @@ body.music-room-open .footer-notice {
             <button type="button" class="aether-dock-btn aether-dock-btn-accent" id="netease-search-toggle-dock" title="网易云搜索" aria-label="网易云搜索">
                 <span class="aether-dock-icon">☁</span>
             </button>
+            <button type="button" class="aether-dock-btn aether-dock-btn-share" id="share-song-btn" data-i18n-title="shareSong" title="复制分享链接" aria-label="复制分享链接">
+                <span class="aether-dock-icon">⎘</span>
+            </button>
+            <div class="theme-picker-wrap">
+                <span class="theme-picker-label" data-i18n="themeLabel">主题</span>
+                <div id="theme-picker"></div>
+            </div>
         </nav>
 
         <div class="aether-sidebar-rail">
@@ -2980,14 +3033,21 @@ body.music-room-open .footer-notice {
 
         // 生成一个正在思考的占位符
         const loadingId = 'loading-' + Date.now();
-        historyBox.innerHTML += `<div id="${loadingId}" class="message ai-message" style="opacity: 0.6;">✨ DeepSeek 正在深度思考...</div>`;
+        const thinkingText = window.shilokuI18n?.t?.('aiThinking') || '✨ DeepSeek 正在深度思考...';
+        historyBox.innerHTML += `<div id="${loadingId}" class="message ai-message" style="opacity: 0.6;">${thinkingText}</div>`;
         historyBox.scrollTop = historyBox.scrollHeight;
 
         try {
+            const nowPlaying = window.__shilokuCurrentSong?.();
+            const lang = window.shilokuI18n?.getLang?.() || 'zh';
             const response = await fetch(CHAT_API, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: message })
+                body: JSON.stringify({
+                    message: message,
+                    nowPlaying: nowPlaying ? { title: nowPlaying.title, artist: nowPlaying.artist } : null,
+                    lang,
+                })
             });
             
             const data = await response.json();
@@ -3011,7 +3071,7 @@ body.music-room-open .footer-notice {
         // 恢复输入框状态
         inputField.disabled = false;
         sendBtn.disabled = false;
-        sendBtn.innerText = '发送';
+        sendBtn.innerText = window.shilokuI18n?.t?.('aiSend') || '发送';
         inputField.focus();
         historyBox.scrollTop = historyBox.scrollHeight;
     }
@@ -3078,6 +3138,42 @@ let neteaseHasMore = false;
 let neteaseSearchKeywords = '';
 const NETEASE_PAGE_SIZE = 30;
 
+function restorePlaylistFromStorage() {
+    const saved = window.shilokuLoadPlaylist?.();
+    if (!saved) return;
+    if (Array.isArray(saved.neteaseSongs) && saved.neteaseSongs.length) {
+        saved.neteaseSongs.forEach((entry) => {
+            if (entry?.isNeteaseOnly && entry.neteaseId) songs.push(entry);
+        });
+    }
+    if (Number.isInteger(saved.currentIndex) && saved.currentIndex >= 0 && saved.currentIndex < songs.length) {
+        currentSongIndex = saved.currentIndex;
+    }
+    if (saved.playMode === 'one' || saved.playMode === 'list') playMode = saved.playMode;
+    if (typeof saved.shuffleOn === 'boolean') shuffleOn = saved.shuffleOn;
+    if (typeof saved.volume === 'number' && saved.volume >= 0 && saved.volume <= 1) {
+        const vs = document.getElementById('volume-slider');
+        if (vs) vs.value = saved.volume;
+    }
+}
+
+function persistPlaylistState() {
+    window.shilokuSavePlaylist?.({
+        neteaseSongs: songs.filter((s) => s.isNeteaseOnly).map((s) => window.shilokuSerializeNetease?.(s) || s),
+        currentIndex: currentSongIndex,
+        playMode,
+        shuffleOn,
+        volume: Number(document.getElementById('volume-slider')?.value) || 1,
+    });
+}
+
+window.__shilokuCurrentSong = () => songs[currentSongIndex] || null;
+window.__shilokuLocalIndex = (song) => LOCAL_SONGS.findIndex((s) => s.src === song?.src && s.title === song?.title);
+
+function notifyNowPlaying() {
+    window.dispatchEvent(new CustomEvent('shiloku:nowplaying', { detail: { song: songs[currentSongIndex] || null } }));
+}
+
 const neteaseSearchInput = document.getElementById('netease-search-input');
 const neteaseSearchBtn = document.getElementById('netease-search-btn');
 const neteaseSearchStatus = document.getElementById('netease-search-status');
@@ -3139,12 +3235,14 @@ function setMainPlayState(playing) {
 function cyclePlayMode() {
     playMode = playMode === 'list' ? 'one' : 'list';
     updatePlayModeUI();
+    persistPlaylistState();
 }
 
 function toggleShuffle() {
     shuffleOn = !shuffleOn;
     playHistory = [];
     updatePlayModeUI();
+    persistPlaylistState();
 }
 
 function getNextIndex() {
@@ -3168,6 +3266,7 @@ function applySiteAccent(r, g, b) {
 window.applySiteAccent = applySiteAccent;
 
 function applyCoverAccent(url) {
+    if (window.__shilokuThemeAuto === false) return;
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
@@ -3306,10 +3405,13 @@ function parseLRCText(text, transText = '') {
 }
 
 async function initPlayer() {
+    restorePlaylistFromStorage();
+    applyVolumeFromSlider(document.getElementById('volume-slider')?.value ?? 1);
     updatePlayModeUI();
     setMainPlayState(isPlaying);
     await loadSong(currentSongIndex);
     renderPlaylist();
+    notifyNowPlaying();
     audio.addEventListener('ended', onTrackEnded);
     setupNeteaseSearch();
     startLyricScrollLoop();
@@ -3320,6 +3422,30 @@ async function initPlayer() {
         if (!document.body.classList.contains('music-room-open') || !lyricItemsCache.length) return;
         clearTimeout(lyricAnchorResizeTimer);
         lyricAnchorResizeTimer = setTimeout(() => refreshLyricPanel(), 120);
+    });
+
+    window.__shilokuHandleDeepLink?.({
+        openMusicRoom: () => window.__shilokuOpenMusicRoom?.(),
+        playNeteaseById: async (id) => {
+            const existing = songs.find((s) => s.neteaseId === id);
+            if (existing) {
+                await playSongAt(songs.indexOf(existing), false);
+                if (!isPlaying) await togglePlay();
+                return;
+            }
+            try {
+                const res = await fetch(`/api/netease/search?keywords=${id}&limit=5&offset=0`);
+                const data = await res.json();
+                const hit = data.songs?.find((s) => s.id === id) || data.songs?.[0];
+                if (hit) await addNeteaseSongToPlaylist(hit, { play: true });
+            } catch { /* 深链失败时仅打开音乐室 */ }
+        },
+        playLocalAt: async (index) => {
+            if (index >= 0 && index < LOCAL_SONGS.length) {
+                await playSongAt(index, false);
+                if (!isPlaying) await togglePlay();
+            }
+        },
     });
 }
 
@@ -3355,6 +3481,7 @@ async function addNeteaseSongToPlaylist(song, { play = false } = {}) {
         renderPlaylist();
         void loadNeteaseLyrics(song.id);
         if (neteaseSearchStatus) neteaseSearchStatus.textContent = `已加入播放列表：${song.name}`;
+        persistPlaylistState();
     } else if (neteaseSearchStatus) {
         neteaseSearchStatus.textContent = `已在列表中：${song.name}`;
     }
@@ -3366,6 +3493,7 @@ async function addNeteaseSongToPlaylist(song, { play = false } = {}) {
         await playSongAt(index, false);
         if (!isPlaying) await togglePlay();
     }
+    persistPlaylistState();
     return index;
 }
 
@@ -3630,6 +3758,12 @@ async function loadSong(index) {
 
     renderLyrics();
     updatePlaylistHighlight();
+
+    const lyricPool = currentLyricsData
+        .map((l) => l.text)
+        .filter((t) => t && t.length > 4 && t.length < 80 && !/^[\[{]/.test(t));
+    window.__shilokuLyricPool = lyricPool;
+    window.shilokuRefreshDailyQuote?.(lyricPool);
 }
 
 function renderLyrics() {
@@ -4139,6 +4273,9 @@ async function playSongAt(index, pushHistory = false) {
         markMusicPlaying();
         setStatus(getListenText(), { override: true });
     }
+    window.shilokuUpdateShareUrl?.(songs[currentSongIndex]);
+    notifyNowPlaying();
+    persistPlaylistState();
 }
 
 async function onTrackEnded() {
@@ -4274,6 +4411,7 @@ applyVolumeFromSlider(volumeSlider.value);
 
 volumeSlider.addEventListener('input', (e) => {
     applyVolumeFromSlider(e.target.value);
+    persistPlaylistState();
 });
 
 playlistToggleBtn?.addEventListener('click', (e) => {
@@ -4311,6 +4449,6 @@ try {
 }
 </script>
 
-<div class="footer-notice">欢迎来访 · 2026 · 世界はまだ始まったばかり</div>
+<div class="footer-notice" data-i18n="footer">欢迎来访 · 2026 · 世界はまだ始まったばかり</div>
 </body>
 </html>

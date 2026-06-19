@@ -36,6 +36,10 @@
   },
   "windowTitleSuffixes": ["网易云音乐", "NetEase Cloud Music", "QQ音乐", "QQ Music", "Spotify"],
   "neteaseIdleWindowTitles": ["私人漫游", "Private Radio", "云音乐"],
+  "steam": {
+    "enabled": true,
+    "gamePrefix": "🎮 正在玩"
+  },
   "processes": {
     "javaw": "🎮 在玩 Minecraft",
     "minecraft": "🎮 在玩 Minecraft",

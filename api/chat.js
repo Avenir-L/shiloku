@@ -19,7 +19,22 @@ export default async function handler(req, res) {
     }
 
     const userMessage = req.body.message;
-    
+    const nowPlaying = req.body.nowPlaying;
+    const lang = req.body.lang || 'zh';
+
+    let musicContext = '';
+    if (nowPlaying && (nowPlaying.title || nowPlaying.artist)) {
+        const title = nowPlaying.title || '未知';
+        const artist = nowPlaying.artist || '未知';
+        musicContext = `\n访客当前在音乐室收听：「${title}」— ${artist}。若问题与音乐相关，可结合这首歌作答；也可推荐风格相近的曲目。`;
+    }
+
+    const langHint = lang === 'en'
+        ? ' Reply in English unless the visitor writes in another language.'
+        : lang === 'ja'
+            ? ' 访客界面为日语时，请用日语回答。'
+            : ' 默认用中文回答；访客用其他语言提问时可跟随其语言。';
+
     // 2. 从 Vercel 读取你的 DeepSeek API Key
     const apiKey = process.env.DEEPSEEK_API_KEY; 
 
@@ -36,7 +51,7 @@ export default async function handler(req, res) {
             body: JSON.stringify({
                 model: 'deepseek-v4-pro', // 截图指定模型
                 messages: [
-                    { role: 'system', content: '你现在的身份是十六夜叶月（Shiloku）的专属网页AI助理。请用高冷、简短的语气回答访客问题。' },
+                    { role: 'system', content: `你现在的身份是十六夜叶月（Shiloku）的专属网页AI助理。请用高冷、简短的语气回答访客问题。${langHint}${musicContext}` },
                     { role: 'user', content: userMessage }
                 ],
                 // 完美复刻截图里的高阶思考功能参数
