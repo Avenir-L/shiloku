@@ -535,9 +535,13 @@ $script:LastPushTime = [datetime]::MinValue
 function Get-PushHeartbeatSeconds {
     if ($config.pushHeartbeatSeconds) {
         $sec = [int]$config.pushHeartbeatSeconds
-        if ($sec -ge 60) { return $sec }
+        if ($sec -ge 3) { return $sec }
     }
-    return 480
+    if ($config.syncIntervalSeconds) {
+        $sec = [int]$config.syncIntervalSeconds
+        if ($sec -ge 3) { return $sec }
+    }
+    return 5
 }
 
 function Get-StatusFingerprint {
@@ -647,6 +651,11 @@ function Update-StatusFile {
     $heartbeatDue = ($script:LastPushTime -eq [datetime]::MinValue) -or ($elapsed -ge $heartbeatSec)
     $shouldWrite = $textChanged -or $heartbeatDue -or -not (Test-Path $statusFile)
 
+    if ($Post) {
+        $shouldWrite = $true
+        $heartbeatDue = $true
+    }
+
     if (-not $shouldWrite) {
         Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (unchanged) $text"
         return
@@ -674,7 +683,7 @@ function Update-StatusFile {
         Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (unchanged) $text"
     }
 
-    if ($Post -and ($textChanged -or $heartbeatDue)) {
+    if ($Post) {
         if (Send-StatusRemote -PayloadJson $payloadJson) { $script:LastPushTime = Get-Date }
     } elseif ($Push -and ($textChanged -or $heartbeatDue)) {
         Write-Host '  (warning: -Push uses Git and may trigger Vercel; use -Post instead)'

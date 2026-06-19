@@ -13,6 +13,6 @@ if not "%1"=="auto" (
     echo.
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0sync-status.ps1" -Loop -Post -IntervalSeconds 10
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0sync-status.ps1" -Loop -Post -IntervalSeconds 5
 
 if not "%1"=="auto" pause
