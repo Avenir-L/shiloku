@@ -21,6 +21,33 @@ if (Test-Path $secretsFile) {
 
 if (-not $Post -and -not $Push) { $Post = $true }
 
+$script:InstanceMutex = $null
+
+function Enter-SingleInstanceLock {
+    if (-not $Loop) { return $true }
+    try {
+        $script:InstanceMutex = New-Object System.Threading.Mutex($false, 'Global\ShilokuStatusSync')
+        $acquired = $script:InstanceMutex.WaitOne(0, $false)
+        if (-not $acquired) {
+            Write-Host 'Status sync is already running. Only one instance is allowed.'
+            return $false
+        }
+        return $true
+    } catch {
+        Write-Host "Single-instance lock failed: $_"
+        return $true
+    }
+}
+
+function Stop-OtherSyncInstances {
+    Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" |
+        Where-Object {
+            $_.CommandLine -match 'sync-status\.ps1' -and
+            $_.ProcessId -ne $PID
+        } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+}
+
 $script:MediaReady = $false
 $script:AwaitMethod = $null
 $script:ForegroundApiReady = $false
@@ -954,6 +981,11 @@ function Push-StatusToGit {
     } finally {
         Pop-Location
     }
+}
+
+if ($Loop) {
+    Stop-OtherSyncInstances
+    if (-not (Enter-SingleInstanceLock)) { exit 0 }
 }
 
 Update-StatusFile
