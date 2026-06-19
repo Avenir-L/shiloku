@@ -3219,32 +3219,90 @@ async function fetchAndParseLRC(lrcUrl) {
     }
 }
 
-function parseLRCText(text) {
-    const lines = text.split('\n');
-    const timeExp = /\[(\d{2}):(\d{2}(?:\.\d{2,3})?)\]/;
-    const result = [];
-    const timeMap = new Map(); 
+function extractTimedLyricLines(text) {
+    const timeExp = /\[(\d{2}):(\d{2}(?:\.\d{2,3})?)\]/g;
+    const out = [];
+    String(text).split('\n').forEach((line) => {
+        const matches = [...line.matchAll(timeExp)];
+        if (!matches.length) return;
+        const content = line.replace(timeExp, '').trim();
+        matches.forEach((match) => {
+            const time = parseInt(match[1], 10) * 60 + parseFloat(match[2]);
+            out.push({ time, text: content });
+        });
+    });
+    return out;
+}
 
-    lines.forEach(line => {
-        const match = timeExp.exec(line);
-        if (match) {
-            const minutes = parseInt(match[1]);
-            const seconds = parseFloat(match[2]);
-            const time = minutes * 60 + seconds;
-            const content = line.replace(timeExp, '').trim();
+function isLyricMetaLine(text) {
+    return !text || text.startsWith('{') || /^(作词|作曲|编曲|制作人|演唱|词|曲)[:：]/.test(text);
+}
 
-            if (content) {
-                if (timeMap.has(time)) {
-                    timeMap.get(time).trans = content;
-                } else {
-                    const lyricObj = { time: time, text: content, trans: "" };
-                    timeMap.set(time, lyricObj);
-                    result.push(lyricObj);
-                }
-            }
+function findTranslationForLine(time, index, mainCount, transLines, transByTime) {
+    if (transByTime.has(time)) return transByTime.get(time);
+
+    let best = '';
+    let bestDelta = 0.6;
+    transByTime.forEach((text, t) => {
+        const delta = Math.abs(t - time);
+        if (delta < bestDelta) {
+            bestDelta = delta;
+            best = text;
         }
     });
-    return result;
+    if (best) return best;
+
+    if (!transLines.length) return '';
+
+    if (transLines.length === mainCount) {
+        return transLines[index]?.text || '';
+    }
+
+    const ratio = mainCount > 1 ? index / (mainCount - 1) : 0;
+    const transIndex = Math.min(
+        transLines.length - 1,
+        Math.round(ratio * (transLines.length - 1)),
+    );
+    return transLines[transIndex]?.text || '';
+}
+
+function mergeLyricWithTranslation(mainText, transText) {
+    const mainLines = extractTimedLyricLines(mainText).filter((line) => !isLyricMetaLine(line.text));
+    const transLines = extractTimedLyricLines(transText).filter((line) => !isLyricMetaLine(line.text));
+    if (!mainLines.length) return [];
+
+    const transByTime = new Map();
+    transLines.forEach((line) => transByTime.set(line.time, line.text));
+
+    return mainLines
+        .map((line, index) => ({
+            time: line.time,
+            text: line.text,
+            trans: findTranslationForLine(line.time, index, mainLines.length, transLines, transByTime),
+        }))
+        .sort((a, b) => a.time - b.time);
+}
+
+function parseLRCText(text, transText = '') {
+    if (transText) {
+        return mergeLyricWithTranslation(text, transText);
+    }
+
+    const result = [];
+    const timeMap = new Map();
+
+    extractTimedLyricLines(text).forEach(({ time, text: content }) => {
+        if (isLyricMetaLine(content)) return;
+        if (timeMap.has(time)) {
+            timeMap.get(time).trans = content;
+            return;
+        }
+        const lyricObj = { time, text: content, trans: '' };
+        timeMap.set(time, lyricObj);
+        result.push(lyricObj);
+    });
+
+    return result.sort((a, b) => a.time - b.time);
 }
 
 async function initPlayer() {
@@ -3295,6 +3353,7 @@ async function addNeteaseSongToPlaylist(song, { play = false } = {}) {
         songs.push(neteaseSongToPlaylistEntry(song));
         index = songs.length - 1;
         renderPlaylist();
+        void loadNeteaseLyrics(song.id);
         if (neteaseSearchStatus) neteaseSearchStatus.textContent = `已加入播放列表：${song.name}`;
     } else if (neteaseSearchStatus) {
         neteaseSearchStatus.textContent = `已在列表中：${song.name}`;
@@ -3513,12 +3572,22 @@ async function applySongAudioSrc(song) {
 }
 
 async function loadNeteaseLyrics(neteaseId) {
+    const key = String(neteaseId);
+    if (lyricsCache[key]) return lyricsCache[key];
     try {
-        const lyricRes = await fetch(`/api/netease/lyric?id=${encodeURIComponent(neteaseId)}`);
+        const lyricRes = await fetch(`/api/netease/lyric?id=${encodeURIComponent(key)}`);
+        if (!lyricRes.ok) {
+            lyricsCache[key] = [];
+            return [];
+        }
         const lyricData = await lyricRes.json();
-        const lyricText = lyricData.lyric || lyricData.translatedLyric || '';
-        return lyricText ? parseLRCText(lyricText) : [];
+        const lrc = lyricData.lyric || '';
+        const trans = lyricData.translatedLyric || '';
+        const parsed = lrc ? parseLRCText(lrc, trans) : [];
+        lyricsCache[key] = parsed;
+        return parsed;
     } catch {
+        lyricsCache[key] = [];
         return [];
     }
 }
@@ -3568,7 +3637,13 @@ function renderLyrics() {
     resetLyricScrollTransform();
 
     if (currentLyricsData.length === 0) {
-        lyricsList.innerHTML = '<li class="lyric-placeholder"><span class="lyric-dot"></span><div class="lyric-body"><div class="lyric-text">🎵 纯音乐，享受此刻</div></div></li>';
+        const song = songs[currentSongIndex];
+        const emptyText = song?.isNeteaseOnly
+            ? '这首歌暂无歌词'
+            : '🎵 纯音乐，享受此刻';
+        lyricsList.innerHTML = `<li class="lyric-placeholder"><span class="lyric-dot"></span><div class="lyric-body"><div class="lyric-text">${emptyText}</div></div></li>`;
+        lyricItemsCache = [];
+        lyricAnchorCenters = [];
         return;
     }
 

@@ -185,6 +185,114 @@ function Test-MusicPlayerRunning {
     return $false
 }
 
+function Get-NeteaseProcessNames {
+    $names = @()
+    if ($config.musicApps.PSObject.Properties.Name -contains 'cloudmusic') {
+        if ($config.musicApps.cloudmusic.match) {
+            $names = @($config.musicApps.cloudmusic.match)
+        }
+    }
+    if ($names.Count -eq 0) {
+        $names = @('cloudmusic', 'CloudMusic', 'NeteaseCloudMusic')
+    }
+    return $names
+}
+
+function Get-AllMusicProcessExeNames {
+    $names = @()
+    foreach ($prop in $config.musicApps.PSObject.Properties) {
+        if ($prop.Value.match) { $names += @($prop.Value.match) }
+    }
+    foreach ($name in $script:MusicExeNames) {
+        if ($names -notcontains $name) { $names += $name }
+    }
+    return ($names | Select-Object -Unique)
+}
+
+function Parse-NeteaseWindowTitle {
+    param([string]$RawTitle)
+    $title = [string]$RawTitle.Trim()
+    if (-not $title) { return $null }
+
+    foreach ($suffix in @($config.windowTitleSuffixes)) {
+        if (-not $suffix) { continue }
+        if ($title -ieq $suffix) { return $null }
+        if ($title.Contains($suffix)) {
+            $title = ($title -split [regex]::Escape($suffix))[0].Trim()
+            $title = $title.TrimEnd('-').Trim()
+        }
+    }
+    if (-not $title) { return $null }
+
+    if ($config.neteaseIdleWindowTitles) {
+        foreach ($idle in @($config.neteaseIdleWindowTitles)) {
+            if ($idle -and $title -ieq [string]$idle) { return $null }
+        }
+    }
+
+    if ($title -match '^(?<song>.+?)\s*-\s*(?<artist>.+)$') {
+        return @{
+            Title  = $matches.song.Trim()
+            Artist = $matches.artist.Trim()
+            AppId  = 'cloudmusic'
+        }
+    }
+    return @{ Title = $title; Artist = ''; AppId = 'cloudmusic' }
+}
+
+function Get-NeteaseMusicFromWindow {
+    foreach ($name in (Get-NeteaseProcessNames)) {
+        $proc = Get-Process -Name $name -ErrorAction SilentlyContinue |
+            Where-Object { $_.MainWindowTitle } |
+            Select-Object -First 1
+        if (-not $proc) { continue }
+        $parsed = Parse-NeteaseWindowTitle ([string]$proc.MainWindowTitle)
+        if ($parsed) { return $parsed }
+    }
+    return $null
+}
+
+function Get-NonNeteasePlayingMusicInfo {
+    $manager = Get-MediaManager
+    if (-not $manager) { return $null }
+
+    $neteasePatterns = @()
+    if ($config.musicApps.PSObject.Properties.Name -contains 'cloudmusic') {
+        if ($config.musicApps.cloudmusic.match) {
+            $neteasePatterns = @($config.musicApps.cloudmusic.match)
+        }
+    }
+    $otherPatterns = Get-AllMusicAppPatterns | Where-Object {
+        foreach ($np in $neteasePatterns) { if ($_ -eq $np) { return $false } }
+        return $true
+    }
+
+    $genericMatch = $null
+    $seen = @{}
+
+    try {
+        foreach ($s in $manager.GetSessions()) {
+            $info = Get-SessionPlaybackInfo $s
+            if (-not $info) { continue }
+            if ($seen[$info.AppId]) { continue }
+            $seen[$info.AppId] = $true
+            if (Test-AppMatch $info.AppId $neteasePatterns) { continue }
+            if (Test-AppMatch $info.AppId $otherPatterns) { return $info }
+            if (-not $genericMatch -and ($info.Title -or $info.Artist)) { $genericMatch = $info }
+        }
+
+        $current = $manager.GetCurrentSession()
+        $currentInfo = Get-SessionPlaybackInfo $current
+        if ($currentInfo) {
+            if (Test-AppMatch $currentInfo.AppId $neteasePatterns) { return $null }
+            if (Test-AppMatch $currentInfo.AppId $otherPatterns) { return $currentInfo }
+            if (-not $genericMatch) { $genericMatch = $currentInfo }
+        }
+    } catch {}
+
+    return $genericMatch
+}
+
 function Get-MusicInfoFromWindowTitle {
     foreach ($name in $script:MusicExeNames) {
         $proc = Get-Process -Name $name -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle } | Select-Object -First 1
@@ -231,49 +339,62 @@ function Format-ListeningLine {
     return $null
 }
 
+function Get-ProcessDisplayName {
+    param([string]$ProcessName)
+    if (-not $ProcessName) { return '' }
+    if ($config.processDisplayNames -and
+        ($config.processDisplayNames.PSObject.Properties.Name -contains $ProcessName)) {
+        return [string]$config.processDisplayNames.$ProcessName
+    }
+    try {
+        $proc = Get-Process -Name $ProcessName -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($proc) {
+            try {
+                $product = $proc.MainModule.FileVersionInfo.ProductName
+                if ($product -and ($product.Trim() -ne '')) {
+                    return $product.Trim()
+                }
+            } catch {}
+        }
+    } catch {}
+    return $ProcessName
+}
+
+function Format-ActivityLine {
+    param([string]$ProcessName)
+    $pfx = [string]$config.activityPrefix
+    if (-not $pfx) { $pfx = [string]$config.unknownProcessPrefix }
+    if (-not $pfx) { $pfx = 'using' }
+    return "$pfx $(Get-ProcessDisplayName $ProcessName)"
+}
+
 function Get-ForegroundProcessStatus {
     $fg = Get-ForegroundProcessName
     if (-not $fg) { return $null }
+    if ((Get-AllMusicProcessExeNames) -icontains $fg) { return $null }
     foreach ($prop in $config.processes.PSObject.Properties) {
-        if ($fg -ieq $prop.Name) { return $prop.Value }
+        if ($fg -ieq $prop.Name) { return [string]$prop.Value }
     }
     $skip = @('explorer','SearchHost','ShellExperienceHost','ApplicationFrameHost','SystemSettings',
         'powershell','pwsh','cmd','WindowsTerminal','python','TextInputHost','StartMenuExperienceHost','msedgewebview2')
     if ($skip -notcontains $fg) {
-        $pfx = [string]$config.unknownProcessPrefix
-        if (-not $pfx) { $pfx = 'using' }
-        return "$pfx $fg"
+        return Format-ActivityLine $fg
     }
     return $null
 }
 
-$script:PausedSince = $null
-$script:LastListenLine = $null
 $script:LastPushTime = [datetime]::MinValue
 $script:PushHeartbeatSeconds = 120
 
-function Get-ListeningGraceSeconds {
-    if ($config.listeningGraceSeconds) { return [int]$config.listeningGraceSeconds }
-    return 60
-}
-
-function Get-ListeningLineWithGrace {
-    $musicInfo = Get-AnyPlayingMusicInfo
-    if ($musicInfo) {
-        $script:PausedSince = $null
-        $line = Format-ListeningLine $musicInfo
-        if ($line) { $script:LastListenLine = $line }
-        return $line
+function Get-ListeningLine {
+    $neteaseInfo = Get-NeteaseMusicFromWindow
+    if ($neteaseInfo) {
+        return Format-ListeningLine $neteaseInfo
     }
 
-    if ($script:LastListenLine) {
-        if (-not $script:PausedSince) { $script:PausedSince = Get-Date }
-        $grace = Get-ListeningGraceSeconds
-        if (((Get-Date) - $script:PausedSince).TotalSeconds -lt $grace) {
-            return $script:LastListenLine
-        }
-        $script:LastListenLine = $null
-        $script:PausedSince = $null
+    $otherInfo = Get-NonNeteasePlayingMusicInfo
+    if ($otherInfo) {
+        return Format-ListeningLine $otherInfo
     }
 
     return $null
@@ -300,21 +421,17 @@ function Get-StatusPayload {
         }
     }
 
-    $listenLine = Get-ListeningLineWithGrace
+    $listenLine = Get-ListeningLine
     $activityLine = Get-ForegroundProcessStatus
-    $lines = @()
-    if ($activityLine) { $lines += $activityLine }
-    if ($listenLine -and ($lines -notcontains $listenLine)) { $lines += $listenLine }
-    if ($lines.Count -eq 0) {
-        $default = [string]$config.default
-        if (-not $default) { $default = [string]$config.default }
-        if (-not $default) { $default = 'online' }
-        $lines = @($default)
-    }
 
-    $primary = $lines[0]
-    $secondary = ''
-    if ($lines.Count -gt 1) { $secondary = $lines[1] }
+    $default = [string]$config.default
+    if (-not $default) { $default = 'online' }
+
+    $primary = if ($activityLine) { $activityLine } else { $default }
+    $secondary = if ($listenLine) { $listenLine } else { '' }
+
+    $lines = @($primary)
+    if ($secondary) { $lines += $secondary }
 
     $text = if ($displayMode -eq 'carousel') { $primary } else { ($lines -join $sep) }
 

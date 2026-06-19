@@ -132,10 +132,54 @@ export async function fetchNeteaseLyric(id) {
         { headers: getNeteaseHeaders() }
     );
     const data = await response.json();
+    let lyric = data?.lrc?.lyric || '';
+    const translatedLyric = data?.tlyric?.lyric || '';
+    if (!lyric) {
+        lyric = yrcTextToLrc(data?.yrc?.lyric) || yrcTextToLrc(data?.klyric?.lyric) || '';
+    }
     return {
-        lyric: data?.lrc?.lyric || '',
-        translatedLyric: data?.tlyric?.lyric || '',
+        lyric,
+        translatedLyric,
+        hasTranslation: Boolean(translatedLyric.trim()),
     };
+}
+
+function yrcTextToLrc(yrcText) {
+    if (!yrcText) return '';
+    const linesOut = [];
+    const lineRe = /^\[(\d+),\d+\](.*)$/;
+    const tokenRe = /\((\d+),(\d+),(\d+)\)/g;
+    for (const raw of String(yrcText).split('\n')) {
+        const trimmed = raw.trim();
+        if (!trimmed) continue;
+        const match = lineRe.exec(trimmed);
+        if (!match) continue;
+        const startMs = Number(match[1]);
+        const body = match[2];
+        if (body.startsWith('{')) continue;
+        const parts = [];
+        let pos = 0;
+        while (pos < body.length) {
+            tokenRe.lastIndex = pos;
+            const token = tokenRe.exec(body);
+            if (!token) {
+                parts.push(body.slice(pos));
+                break;
+            }
+            pos = tokenRe.lastIndex;
+            let end = pos;
+            while (end < body.length && body[end] !== '(') end += 1;
+            parts.push(body.slice(pos, end));
+            pos = end;
+        }
+        const text = parts.join('').trim();
+        if (!text) continue;
+        const totalSec = startMs / 1000;
+        const minutes = Math.floor(totalSec / 60);
+        const seconds = totalSec - minutes * 60;
+        linesOut.push(`[${String(minutes).padStart(2, '0')}:${seconds.toFixed(2).padStart(5, '0')}]${text}`);
+    }
+    return linesOut.join('\n');
 }
 
 export async function proxyNeteaseAudio(id, reqHeaders) {

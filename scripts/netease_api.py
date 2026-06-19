@@ -1,6 +1,7 @@
 """Netease Cloud Music proxy helpers (sonic-topography style)."""
 import json
 import os
+import re
 import time
 import urllib.parse
 import urllib.request
@@ -144,13 +145,63 @@ def search_songs(keywords, result_limit=12, offset=0):
     return payload
 
 
+def _yrc_text_to_lrc(yrc_text):
+    if not yrc_text:
+        return ""
+    lines_out = []
+    line_re = re.compile(r"^\[(\d+),\d+\](.*)$")
+    token_re = re.compile(r"\((\d+),(\d+),(\d+)\)")
+    for raw in yrc_text.splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        match = line_re.match(raw)
+        if not match:
+            continue
+        start_ms = int(match.group(1))
+        body = match.group(2)
+        if body.startswith("{"):
+            continue
+        parts = []
+        pos = 0
+        while pos < len(body):
+            token = token_re.match(body, pos)
+            if not token:
+                parts.append(body[pos:])
+                break
+            pos = token.end()
+            end = pos
+            while end < len(body) and body[end] != "(":
+                end += 1
+            parts.append(body[pos:end])
+            pos = end
+        text = "".join(parts).strip()
+        if not text:
+            continue
+        total_sec = start_ms / 1000.0
+        minutes = int(total_sec // 60)
+        seconds = total_sec - minutes * 60
+        lines_out.append(f"[{minutes:02d}:{seconds:05.2f}]{text}")
+    return "\n".join(lines_out)
+
+
 def fetch_lyric(song_id):
     data = _fetch_json(
         f"https://music.163.com/api/song/lyric?id={urllib.parse.quote(str(song_id))}&lv=-1&kv=-1&tv=-1"
     )
+    lyric = ((data.get("lrc") or {}).get("lyric")) or ""
+    translated = ((data.get("tlyric") or {}).get("lyric")) or ""
+    if not lyric:
+        for key in ("yrc", "klyric"):
+            block = data.get(key) or {}
+            converted = _yrc_text_to_lrc(block.get("lyric") or "")
+            if converted:
+                lyric = converted
+                break
     return {
-        "lyric": ((data.get("lrc") or {}).get("lyric")) or "",
-        "translatedLyric": ((data.get("tlyric") or {}).get("lyric")) or "",
+        "lyric": lyric,
+        "translatedLyric": translated,
+        "hasTranslation": bool(translated.strip()),
     }
 
 
