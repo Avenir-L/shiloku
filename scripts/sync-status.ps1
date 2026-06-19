@@ -688,7 +688,7 @@ function Get-StatusPostUrl {
     if ($script:StatusSecrets -and $script:StatusSecrets.statusPostUrl) {
         return [string]$script:StatusSecrets.statusPostUrl
     }
-    return 'https://shiloku.cn/api/status/update'
+    return 'https://www.shiloku.cn/api/status/update'
 }
 
 function Get-StatusSyncSecret {
