@@ -583,17 +583,86 @@ function Get-ForegroundProcessStatus {
 
 $script:LastPushTime = [datetime]::MinValue
 $script:RemotePostBlockedUntil = [datetime]::MinValue
+$script:PendingRemotePayloadJson = $null
+$script:RemotePostTimestamps = @()
 
-function Get-PushHeartbeatSeconds {
-    $sec = 60
-    if ($config.pushHeartbeatSeconds) {
-        $sec = [int]$config.pushHeartbeatSeconds
-    } elseif ($config.syncIntervalSeconds) {
-        $sec = [int]$config.syncIntervalSeconds
+function Get-ConfigInt {
+    param([string]$Key, [int]$Default, [int]$Minimum = 1)
+    $val = $Default
+    if ($config.PSObject.Properties.Name -contains $Key) {
+        $val = [int]$config.$Key
     }
-    if ($Post -and $sec -lt 30) { $sec = 30 }
-    if ($sec -lt 3) { $sec = 3 }
+    if ($val -lt $Minimum) { $val = $Minimum }
+    return $val
+}
+
+function Get-RemotePostMinIntervalSeconds {
+    $sec = Get-ConfigInt -Key 'remotePostMinIntervalSeconds' -Default 8 -Minimum 3
+    if ($Post -and $sec -lt 6) { $sec = 6 }
     return $sec
+}
+
+function Get-RemoteHeartbeatSeconds {
+    $sec = 120
+    if ($config.remoteHeartbeatSeconds) {
+        $sec = [int]$config.remoteHeartbeatSeconds
+    } elseif ($config.pushHeartbeatSeconds) {
+        $sec = [int]$config.pushHeartbeatSeconds
+    }
+    if ($Post -and $sec -lt 60) { $sec = 60 }
+    if ($sec -lt 30) { $sec = 30 }
+    return $sec
+}
+
+function Get-RemoteMaxPostsPerHour {
+    $max = Get-ConfigInt -Key 'remoteMaxPostsPerHour' -Default 150 -Minimum 30
+    if ($Post -and $max -gt 240) { $max = 240 }
+    return $max
+}
+
+function Get-RemoteRateLimitCooldownSeconds {
+    return Get-ConfigInt -Key 'remoteRateLimitCooldownSeconds' -Default 300 -Minimum 60
+}
+
+function Register-RemotePostAttempt {
+    $cutoff = (Get-Date).AddHours(-1)
+    $script:RemotePostTimestamps = @($script:RemotePostTimestamps | Where-Object { $_ -ge $cutoff })
+    $script:RemotePostTimestamps += Get-Date
+}
+
+function Test-RemotePostBudget {
+    $cutoff = (Get-Date).AddHours(-1)
+    $script:RemotePostTimestamps = @($script:RemotePostTimestamps | Where-Object { $_ -ge $cutoff })
+    return ($script:RemotePostTimestamps.Count -lt (Get-RemoteMaxPostsPerHour))
+}
+
+function Test-RemotePostMinGapMet {
+    if ($script:LastPushTime -eq [datetime]::MinValue) { return $true }
+    $elapsed = ((Get-Date) - $script:LastPushTime).TotalSeconds
+    return ($elapsed -ge (Get-RemotePostMinIntervalSeconds))
+}
+
+function Test-ShouldPostRemote {
+    param(
+        [bool]$TextChanged,
+        [bool]$HasPending
+    )
+
+    if ($HasPending) {
+        if (-not (Test-RemotePostAllowed)) { return $true }
+        if (-not (Test-RemotePostBudget)) { return $false }
+        return (Test-RemotePostMinGapMet)
+    }
+
+    if (-not $TextChanged) {
+        if (-not (Test-RemotePostAllowed)) { return $false }
+        if (-not (Test-RemotePostBudget)) { return $false }
+        if (-not (Test-RemotePostMinGapMet)) { return $false }
+        $elapsed = ((Get-Date) - $script:LastPushTime).TotalSeconds
+        return ($script:LastPushTime -eq [datetime]::MinValue) -or ($elapsed -ge (Get-RemoteHeartbeatSeconds))
+    }
+
+    return $false
 }
 
 function Get-StatusFingerprint {
@@ -703,7 +772,6 @@ function Invoke-GitStep {
 function Update-StatusFile {
     $status = Get-StatusPayload
     $text = [string]$status.text
-    $heartbeatSec = Get-PushHeartbeatSeconds
 
     $prevFingerprint = $null
     if (Test-Path $statusFile) {
@@ -721,14 +789,6 @@ function Update-StatusFile {
 
     $fingerprint = Get-StatusFingerprint $status
     $textChanged = ($prevFingerprint -ne $fingerprint)
-    $elapsed = ((Get-Date) - $script:LastPushTime).TotalSeconds
-    $heartbeatDue = ($script:LastPushTime -eq [datetime]::MinValue) -or ($elapsed -ge $heartbeatSec)
-    $shouldWrite = $textChanged -or $heartbeatDue -or -not (Test-Path $statusFile)
-
-    if (-not $shouldWrite) {
-        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (unchanged) $text"
-        return
-    }
 
     $payload = @{
         text              = $text
@@ -742,25 +802,49 @@ function Update-StatusFile {
     }
     $payloadJson = $payload | ConvertTo-Json -Compress -Depth 4
 
-    [System.IO.File]::WriteAllText($statusFile, $payloadJson, [System.Text.UTF8Encoding]::new($false))
-
     if ($textChanged) {
+        $script:PendingRemotePayloadJson = $payloadJson
+        [System.IO.File]::WriteAllText($statusFile, $payloadJson, [System.Text.UTF8Encoding]::new($false))
         Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $text"
-    } elseif ($heartbeatDue) {
-        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (heartbeat) $text"
-    } else {
+    } elseif (-not $script:PendingRemotePayloadJson) {
         Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (unchanged) $text"
     }
 
-    if ($Post) {
-        if (-not $textChanged -and -not (Test-RemotePostAllowed)) {
-            Write-Host '  (skip post: rate limit cooldown)'
-        } elseif (Send-StatusRemote -PayloadJson $payloadJson) {
-            $script:LastPushTime = Get-Date
+    if (-not $Post) {
+        if ($Push -and $textChanged) {
+            Write-Host '  (warning: -Push uses Git and may trigger Vercel; use -Post instead)'
+            if (Push-StatusToGit -PayloadJson $payloadJson) {
+                $script:LastPushTime = Get-Date
+                Register-RemotePostAttempt
+            }
         }
-    } elseif ($Push -and ($textChanged -or $heartbeatDue)) {
-        Write-Host '  (warning: -Push uses Git and may trigger Vercel; use -Post instead)'
-        if (Push-StatusToGit -PayloadJson $payloadJson) { $script:LastPushTime = Get-Date }
+        return
+    }
+
+    $hasPending = [bool]$script:PendingRemotePayloadJson
+    $shouldPost = Test-ShouldPostRemote -TextChanged $textChanged -HasPending $hasPending
+
+    if (-not $shouldPost) {
+        if ($hasPending -and -not (Test-RemotePostMinGapMet)) {
+            Write-Host '  (post queued, waiting min interval)'
+        } elseif ($hasPending -and -not (Test-RemotePostBudget)) {
+            Write-Host '  (post queued, hourly budget reached)'
+        }
+        return
+    }
+
+    $postJson = if ($script:PendingRemotePayloadJson) { $script:PendingRemotePayloadJson } else { $payloadJson }
+    $postReason = if ($script:PendingRemotePayloadJson) { 'change' } else { 'heartbeat' }
+
+    if (Send-StatusRemote -PayloadJson $postJson) {
+        $script:LastPushTime = Get-Date
+        $script:PendingRemotePayloadJson = $null
+        Register-RemotePostAttempt
+        if ($postReason -eq 'heartbeat') {
+            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (heartbeat posted) $text"
+        } else {
+            Write-Host '  posted (change)'
+        }
     }
 }
 
@@ -785,7 +869,7 @@ function Test-RemotePostAllowed {
 }
 
 function Set-RemotePostRateLimited {
-    param([int]$Seconds = 300)
+    $Seconds = Get-RemoteRateLimitCooldownSeconds
     $script:RemotePostBlockedUntil = (Get-Date).AddSeconds($Seconds)
     Write-Host "  (remote post paused ${Seconds}s: GitHub rate limit)"
 }
@@ -822,7 +906,7 @@ function Send-StatusGistDirect {
         return $true
     } catch {
         Write-Host "  gist direct failed: $_"
-        if ("$_" -match 'rate limit') { Set-RemotePostRateLimited -Seconds 600 }
+        if ("$_" -match 'rate limit') { Set-RemotePostRateLimited }
         return $false
     }
 }
@@ -843,7 +927,7 @@ function Send-StatusRemote {
         return $true
     } catch {
         Write-Host "  post failed: $_"
-        if ("$_" -match 'rate limit|status 500|write') { Set-RemotePostRateLimited -Seconds 120 }
+        if ("$_" -match 'rate limit|status 500|write') { Set-RemotePostRateLimited }
         return (Send-StatusGistDirect -PayloadJson $PayloadJson)
     }
 }
