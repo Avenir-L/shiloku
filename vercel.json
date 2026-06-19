@@ -11,6 +11,19 @@
       ]
     },
     {
+      "source": "/api/status",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
       "source": "/api/chat",
       "headers": [
         {

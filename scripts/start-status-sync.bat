@@ -4,12 +4,12 @@ cd /d "%~dp0.."
 
 if not "%1"=="auto" (
     echo ========================================
-    echo   Shiloku 在线状态同步
-    echo   - 网易云歌名 / 游戏状态
-    echo   - 自动推送到网站
+    echo   Shiloku Status Sync
+    echo   - music / game activity to website
+    echo   - auto push to GitHub
     echo ========================================
     echo.
-    echo 关闭此窗口将停止同步
+    echo Close this window to stop sync.
     echo.
 )
 

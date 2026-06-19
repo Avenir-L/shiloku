@@ -43,10 +43,29 @@ class PreviewHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        if parsed.path == "/api/status":
+            self._handle_status()
+            return
         if parsed.path.startswith("/api/netease/"):
             self._handle_netease_get(parsed)
             return
         super().do_GET()
+
+    def _handle_status(self):
+        status_path = os.path.join(ROOT, "status.json")
+        try:
+            with open(status_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            data = {"text": "在线摸鱼中", "updatedAt": None}
+        self.send_response(200)
+        self._cors()
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        raw = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        self.send_header("Content-Length", str(len(raw)))
+        self.end_headers()
+        self._safe_write(raw)
 
     def do_POST(self):
         if self.path != "/api/chat":

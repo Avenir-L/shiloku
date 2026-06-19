@@ -5,6 +5,8 @@ param(
 )
 
 $ErrorActionPreference = 'Continue'
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+$OutputEncoding = [Console]::OutputEncoding
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $statusFile = Join-Path $repoRoot "status.json"
 $configFile = Join-Path $PSScriptRoot "status-config.json"
@@ -328,23 +330,28 @@ function Update-StatusFile {
     if ($textChanged) {
         Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $text"
     } else {
-        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (无变化) $text"
+        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (unchanged) $text"
     }
 
     if ($Push) {
         $elapsed = ((Get-Date) - $script:LastPushTime).TotalSeconds
         if ($textChanged -or $elapsed -ge $script:PushHeartbeatSeconds) {
-            if (Push-StatusToGit) { $script:LastPushTime = Get-Date }
+            if (Push-StatusToGit -PayloadJson $payload) { $script:LastPushTime = Get-Date }
         }
     }
 }
 
 function Push-StatusToGit {
+    param([string]$PayloadJson)
     Push-Location $repoRoot
     try {
         [void](Invoke-GitStep -GitArguments @('pull','--rebase','--autostash','origin','main'))
+        [System.IO.File]::WriteAllText($statusFile, $PayloadJson, [System.Text.UTF8Encoding]::new($false))
         $dirty = git status --porcelain status.json 2>$null
-        if (-not $dirty) { return $true }
+        if (-not $dirty) {
+            Write-Host "  (skip push: status.json unchanged on disk)"
+            return $false
+        }
         if (-not (Invoke-GitStep -GitArguments @('add','status.json'))) { return $false }
         if (-not (Invoke-GitStep -GitArguments @('commit','-m','chore: update live status'))) { return $false }
         if (-not (Invoke-GitStep -GitArguments @('push','origin','main'))) { return $false }
