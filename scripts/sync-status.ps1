@@ -1,6 +1,8 @@
 param(
     [switch]$Loop,
+    [switch]$Post,
     [switch]$Push,
+    [string]$PostUrl = '',
     [int]$IntervalSeconds = 15
 )
 
@@ -10,7 +12,14 @@ $OutputEncoding = [Console]::OutputEncoding
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $statusFile = Join-Path $repoRoot "status.json"
 $configFile = Join-Path $PSScriptRoot "status-config.json"
+$secretsFile = Join-Path $PSScriptRoot "secrets.local.json"
 $config = Get-Content $configFile -Raw -Encoding UTF8 | ConvertFrom-Json
+$script:StatusSecrets = $null
+if (Test-Path $secretsFile) {
+    try { $script:StatusSecrets = Get-Content $secretsFile -Raw -Encoding UTF8 | ConvertFrom-Json } catch {}
+}
+
+if (-not $Post -and -not $Push) { $Post = $true }
 
 $script:MediaReady = $false
 $script:AwaitMethod = $null
@@ -486,7 +495,7 @@ function Get-SteamPlayingGameLine {
     if (-not (Get-Process -Name steam -ErrorAction SilentlyContinue)) { return $null }
 
     $libraries = Get-SteamLibraryPaths -SteamPath $steamPath
-    $prefix = '🎮 正在玩'
+    $prefix = 'playing'
     if ($config.steam -and $config.steam.gamePrefix) {
         $prefix = [string]$config.steam.gamePrefix
     }
@@ -522,7 +531,25 @@ function Get-ForegroundProcessStatus {
 }
 
 $script:LastPushTime = [datetime]::MinValue
-$script:PushHeartbeatSeconds = 120
+
+function Get-PushHeartbeatSeconds {
+    if ($config.pushHeartbeatSeconds) {
+        $sec = [int]$config.pushHeartbeatSeconds
+        if ($sec -ge 60) { return $sec }
+    }
+    return 480
+}
+
+function Get-StatusFingerprint {
+    param($Status)
+    return [string]::Join('|', @(
+        [string]$Status.text,
+        [string]$Status.mode,
+        [string]$Status.primary,
+        [string]$Status.secondary,
+        ([string]::Join(';', @($Status.lines)))
+    ))
+}
 
 function Get-ListeningLine {
     $neteaseInfo = Get-NeteaseMusicFromWindow
@@ -540,7 +567,7 @@ function Get-ListeningLine {
 
 function Get-StatusPayload {
     $sep = [string]$config.statusSeparator
-    if (-not $sep) { $sep = ' · ' }
+    if (-not $sep) { $sep = ' | ' }
     $displayMode = [string]$config.displayMode
     if (-not $displayMode) { $displayMode = 'merge' }
     $carouselSeconds = if ($config.carouselSeconds) { [int]$config.carouselSeconds } else { 8 }
@@ -598,13 +625,33 @@ function Invoke-GitStep {
 function Update-StatusFile {
     $status = Get-StatusPayload
     $text = [string]$status.text
+    $heartbeatSec = Get-PushHeartbeatSeconds
 
-    $prevText = $null
+    $prevFingerprint = $null
     if (Test-Path $statusFile) {
-        try { $prevText = (Get-Content $statusFile -Raw -Encoding UTF8 | ConvertFrom-Json).text } catch {}
+        try {
+            $prev = Get-Content $statusFile -Raw -Encoding UTF8 | ConvertFrom-Json
+            $prevFingerprint = Get-StatusFingerprint @{
+                text      = [string]$prev.text
+                mode      = [string]$prev.mode
+                primary   = [string]$prev.primary
+                secondary = [string]$prev.secondary
+                lines     = @($prev.lines)
+            }
+        } catch {}
     }
 
-    $textChanged = ($prevText -ne $text)
+    $fingerprint = Get-StatusFingerprint $status
+    $textChanged = ($prevFingerprint -ne $fingerprint)
+    $elapsed = ((Get-Date) - $script:LastPushTime).TotalSeconds
+    $heartbeatDue = ($script:LastPushTime -eq [datetime]::MinValue) -or ($elapsed -ge $heartbeatSec)
+    $shouldWrite = $textChanged -or $heartbeatDue -or -not (Test-Path $statusFile)
+
+    if (-not $shouldWrite) {
+        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (unchanged) $text"
+        return
+    }
+
     $payload = @{
         text              = $text
         updatedAt         = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
@@ -621,15 +668,53 @@ function Update-StatusFile {
 
     if ($textChanged) {
         Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $text"
+    } elseif ($heartbeatDue) {
+        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (heartbeat) $text"
     } else {
         Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (unchanged) $text"
     }
 
-    if ($Push) {
-        $elapsed = ((Get-Date) - $script:LastPushTime).TotalSeconds
-        if ($textChanged -or $elapsed -ge $script:PushHeartbeatSeconds) {
-            if (Push-StatusToGit -PayloadJson $payloadJson) { $script:LastPushTime = Get-Date }
-        }
+    if ($Post -and ($textChanged -or $heartbeatDue)) {
+        if (Send-StatusRemote -PayloadJson $payloadJson) { $script:LastPushTime = Get-Date }
+    } elseif ($Push -and ($textChanged -or $heartbeatDue)) {
+        Write-Host '  (warning: -Push uses Git and may trigger Vercel; use -Post instead)'
+        if (Push-StatusToGit -PayloadJson $payloadJson) { $script:LastPushTime = Get-Date }
+    }
+}
+
+function Get-StatusPostUrl {
+    if ($PostUrl) { return $PostUrl.Trim() }
+    if ($config.statusPostUrl) { return [string]$config.statusPostUrl }
+    if ($script:StatusSecrets -and $script:StatusSecrets.statusPostUrl) {
+        return [string]$script:StatusSecrets.statusPostUrl
+    }
+    return 'https://shiloku.cn/api/status/update'
+}
+
+function Get-StatusSyncSecret {
+    if ($script:StatusSecrets -and $script:StatusSecrets.statusSyncSecret) {
+        return [string]$script:StatusSecrets.statusSyncSecret
+    }
+    return [string]$env:STATUS_SYNC_SECRET
+}
+
+function Send-StatusRemote {
+    param([string]$PayloadJson)
+    $url = Get-StatusPostUrl
+    $secret = Get-StatusSyncSecret
+    if (-not $url -or -not $secret) {
+        Write-Host '  (skip post: missing statusPostUrl or statusSyncSecret)'
+        return $false
+    }
+    try {
+        $payloadObj = $PayloadJson | ConvertFrom-Json
+        $headers = @{ Authorization = "Bearer $secret" }
+        Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body ($payloadObj | ConvertTo-Json -Compress -Depth 6) -ContentType 'application/json; charset=utf-8' -TimeoutSec 20 -MaximumRedirection 5 | Out-Null
+        Write-Host '  posted to remote status API'
+        return $true
+    } catch {
+        Write-Host "  post failed: $_"
+        return $false
     }
 }
 
@@ -661,7 +746,8 @@ Update-StatusFile
 
 if ($Loop) {
     Write-Host "Loop every ${IntervalSeconds}s. Ctrl+C to stop."
-    if ($Push) { Write-Host "Auto-push enabled." }
+    if ($Post) { Write-Host "Remote post enabled (no Git push)." }
+    if ($Push) { Write-Host "Legacy Git push enabled." }
     while ($true) {
         Start-Sleep -Seconds $IntervalSeconds
         Update-StatusFile

@@ -1,5 +1,7 @@
 scripts/secrets.local.json
 scripts/.preview-server.pid
+scripts/.guestbook-local.json
+scripts/.status-remote.json
 scripts/netease.cookies.txt
 scripts/.vercel-token
 scripts/__pycache__/

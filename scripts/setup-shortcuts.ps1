@@ -19,7 +19,7 @@ $desk.Save()
 Get-ChildItem $startup -Filter "*Shiloku*" -ErrorAction SilentlyContinue | Remove-Item -Force
 
 # Scheduled task for autostart (no VBS)
-$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$ps1`" -Loop -Push -IntervalSeconds 15" -WorkingDirectory $repo
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$ps1`" -Loop -Post -IntervalSeconds 10" -WorkingDirectory $repo
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Force | Out-Null

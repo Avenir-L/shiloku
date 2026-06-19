@@ -41,6 +41,37 @@ class PreviewHandler(SimpleHTTPRequestHandler):
             return
         super().do_OPTIONS()
 
+    def _load_status_sync_secret(self):
+        key = os.environ.get("STATUS_SYNC_SECRET", "").strip()
+        if key:
+            return key
+        if os.path.isfile(SECRETS_FILE):
+            try:
+                with open(SECRETS_FILE, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                return (data.get("statusSyncSecret") or "").strip()
+            except (OSError, json.JSONDecodeError):
+                pass
+        return ""
+
+    def _handle_status_update_post(self, payload):
+        secret = self._load_status_sync_secret()
+        auth = self.headers.get("Authorization", "")
+        token = auth[7:].strip() if auth.startswith("Bearer ") else ""
+        if not secret or token != secret:
+            self._json(401, {"error": "未授权"})
+            return
+        if not payload or not payload.get("text"):
+            self._json(400, {"error": "状态格式无效"})
+            return
+        status_path = os.path.join(ROOT, "status.json")
+        try:
+            with open(status_path, "w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False)
+            self._json(200, {"ok": True, "storage": "local-file"})
+        except OSError as e:
+            self._json(500, {"error": f"写入失败: {e}"})
+
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/api/status":
@@ -55,16 +86,32 @@ class PreviewHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def _guestbook_path(self):
-        return os.path.join(ROOT, "guestbook.json")
+        return os.path.join(SCRIPTS_DIR, ".guestbook-local.json")
 
-    def _read_guestbook(self):
-        path = self._guestbook_path()
+    def _read_guestbook_static(self):
+        path = os.path.join(ROOT, "guestbook.json")
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             return data.get("messages") if isinstance(data, dict) else []
         except (OSError, json.JSONDecodeError):
             return []
+
+    def _read_guestbook(self):
+        messages = self._read_guestbook_static()
+        local_path = self._guestbook_path()
+        try:
+            with open(local_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            local = data.get("messages") if isinstance(data, dict) else []
+        except (OSError, json.JSONDecodeError):
+            local = []
+        ids = {m.get("id") for m in messages}
+        for item in local:
+            if item.get("id") not in ids:
+                messages.append(item)
+        messages.sort(key=lambda m: m.get("time") or 0, reverse=True)
+        return messages[:80]
 
     def _write_guestbook(self, messages):
         path = self._guestbook_path()
@@ -117,6 +164,10 @@ class PreviewHandler(SimpleHTTPRequestHandler):
             payload = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError:
             self._json(400, {"error": "请求格式错误"})
+            return
+
+        if urlparse(self.path).path == "/api/status/update":
+            self._handle_status_update_post(payload)
             return
 
         if self.path == "/api/guestbook":

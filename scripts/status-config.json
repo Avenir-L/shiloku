@@ -8,6 +8,8 @@
   "statusSeparator": " · ",
   "displayMode": "merge",
   "carouselSeconds": 8,
+  "pushHeartbeatSeconds": 60,
+  "statusPostUrl": "https://shiloku.cn/api/status/update",
   "unknownProcessPrefix": "在用",
   "activityPrefix": "在用",
   "processDisplayNames": {
