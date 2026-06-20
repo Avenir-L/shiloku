@@ -4011,6 +4011,9 @@ function toggleNeteaseDrawer(open) {
 }
 
 async function resolveSongAudioSrc(song) {
+    if (song.src && !song.isNeteaseOnly) {
+        return song.src;
+    }
     if (song.neteaseId) {
         try {
             const urlRes = await fetch(`/api/netease/url?id=${encodeURIComponent(song.neteaseId)}`);
@@ -4027,10 +4030,30 @@ async function resolveSongAudioSrc(song) {
 async function applySongAudioSrc(song) {
     const src = await resolveSongAudioSrc(song);
     if (!src) return false;
+
+    stopVolumeFade();
     audio.src = src;
     isAudioLoaded = true;
-    audio.addEventListener('loadedmetadata', updateProgressUI, { once: true });
-    return true;
+
+    const ready = await new Promise((resolve) => {
+        const finish = (ok) => {
+            audio.removeEventListener('loadedmetadata', onReady);
+            audio.removeEventListener('error', onError);
+            resolve(ok);
+        };
+        const onReady = () => finish(true);
+        const onError = () => finish(false);
+        if (audio.readyState >= 1) {
+            resolve(true);
+            return;
+        }
+        audio.addEventListener('loadedmetadata', onReady, { once: true });
+        audio.addEventListener('error', onError, { once: true });
+        audio.load();
+    });
+
+    updateProgressUI();
+    return ready;
 }
 
 async function loadNeteaseLyrics(neteaseId) {
@@ -4079,14 +4102,16 @@ async function loadSongLyrics(song) {
 }
 
 // 异步加载控制器：先更新界面，歌词可后台加载
-async function loadSong(index, { deferLyrics = false } = {}) {
+async function loadSong(index, { deferLyrics = false, resetAudio = true } = {}) {
     const song = songs[index];
     if (!song) return;
 
-    isAudioLoaded = false;
-    audio.removeAttribute('src');
-    audio.load();
-    updateProgressUI();
+    if (resetAudio) {
+        isAudioLoaded = false;
+        audio.removeAttribute('src');
+        audio.load();
+        updateProgressUI();
+    }
 
     songTitle.innerText = song.title;
     songArtist.innerText = song.isNeteaseOnly
@@ -4624,10 +4649,17 @@ async function playSongAt(index, pushHistory = false) {
     const song = songs[currentSongIndex];
     const shouldPlay = isPlaying;
 
+    await loadSong(currentSongIndex, { deferLyrics: true, resetAudio: false });
+
     if (shouldPlay && song) {
-        const uiTask = loadSong(currentSongIndex, { deferLyrics: true });
-        const audioTask = applySongAudioSrc(song);
-        await Promise.all([uiTask, audioTask]);
+        stopVolumeFade();
+        applyVolumeFromSlider(volumeSlider.value);
+        const loaded = await applySongAudioSrc(song);
+        if (!loaded) {
+            isPlaying = false;
+            setMainPlayState(false);
+            return;
+        }
         try {
             await audio.play();
         } catch (error) {
@@ -4636,11 +4668,16 @@ async function playSongAt(index, pushHistory = false) {
             setMainPlayState(false);
             return;
         }
+        setMainPlayState(true);
         markMusicPlaying();
         setStatus(getListenText(), { override: true });
         window.shilokuStartListen?.();
     } else {
-        await loadSong(currentSongIndex);
+        isAudioLoaded = false;
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+        updateProgressUI();
     }
 
     window.shilokuRefreshListenStats?.();
@@ -4653,6 +4690,8 @@ async function playSongAt(index, pushHistory = false) {
 async function onTrackEnded() {
     if (playMode === 'one') {
         audio.currentTime = 0;
+        stopVolumeFade();
+        applyVolumeFromSlider(volumeSlider.value);
         await audio.play();
         return;
     }
