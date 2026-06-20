@@ -1708,9 +1708,35 @@ body.music-room-open .footer-notice {
     font-size: 11px;
     letter-spacing: 4px;
     color: rgba(255,255,255,0.4);
-    margin-bottom: 20px;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.playlist-drawer-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
     padding-bottom: 12px;
     border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.playlist-manage-btn {
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.playlist-manage-btn:hover {
+    border-color: rgba(255, 255, 255, 0.32);
+    color: #fff;
 }
 
 #playlist {
@@ -1726,15 +1752,51 @@ body.music-room-open .footer-notice {
 
 #playlist li {
     padding: 14px 12px;
-    cursor: pointer;
+    cursor: default;
     border-radius: 12px;
     transition: all 0.3s;
     font-size: 14px;
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 10px;
     color: rgba(255,255,255,0.7);
     margin-bottom: 4px;
+}
+
+#playlist .playlist-item-main {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+#playlist .playlist-item-title {
+    display: block;
+    font-weight: 600;
+    color: rgba(255,255,255,0.88);
+}
+
+#playlist .playlist-item-artist {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    opacity: 0.55;
+}
+
+#playlist .playlist-item-meta {
+    flex-shrink: 0;
+}
+
+#playlist .playlist-song-category {
+    max-width: 108px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.82);
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
 }
 
 #playlist li:hover { background: rgba(255,255,255,0.08); }
@@ -3059,8 +3121,19 @@ body.music-room-open .footer-notice {
 
     <div class="playlist-backdrop" id="playlist-backdrop"></div>
     <aside class="playlist-drawer" id="playlist-drawer">
-        <div class="playlist-drawer-header">PLAYLIST</div>
+        <div class="playlist-drawer-top">
+            <div class="playlist-drawer-header">PLAYLIST</div>
+            <button type="button" class="playlist-manage-btn" id="playlist-category-manage" data-i18n="playlistManageCategories">管理分类</button>
+        </div>
         <div class="playlist-category-bar" id="playlist-category-bar" role="tablist" aria-label="歌单分类"></div>
+        <div class="playlist-category-panel hidden" id="playlist-category-panel" aria-hidden="true">
+            <div class="playlist-category-panel-head">
+                <span data-i18n="playlistManageCategories">管理分类</span>
+                <button type="button" class="playlist-category-panel-close" id="playlist-category-panel-close" aria-label="关闭">×</button>
+            </div>
+            <ul class="playlist-category-list" id="playlist-category-list"></ul>
+            <button type="button" class="playlist-category-add-btn" id="playlist-category-add" data-i18n="playlistAddCategory">新建</button>
+        </div>
         <ul id="playlist"></ul>
     </aside>
 
@@ -3265,50 +3338,36 @@ const LOCAL_SONGS = [
         src: "listen.mp3",
         neteaseId: 453176145,
         cover: "listen.jpg",
-        lrc: "listen.lrc",
-        category: "rock",
+        lrc: "listen.lrc"
     },
     {
         title: "Beautiful World",
         artist: "宇多田光",
         src: "beautiful_world.mp3",
         cover: "beautiful_world.jpg",
-        lrc: "beautiful_world.lrc",
-        category: "jpop",
+        lrc: "beautiful_world.lrc"
     },
     {
         title: "夕日坂",
         artist: "doriko / 初音ミク",
         src: "yuuhizaka.mp3",
         cover: "yuuhizaka.jpg",
-        lrc: "yuuhizaka.lrc",
-        category: "vocaloid",
+        lrc: "yuuhizaka.lrc"
     },
     {
         title: "Hypnotized",
         artist: "Purple Disco Machine",
         src: "Hypnotized.mp3",
         cover: "Hypnotized.jpg",
-        lrc: "Hypnotized.lrc",
-        category: "electronic",
+        lrc: "Hypnotized.lrc"
     },
     {
         title: "mede:mede",
         artist: "Reol",
         src: "medemede.mp3",
         cover: "medemede.jpg",
-        lrc: "medemede.lrc",
-        category: "jpop",
+        lrc: "medemede.lrc"
     },
-];
-
-const PLAYLIST_CATEGORIES = [
-    { id: 'all', labelKey: 'playlistAll' },
-    { id: 'rock', labelKey: 'playlistCatRock' },
-    { id: 'jpop', labelKey: 'playlistCatJpop' },
-    { id: 'vocaloid', labelKey: 'playlistCatVocaloid' },
-    { id: 'electronic', labelKey: 'playlistCatElectronic' },
-    { id: 'netease', labelKey: 'playlistCatNetease' },
 ];
 
 let playlistCategoryFilter = 'all';
@@ -3611,8 +3670,10 @@ async function initPlayer() {
     window.addEventListener('music-room:open', () => refreshLyricPanel());
     window.addEventListener('shiloku:langchange', () => {
         renderPlaylistCategoryBar();
+        renderPlaylistCategoryPanel();
         renderPlaylist();
     });
+    setupPlaylistCategoryUI();
     let lyricAnchorResizeTimer = null;
     window.addEventListener('resize', () => {
         if (!document.body.classList.contains('music-room-open') || !lyricItemsCache.length) return;
@@ -4532,32 +4593,167 @@ async function prevSong() {
     }
 }
 
-function getSongCategory(song) {
-    if (song?.isNeteaseOnly) return 'netease';
-    return song?.category || 'other';
+function getPlaylistCategoriesApi() {
+    return window.shilokuPlaylistCategories;
 }
 
-function getPlaylistCategoryLabel(categoryId) {
-    const item = PLAYLIST_CATEGORIES.find((c) => c.id === categoryId);
-    if (!item) return categoryId;
-    return window.shilokuI18n?.t?.(item.labelKey) || item.labelKey;
+function getSongCategoryId(song) {
+    return getPlaylistCategoriesApi()?.getSongCategoryId?.(song) || 'uncategorized';
+}
+
+function getSongCategoryLabel(song) {
+    const t = window.shilokuI18n?.t || ((key) => key);
+    const catId = getSongCategoryId(song);
+    if (catId === 'uncategorized') return t('playlistUncategorized');
+    return getPlaylistCategoriesApi()?.getCategoryName?.(catId) || t('playlistUncategorized');
+}
+
+function songMatchesCategoryFilter(song) {
+    if (playlistCategoryFilter === 'all') return true;
+    const catId = getSongCategoryId(song);
+    if (playlistCategoryFilter === 'uncategorized') return catId === 'uncategorized';
+    return catId === playlistCategoryFilter;
+}
+
+function promptCategoryName(defaultValue = '') {
+    const t = window.shilokuI18n?.t || ((key) => key);
+    const name = window.prompt(t('playlistCategoryNamePrompt'), defaultValue);
+    if (name === null) return null;
+    const trimmed = name.trim();
+    if (!trimmed) {
+        window.alert(t('playlistCategoryInvalid'));
+        return null;
+    }
+    return trimmed;
+}
+
+function renderPlaylistCategoryPanel() {
+    const panel = document.getElementById('playlist-category-panel');
+    const list = document.getElementById('playlist-category-list');
+    const api = getPlaylistCategoriesApi();
+    if (!panel || !list || !api) return;
+
+    const t = window.shilokuI18n?.t || ((key) => key);
+    const categories = api.listCategories();
+
+    list.innerHTML = categories.map((cat) => `
+        <li class="playlist-category-list-item" data-id="${cat.id}">
+            <span class="playlist-category-list-name">${cat.name}</span>
+            <div class="playlist-category-list-actions">
+                <button type="button" class="playlist-category-action" data-action="rename" data-id="${cat.id}">${t('playlistRenameCategory')}</button>
+                <button type="button" class="playlist-category-action danger" data-action="delete" data-id="${cat.id}">${t('playlistDeleteCategory')}</button>
+            </div>
+        </li>
+    `).join('');
+
+    list.querySelectorAll('.playlist-category-action').forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const id = btn.dataset.id;
+            const action = btn.dataset.action;
+            if (!id || !action) return;
+
+            if (action === 'rename') {
+                const current = api.getCategoryName(id) || '';
+                const nextName = promptCategoryName(current);
+                if (!nextName) return;
+                if (!api.renameCategory(id, nextName)) {
+                    window.alert(t('playlistCategoryExists'));
+                    return;
+                }
+            }
+
+            if (action === 'delete') {
+                if (!window.confirm(t('playlistDeleteCategoryConfirm'))) return;
+                api.deleteCategory(id);
+                if (playlistCategoryFilter === id) playlistCategoryFilter = 'all';
+            }
+
+            renderPlaylistCategoryBar();
+            renderPlaylistCategoryPanel();
+            renderPlaylist();
+        });
+    });
+}
+
+function setupPlaylistCategoryUI() {
+    document.getElementById('playlist-category-manage')?.addEventListener('click', () => {
+        const panel = document.getElementById('playlist-category-panel');
+        if (!panel) return;
+        const isHidden = panel.classList.contains('hidden');
+        if (isHidden) {
+            panel.classList.remove('hidden');
+            panel.setAttribute('aria-hidden', 'false');
+            renderPlaylistCategoryPanel();
+        } else {
+            panel.classList.add('hidden');
+            panel.setAttribute('aria-hidden', 'true');
+        }
+    });
+
+    document.getElementById('playlist-category-panel-close')?.addEventListener('click', () => {
+        const panel = document.getElementById('playlist-category-panel');
+        panel?.classList.add('hidden');
+        panel?.setAttribute('aria-hidden', 'true');
+    });
+
+    document.getElementById('playlist-category-add')?.addEventListener('click', () => {
+        const api = getPlaylistCategoriesApi();
+        const t = window.shilokuI18n?.t || ((key) => key);
+        if (!api) return;
+        const name = promptCategoryName('');
+        if (!name) return;
+        const id = api.addCategory(name);
+        if (!id) {
+            window.alert(t('playlistCategoryExists'));
+            return;
+        }
+        playlistCategoryFilter = id;
+        renderPlaylistCategoryBar();
+        renderPlaylistCategoryPanel();
+        renderPlaylist();
+    });
 }
 
 function renderPlaylistCategoryBar() {
     const bar = document.getElementById('playlist-category-bar');
-    if (!bar) return;
+    const api = getPlaylistCategoriesApi();
+    if (!bar || !api) return;
 
-    bar.innerHTML = PLAYLIST_CATEGORIES.map((cat) =>
-        `<button type="button" class="playlist-category-btn${playlistCategoryFilter === cat.id ? ' is-active' : ''}" data-category="${cat.id}" role="tab" aria-selected="${playlistCategoryFilter === cat.id ? 'true' : 'false'}">${getPlaylistCategoryLabel(cat.id)}</button>`,
-    ).join('');
+    const t = window.shilokuI18n?.t || ((key) => key);
+    const tabs = api.getFilterTabs(t);
 
-    bar.querySelectorAll('.playlist-category-btn').forEach((btn) => {
+    bar.innerHTML = tabs.map((cat) =>
+        `<button type="button" class="playlist-category-btn${playlistCategoryFilter === cat.id ? ' is-active' : ''}" data-category="${cat.id}" role="tab" aria-selected="${playlistCategoryFilter === cat.id ? 'true' : 'false'}">${cat.name}</button>`,
+    ).join('') + `<button type="button" class="playlist-category-btn playlist-category-btn-add" id="playlist-category-quick-add" title="${t('playlistAddCategory')}">+</button>`;
+
+    bar.querySelectorAll('.playlist-category-btn[data-category]').forEach((btn) => {
         btn.addEventListener('click', () => {
             playlistCategoryFilter = btn.dataset.category || 'all';
             renderPlaylistCategoryBar();
             renderPlaylist();
         });
     });
+
+    bar.querySelector('#playlist-category-quick-add')?.addEventListener('click', () => {
+        document.getElementById('playlist-category-add')?.click();
+    });
+}
+
+function buildSongCategorySelect(song, index) {
+    const api = getPlaylistCategoriesApi();
+    const t = window.shilokuI18n?.t || ((key) => key);
+    if (!api) return '';
+
+    const current = getSongCategoryId(song);
+    const options = [
+        `<option value="uncategorized"${current === 'uncategorized' ? ' selected' : ''}>${t('playlistUncategorized')}</option>`,
+        ...api.listCategories().map((cat) =>
+            `<option value="${cat.id}"${current === cat.id ? ' selected' : ''}>${cat.name}</option>`,
+        ),
+    ];
+
+    return `<select class="playlist-song-category" data-index="${index}" aria-label="${t('playlistPickCategory')}">${options.join('')}</select>`;
 }
 
 function renderPlaylist() {
@@ -4566,7 +4762,7 @@ function renderPlaylist() {
 
     const filtered = songs
         .map((song, index) => ({ song, index }))
-        .filter(({ song }) => playlistCategoryFilter === 'all' || getSongCategory(song) === playlistCategoryFilter);
+        .filter(({ song }) => songMatchesCategoryFilter(song));
 
     if (!filtered.length) {
         const empty = document.createElement('li');
@@ -4579,14 +4775,33 @@ function renderPlaylist() {
     filtered.forEach(({ song, index }) => {
         const li = document.createElement('li');
         li.dataset.index = String(index);
-        const tag = song.isNeteaseOnly ? '<span class="playlist-tag">NETEASE</span>' : `<span class="playlist-tag">${getPlaylistCategoryLabel(getSongCategory(song))}</span>`;
-        li.innerHTML = `<span>${song.title}</span> ${tag} <span style="opacity: 0.5; font-size: 12px;">${song.artist}</span>`;
-        li.addEventListener('click', async () => {
+        li.innerHTML = `
+            <div class="playlist-item-main">
+                <span class="playlist-item-title">${song.title}</span>
+                <span class="playlist-item-artist">${song.artist}</span>
+            </div>
+            <div class="playlist-item-meta">${buildSongCategorySelect(song, index)}</div>
+        `;
+
+        li.querySelector('.playlist-item-main')?.addEventListener('click', async () => {
             playHistory = [];
             togglePlaylist(false);
             await playSongAt(index, false);
             if (!isPlaying) await togglePlay();
         });
+
+        li.querySelector('.playlist-song-category')?.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+
+        li.querySelector('.playlist-song-category')?.addEventListener('change', (event) => {
+            event.stopPropagation();
+            const value = event.target.value;
+            getPlaylistCategoriesApi()?.setSongCategory?.(song, value);
+            renderPlaylistCategoryBar();
+            renderPlaylist();
+        });
+
         playlistEl.appendChild(li);
     });
     updatePlaylistHighlight();

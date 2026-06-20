@@ -11,6 +11,17 @@ import {
     startListeningSession,
     stopListeningSession,
 } from './listening-stats.js';
+import {
+    getSongKey,
+    listCategories,
+    getCategoryName,
+    getSongCategoryId,
+    setSongCategory,
+    addCategory,
+    renameCategory,
+    deleteCategory,
+    getFilterTabs,
+} from './playlist-categories.js';
 
 const PLAYLIST_KEY = 'shiloku-playlist-v1';
 const THEME_KEY = 'shiloku-music-theme';
@@ -449,6 +460,17 @@ export function initSiteExtensions() {
     window.shilokuStartListen = startListeningSession;
     window.shilokuStopListen = stopListeningSession;
     window.shilokuRefreshListenStats = refreshListenStatsUI;
+    window.shilokuPlaylistCategories = {
+        getSongKey,
+        listCategories,
+        getCategoryName,
+        getSongCategoryId,
+        setSongCategory,
+        addCategory,
+        renameCategory,
+        deleteCategory,
+        getFilterTabs,
+    };
 }
 
 initSiteExtensions();
