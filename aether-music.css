@@ -110,7 +110,7 @@ body.music-room-open #music-room {
 }
 
 body.music-room-open .footer-notice {
-    display: none;
+    visibility: hidden;
 }
 
 .aether-brand {
@@ -1024,6 +1024,11 @@ body.music-room-open .aether-stats {
         right: max(12px, env(safe-area-inset-right));
         padding: 8px 14px;
         font-size: 12px;
+        z-index: 1003;
+    }
+
+    body.music-room-open .aether-brand {
+        display: none;
     }
 
     .aether-sidebar-rail {
@@ -1054,10 +1059,10 @@ body.music-room-open .aether-stats {
         left: max(16px, env(safe-area-inset-left));
         right: max(16px, env(safe-area-inset-right));
         width: auto;
-        top: max(96px, calc(env(safe-area-inset-top) + 84px));
+        top: max(72px, calc(env(safe-area-inset-top) + 60px));
         bottom: auto;
-        height: min(30vh, 220px);
-        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 280px);
+        height: min(34vh, 240px);
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 220px);
         transform: none;
         perspective: none;
         overflow-x: hidden;
@@ -1173,6 +1178,8 @@ body.music-room-open .aether-stats {
         padding: 12px 14px 10px;
         animation: none;
         z-index: 6;
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 120px);
+        overflow: hidden;
     }
 
     .aether-controls-row {
@@ -1246,9 +1253,9 @@ body.music-room-open .aether-stats {
     }
 
     .aether-lyrics {
-        top: max(88px, calc(env(safe-area-inset-top) + 76px));
-        height: min(28vh, 200px);
-        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 210px);
+        top: max(68px, calc(env(safe-area-inset-top) + 56px));
+        height: min(32vh, 190px);
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 196px);
     }
 
     #lyrics-list li .lyric-text {

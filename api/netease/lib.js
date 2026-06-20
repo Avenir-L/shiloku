@@ -1,6 +1,9 @@
 const neteaseHeaders = {
     Referer: 'https://music.163.com/',
-    'User-Agent': 'Mozilla/5.0',
+    Origin: 'https://music.163.com',
+    Accept: 'application/json, text/plain, */*',
+    'Accept-Language': 'zh-CN,zh;q=0.9',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 };
 
 const PAGE_RAW_SIZE = 30;
@@ -28,8 +31,10 @@ function getNeteaseHeaders(extra = {}) {
 
 const playableUrlCache = new Map();
 const searchCache = new Map();
-const playableUrlCacheTtl = 1000 * 60 * 10;
-const searchCacheTtl = 1000 * 60 * 5;
+const playableUrlCacheTtl = 1000 * 60 * 30;
+const searchCacheTtl = 1000 * 60 * 15;
+const PLAYABLE_BATCH_SIZE = 6;
+const PLAYABLE_MAX_IDS = 30;
 
 export function applyCors(req, res) {
     const origin = req.headers.origin || '';
@@ -49,12 +54,37 @@ export async function getNeteasePlayableUrl(id) {
     const cached = playableUrlCache.get(id);
     if (cached && cached.expiresAt > Date.now()) return cached.url;
 
-    const url = `https://music.163.com/api/song/enhance/player/url?id=${encodeURIComponent(id)}&ids=%5B${encodeURIComponent(id)}%5D&br=320000`;
-    const response = await fetch(url, { headers: getNeteaseHeaders() });
-    const data = await response.json();
-    const playableUrl = data?.data?.[0]?.url || null;
+    const headers = getNeteaseHeaders();
+    const encodedId = encodeURIComponent(id);
+    const endpoints = [
+        `https://music.163.com/api/song/enhance/player/url?id=${encodedId}&ids=%5B${encodedId}%5D&br=320000`,
+        `https://music.163.com/api/song/enhance/player/url/v1?ids=%5B${encodedId}%5D&level=exhigh&encodeType=mp3`,
+        `https://music.163.com/api/song/enhance/player/url?id=${encodedId}&ids=%5B${encodedId}%5D&br=999000`,
+    ];
+
+    let playableUrl = null;
+    for (const url of endpoints) {
+        const response = await fetch(url, { headers }).catch(() => null);
+        if (!response?.ok) continue;
+        const data = await response.json().catch(() => null);
+        playableUrl = data?.data?.[0]?.url || null;
+        if (playableUrl) break;
+    }
+
     playableUrlCache.set(id, { url: playableUrl, expiresAt: Date.now() + playableUrlCacheTtl });
     return playableUrl;
+}
+
+export async function getPlayableMap(ids) {
+    const limited = (ids || []).slice(0, PLAYABLE_MAX_IDS).map((id) => String(id));
+    const result = {};
+    for (let i = 0; i < limited.length; i += PLAYABLE_BATCH_SIZE) {
+        const batch = limited.slice(i, i + PLAYABLE_BATCH_SIZE);
+        await Promise.all(batch.map(async (id) => {
+            result[id] = Boolean(await getNeteasePlayableUrl(id));
+        }));
+    }
+    return result;
 }
 
 export async function filterPlayableSongs(rawSongs, resultLimit) {
@@ -77,31 +107,14 @@ export async function filterPlayableSongs(rawSongs, resultLimit) {
     return playableSongs;
 }
 
-export async function searchNetease(keywords, resultLimit = 12, offset = 0) {
-    offset = Math.max(0, Number(offset) || 0);
-    const fetchLimit = PAGE_RAW_SIZE;
-    const cacheKey = `${keywords.toLowerCase()}::${offset}::${resultLimit}::${fetchLimit}`;
-    const cached = searchCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
-        return { ...cached.payload, cached: true };
-    }
+function getSearchCacheKey(keywords, offset, resultLimit, fetchLimit) {
+    const cookie = parseNeteaseCookie(process.env.NETEASE_COOKIE) || '';
+    const cookieTag = cookie.includes('MUSIC_U=') ? 'auth' : 'anon';
+    return `${cookieTag}::${keywords.toLowerCase()}::${offset}::${resultLimit}::${fetchLimit}`;
+}
 
-    const body = new URLSearchParams({
-        s: keywords,
-        type: '1',
-        offset: String(offset),
-        total: 'true',
-        limit: String(fetchLimit),
-    });
-
-    const response = await fetch('https://music.163.com/api/search/get/web', {
-        method: 'POST',
-        headers: getNeteaseHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
-        body,
-    });
-    const data = await response.json();
-    const result = data?.result || {};
-    const rawSongs = (result.songs || []).map((song) => ({
+function mapSearchSongs(songs) {
+    return (songs || []).map((song) => ({
         id: song.id,
         name: song.name,
         artist: (song.artists || []).map((artist) => artist.name).filter(Boolean).join(' / '),
@@ -110,9 +123,54 @@ export async function searchNetease(keywords, resultLimit = 12, offset = 0) {
         duration: song.duration || 0,
         fee: song.fee,
     }));
-    const songs = await filterPlayableSongs(rawSongs, resultLimit);
+}
+
+async function fetchNeteaseSearchResult(keywords, offset, fetchLimit) {
+    const params = new URLSearchParams({
+        s: keywords,
+        type: '1',
+        offset: String(offset),
+        total: 'true',
+        limit: String(fetchLimit),
+    });
+    const headers = getNeteaseHeaders();
+
+    const tryParse = async (response) => {
+        if (!response?.ok) return null;
+        const data = await response.json().catch(() => null);
+        if (data?.code === 200 && data?.result) return data.result;
+        return null;
+    };
+
+    const getResult = await tryParse(await fetch(
+        `https://music.163.com/api/search/get?${params}`,
+        { headers },
+    ).catch(() => null));
+    if (getResult?.songs?.length) return getResult;
+
+    const postResult = await tryParse(await fetch('https://music.163.com/api/search/get/web', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params,
+    }).catch(() => null));
+    if (postResult) return postResult;
+
+    return { songs: [], songCount: 0 };
+}
+
+export async function searchNetease(keywords, resultLimit = 30, offset = 0) {
+    offset = Math.max(0, Number(offset) || 0);
+    const fetchLimit = PAGE_RAW_SIZE;
+    const cacheKey = getSearchCacheKey(keywords, offset, resultLimit, fetchLimit);
+    const cached = searchCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+        return { ...cached.payload, cached: true };
+    }
+
+    const result = await fetchNeteaseSearchResult(keywords, offset, fetchLimit);
+    const songs = mapSearchSongs(result.songs);
     const total = Number(result.songCount || 0);
-    const fetched = rawSongs.length;
+    const fetched = songs.length;
     const hasMore = offset + fetched < total;
     const payload = {
         songs,
@@ -122,7 +180,9 @@ export async function searchNetease(keywords, resultLimit = 12, offset = 0) {
         hasMore,
         nextOffset: hasMore ? offset + fetched : offset,
     };
-    searchCache.set(cacheKey, { payload, expiresAt: Date.now() + searchCacheTtl });
+    if (total > 0 || songs.length > 0) {
+        searchCache.set(cacheKey, { payload, expiresAt: Date.now() + searchCacheTtl });
+    }
     return payload;
 }
 

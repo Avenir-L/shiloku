@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$Loop,
     [switch]$Post,
     [switch]$Push,
@@ -49,8 +49,16 @@ function Stop-OtherSyncInstances {
 }
 
 $script:MediaReady = $false
+$script:MediaPropertiesReady = $false
 $script:AwaitMethod = $null
 $script:ForegroundApiReady = $false
+$script:LastListeningLine = $null
+$script:LastListeningSeenAt = [datetime]::MinValue
+$script:LastNeteaseTimelinePos = $null
+$script:LastNeteaseTimelineStillSince = [datetime]::MinValue
+$script:LastNeteaseWindowSongKey = $null
+$script:LastNeteaseWindowSongSince = [datetime]::MinValue
+$script:LastNeteaseWindowPlayConfirmedAt = [datetime]::MinValue
 $script:MusicExeNames = @('cloudmusic', 'CloudMusic', 'NeteaseCloudMusic', 'QQMusic', 'QQMusicLite', 'Spotify')
 
 function Initialize-ForegroundApi {
@@ -65,6 +73,7 @@ public class ShilokuForeground {
     [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
     [DllImport("user32.dll")] public static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
 }
 "@
         $script:ForegroundApiReady = $true
@@ -84,6 +93,17 @@ function Get-ForegroundProcessName {
         if ($proc) { return $proc.ProcessName }
     } catch {}
     return $null
+}
+
+function Get-ForegroundWindowTitle {
+    if (-not (Initialize-ForegroundApi)) { return '' }
+    try {
+        $hwnd = [ShilokuForeground]::GetForegroundWindow()
+        if ($hwnd -eq [IntPtr]::Zero) { return '' }
+        $sb = New-Object System.Text.StringBuilder 512
+        [void][ShilokuForeground]::GetWindowText($hwnd, $sb, $sb.Capacity)
+        return [string]$sb.ToString().Trim()
+    } catch { return '' }
 }
 
 function Get-IdleSeconds {
@@ -124,15 +144,24 @@ function Get-ForegroundMusicAppKey {
 function Initialize-MediaControls {
     if ($script:MediaReady) { return $true }
     try {
-        Add-Type -AssemblyName System.Runtime.WindowsRuntime
-        $script:AwaitMethod = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
-            $_.Name -eq "AsTask" -and $_.GetParameters().Count -eq 1 -and
-            $_.GetParameters()[0].ParameterType.Name -eq "IAsyncOperation`1"
-        })[0]
+        try {
+            Add-Type -AssemblyName System.Runtime.WindowsRuntime -ErrorAction Stop
+        } catch {
+            if ($_.Exception.Message -notmatch 'already exists|已添加') { throw }
+        }
+        $awaitCandidates = @([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
+            $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and
+            $_.GetParameters()[0].ParameterType.Name -like 'IAsyncOperation*'
+        })
+        if ($awaitCandidates.Count -lt 1) { return $false }
+        $script:AwaitMethod = $awaitCandidates[0]
         [void][Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime]
         [void][Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus, Windows.Media.Control, ContentType = WindowsRuntime]
-        [void][Windows.Media.MediaProperties.MusicDisplayProperties, Windows.Media, ContentType = WindowsRuntime]
         $script:MediaReady = $true
+        try {
+            [void][Windows.Media.MediaProperties.MusicDisplayProperties, Windows.Media, ContentType = WindowsRuntime]
+            $script:MediaPropertiesReady = $true
+        } catch {}
         return $true
     } catch { return $false }
 }
@@ -170,18 +199,38 @@ function Get-MediaManager {
     } catch { return $null }
 }
 
+function Test-SessionPlaying {
+    param($Session)
+    if (-not $Session) { return $false }
+    try {
+        $playing = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing
+        return ($Session.GetPlaybackInfo().PlaybackStatus -eq $playing)
+    } catch { return $false }
+}
+
 function Get-SessionPlaybackInfo {
     param($Session)
     if (-not $Session) { return $null }
     try {
-        $playing = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing
-        if ($Session.GetPlaybackInfo().PlaybackStatus -ne $playing) { return $null }
-        $props = Await-WinRTTask ($Session.TryGetMediaPropertiesAsync()) ([Windows.Media.MediaProperties.MusicDisplayProperties])
-        return @{
-            Title  = [string]$props.Title
-            Artist = [string]$props.Artist
-            AppId  = [string]$Session.SourceAppUserModelId
+        if (-not (Test-SessionPlaying $Session)) { return $null }
+        $appId = [string]$Session.SourceAppUserModelId
+        if ($script:MediaPropertiesReady) {
+            try {
+                $props = Await-WinRTTask ($Session.TryGetMediaPropertiesAsync()) ([Windows.Media.MediaProperties.MusicDisplayProperties])
+                if ($props.Title -or $props.Artist) {
+                    return @{
+                        Title  = [string]$props.Title
+                        Artist = [string]$props.Artist
+                        AppId  = $appId
+                    }
+                }
+            } catch {}
         }
+        if (Test-AppMatch $appId (Get-NeteaseAppPatterns)) {
+            $fromWindow = Get-NeteaseMusicFromWindow
+            if ($fromWindow) { return $fromWindow }
+        }
+        return $null
     } catch { return $null }
 }
 
@@ -296,15 +345,17 @@ function Test-NeteaseProcessRunning {
     return $false
 }
 
-function Get-NeteasePlaybackState {
+function Get-NeteasePlaybackDetail {
+    if (-not (Test-NeteaseProcessRunning)) {
+        return @{ State = 'none'; HasSession = $false }
+    }
+
     $patterns = Get-NeteaseAppPatterns
     $manager = Get-MediaManager
     if (-not $manager) {
-        if (Test-NeteaseProcessRunning) { return 'paused' }
-        return 'none'
+        return @{ State = 'unknown'; HasSession = $false }
     }
 
-    $playing = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus]::Playing
     $found = $false
 
     try {
@@ -312,7 +363,9 @@ function Get-NeteasePlaybackState {
             $appId = [string]$s.SourceAppUserModelId
             if (-not (Test-AppMatch $appId $patterns)) { continue }
             $found = $true
-            if ($s.GetPlaybackInfo().PlaybackStatus -eq $playing) { return 'playing' }
+            if (Test-SessionPlaying $s) {
+                return @{ State = 'playing'; HasSession = $true }
+            }
         }
 
         $current = $manager.GetCurrentSession()
@@ -320,28 +373,23 @@ function Get-NeteasePlaybackState {
             $appId = [string]$current.SourceAppUserModelId
             if (Test-AppMatch $appId $patterns) {
                 $found = $true
-                if ($current.GetPlaybackInfo().PlaybackStatus -eq $playing) { return 'playing' }
+                if (Test-SessionPlaying $current) {
+                    return @{ State = 'playing'; HasSession = $true }
+                }
             }
         }
     } catch {}
 
-    if ($found) { return 'paused' }
+    if ($found) { return @{ State = 'paused'; HasSession = $true } }
+    return @{ State = 'unknown'; HasSession = $false }
+}
 
-    if (Test-NeteaseProcessRunning) {
-        try {
-            $current = $manager.GetCurrentSession()
-            if ($current -and ($current.GetPlaybackInfo().PlaybackStatus -ne $playing)) {
-                return 'paused'
-            }
-        } catch {}
-        return 'paused'
-    }
-
-    return 'none'
+function Get-NeteasePlaybackState {
+    return (Get-NeteasePlaybackDetail).State
 }
 
 function Get-NeteaseMusicFromMediaSession {
-    if ((Get-NeteasePlaybackState) -ne 'playing') { return $null }
+    if ((Get-NeteasePlaybackDetail).State -eq 'paused') { return $null }
 
     $patterns = Get-NeteaseAppPatterns
     $manager = Get-MediaManager
@@ -376,6 +424,144 @@ function Get-NeteaseMusicFromWindow {
         }
     }
     return $best
+}
+
+function Get-NeteaseTimelinePosition {
+    if (-not (Test-NeteaseProcessRunning)) { return $null }
+    $manager = Get-MediaManager
+    if (-not $manager) { return $null }
+
+    $patterns = Get-NeteaseAppPatterns
+    try {
+        foreach ($s in $manager.GetSessions()) {
+            $appId = [string]$s.SourceAppUserModelId
+            if (-not (Test-AppMatch $appId $patterns)) { continue }
+            return [double]$s.GetTimelineProperties().Position.TotalSeconds
+        }
+
+        $current = $manager.GetCurrentSession()
+        if ($current) {
+            return [double]$current.GetTimelineProperties().Position.TotalSeconds
+        }
+    } catch {}
+
+    return $null
+}
+
+function Test-CurrentSessionPlayingForNetease {
+    return (Test-NeteaseSessionPlayingDirect)
+}
+
+function Test-NeteaseSessionPlayingDirect {
+    if (-not (Test-NeteaseProcessRunning)) { return $false }
+    $manager = Get-MediaManager
+    if (-not $manager) { return $false }
+    $patterns = Get-NeteaseAppPatterns
+    try {
+        foreach ($s in $manager.GetSessions()) {
+            $appId = [string]$s.SourceAppUserModelId
+            if (-not (Test-AppMatch $appId $patterns)) { continue }
+            if (Test-SessionPlaying $s) { return $true }
+        }
+        $current = $manager.GetCurrentSession()
+        if ($current) {
+            $appId = [string]$current.SourceAppUserModelId
+            if ((Test-AppMatch $appId $patterns) -and (Test-SessionPlaying $current)) { return $true }
+        }
+    } catch {}
+    return $false
+}
+
+function Confirm-NeteaseWindowPlaying {
+    $script:LastNeteaseWindowPlayConfirmedAt = Get-Date
+}
+
+function Test-NeteaseWindowSongStale {
+    param($WindowInfo)
+
+    if (-not $WindowInfo -or -not $WindowInfo.Title) { return $false }
+    $key = "$($WindowInfo.Title)|$($WindowInfo.Artist)"
+    $now = Get-Date
+
+    if ($script:LastNeteaseWindowSongKey -ne $key) {
+        $script:LastNeteaseWindowSongKey = $key
+        $script:LastNeteaseWindowSongSince = $now
+        return $false
+    }
+
+    if ($script:LastNeteaseWindowSongSince -eq [datetime]::MinValue) {
+        $script:LastNeteaseWindowSongSince = $now
+    }
+
+    if ($script:LastNeteaseWindowPlayConfirmedAt -ne [datetime]::MinValue -and
+        (($now - $script:LastNeteaseWindowPlayConfirmedAt).TotalSeconds) -le 30) {
+        return $false
+    }
+
+    return (($now - $script:LastNeteaseWindowSongSince).TotalSeconds) -ge 25
+}
+
+function Test-NeteaseWindowListeningAllowed {
+    param($NeteaseDetail)
+
+    if ($NeteaseDetail.State -eq 'paused') { return $false }
+    if ($NeteaseDetail.State -eq 'playing') { return $true }
+    if (-not (Test-NeteaseProcessRunning)) { return $false }
+
+    if (Test-NeteaseSessionPlayingDirect) {
+        Confirm-NeteaseWindowPlaying
+        return $true
+    }
+
+    $timeline = Test-NeteaseTimelineActive
+    if ($timeline -eq $true) {
+        Confirm-NeteaseWindowPlaying
+        return $true
+    }
+    if ($timeline -eq $false) { return $false }
+
+    $windowInfo = Get-NeteaseMusicFromWindow
+    if (-not $windowInfo) { return $false }
+    if (Test-NeteaseWindowSongStale $windowInfo) { return $false }
+
+    if ((Get-ForegroundMusicAppKey) -ieq 'cloudmusic') {
+        Confirm-NeteaseWindowPlaying
+        return $true
+    }
+
+    if ($script:LastNeteaseWindowPlayConfirmedAt -ne [datetime]::MinValue -and
+        ((Get-Date) - $script:LastNeteaseWindowPlayConfirmedAt).TotalSeconds -le 30) {
+        return $true
+    }
+
+    Confirm-NeteaseWindowPlaying
+    return $true
+}
+
+function Test-NeteaseTimelineActive {
+    $pos = Get-NeteaseTimelinePosition
+    if ($null -eq $pos) { return $null }
+
+    $now = Get-Date
+    if ($null -ne $script:LastNeteaseTimelinePos) {
+        if ($pos -gt ($script:LastNeteaseTimelinePos + 0.25) -or $pos -lt ($script:LastNeteaseTimelinePos - 1)) {
+            $script:LastNeteaseTimelinePos = $pos
+            $script:LastNeteaseTimelineStillSince = [datetime]::MinValue
+            return $true
+        }
+
+        if ($script:LastNeteaseTimelineStillSince -eq [datetime]::MinValue) {
+            $script:LastNeteaseTimelineStillSince = $now
+        }
+        if ((($now - $script:LastNeteaseTimelineStillSince).TotalSeconds) -ge 15) {
+            return $false
+        }
+        return $true
+    }
+
+    $script:LastNeteaseTimelinePos = $pos
+    $script:LastNeteaseTimelineStillSince = [datetime]::MinValue
+    return $true
 }
 
 function Get-NonNeteasePlayingMusicInfo {
@@ -461,6 +647,29 @@ function Format-ListeningLine {
     return $null
 }
 
+function Test-GenericSystemDisplayName {
+    param([string]$Name)
+    if (-not $Name) { return $true }
+    $normalized = ($Name -replace '®', '').Trim()
+    if ($normalized -match '(?i)^microsoft(\s+windows(\s+operating\s+system)?)?$') { return $true }
+    if ($normalized -match '(?i)windows\s+operating\s+system') { return $true }
+    return $false
+}
+
+function Get-ActivitySkipProcesses {
+    return @(
+        'explorer', 'SearchHost', 'ShellExperienceHost', 'ApplicationFrameHost', 'SystemSettings',
+        'powershell', 'pwsh', 'cmd', 'WindowsTerminal', 'python', 'TextInputHost',
+        'StartMenuExperienceHost', 'msedgewebview2', 'WidgetBoard', 'WidgetService',
+        'PhoneExperienceHost', 'ShellHost', 'System', 'Nexus', 'Nexus-Ultimate',
+        'RuntimeBroker', 'LockApp', 'sihost', 'taskhostw', 'dwm', 'SearchUI',
+        'SystemSettingsBroker', 'SecurityHealthSystray', 'ctfmon', 'svchost',
+        'fontdrvhost', 'conhost', 'Registry', 'audiodg', 'GameBar', 'GameBarPresenceWriter',
+        'backgroundTaskHost', 'smartscreen', 'WmiPrvSE', 'dllhost', 'CompPkgSrv',
+        'MusNotifyIcon', 'UserOOBEBroker', 'SecurityHealthService'
+    )
+}
+
 function Get-ProcessDisplayName {
     param([string]$ProcessName)
     if (-not $ProcessName) { return '' }
@@ -473,21 +682,25 @@ function Get-ProcessDisplayName {
         if ($proc) {
             try {
                 $product = $proc.MainModule.FileVersionInfo.ProductName
-                if ($product -and ($product.Trim() -ne '')) {
+                if ($product -and ($product.Trim() -ne '') -and -not (Test-GenericSystemDisplayName $product)) {
                     return $product.Trim()
                 }
             } catch {}
         }
     } catch {}
+    if ((Get-ActivitySkipProcesses) -icontains $ProcessName) { return '' }
+    if (Test-GenericSystemDisplayName $ProcessName) { return '' }
     return $ProcessName
 }
 
 function Format-ActivityLine {
     param([string]$ProcessName)
+    $displayName = Get-ProcessDisplayName $ProcessName
+    if (-not $displayName) { return $null }
     $pfx = [string]$config.activityPrefix
     if (-not $pfx) { $pfx = [string]$config.unknownProcessPrefix }
     if (-not $pfx) { $pfx = 'using' }
-    return "$pfx $(Get-ProcessDisplayName $ProcessName)"
+    return "$pfx $displayName"
 }
 
 function Get-SteamInstallPath {
@@ -656,10 +869,7 @@ function Get-ForegroundProcessStatus {
     foreach ($prop in $config.processes.PSObject.Properties) {
         if ($fg -ieq $prop.Name) { return [string]$prop.Value }
     }
-    $skip = @('explorer','SearchHost','ShellExperienceHost','ApplicationFrameHost','SystemSettings',
-        'powershell','pwsh','cmd','WindowsTerminal','python','TextInputHost','StartMenuExperienceHost','msedgewebview2',
-        'msedgewebview2','WidgetBoard','WidgetService','PhoneExperienceHost','ShellHost','System')
-    if ($skip -notcontains $fg) {
+    if ((Get-ActivitySkipProcesses) -notcontains $fg) {
         return Format-ActivityLine $fg
     }
     return $null
@@ -694,7 +904,7 @@ function Get-RemoteHeartbeatSeconds {
         $sec = [int]$config.pushHeartbeatSeconds
     }
     if ($Post -and $sec -lt 60) { $sec = 60 }
-    if ($sec -lt 30) { $sec = 30 }
+    if ($sec -lt 120) { $sec = 120 }
     return $sec
 }
 
@@ -760,18 +970,46 @@ function Get-StatusFingerprint {
     ))
 }
 
-function Get-ListeningLine {
-    $neteaseState = Get-NeteasePlaybackState
-
-    $neteaseMedia = Get-NeteaseMusicFromMediaSession
-    if ($neteaseMedia) {
-        return Format-ListeningLine $neteaseMedia
+function Get-ListeningGraceSeconds {
+    if ($null -ne $config.listeningGraceSeconds) {
+        return [Math]::Max(0, [int]$config.listeningGraceSeconds)
     }
+    return 30
+}
+
+function Resolve-ListeningLineNow {
+    $neteaseDetail = Get-NeteasePlaybackDetail
+    $neteaseState = $neteaseDetail.State
 
     if ($neteaseState -ne 'paused') {
-        $neteaseInfo = Get-NeteaseMusicFromWindow
-        if ($neteaseInfo) {
-            return Format-ListeningLine $neteaseInfo
+        if (Test-NeteaseSessionPlayingDirect) {
+            $neteaseMedia = Get-NeteaseMusicFromMediaSession
+            if ($neteaseMedia) {
+                Confirm-NeteaseWindowPlaying
+                return Format-ListeningLine $neteaseMedia
+            }
+            $neteaseInfo = Get-NeteaseMusicFromWindow
+            if ($neteaseInfo) {
+                Confirm-NeteaseWindowPlaying
+                return Format-ListeningLine $neteaseInfo
+            }
+        }
+
+        if ($neteaseState -eq 'playing') {
+            $neteaseMedia = Get-NeteaseMusicFromMediaSession
+            if ($neteaseMedia) {
+                return Format-ListeningLine $neteaseMedia
+            }
+
+            $neteaseInfo = Get-NeteaseMusicFromWindow
+            if ($neteaseInfo) {
+                return Format-ListeningLine $neteaseInfo
+            }
+        } elseif ($neteaseState -eq 'unknown') {
+            $neteaseInfo = Get-NeteaseMusicFromWindow
+            if ($neteaseInfo -and (Test-NeteaseWindowListeningAllowed $neteaseDetail)) {
+                return Format-ListeningLine $neteaseInfo
+            }
         }
     }
 
@@ -782,8 +1020,9 @@ function Get-ListeningLine {
 
     $fgMusicKey = Get-ForegroundMusicAppKey
     if ($fgMusicKey) {
-        if (($fgMusicKey -ieq 'cloudmusic') -and ($neteaseState -eq 'paused')) {
-            return $null
+        if ($fgMusicKey -ieq 'cloudmusic') {
+            if ($neteaseState -eq 'paused') { return $null }
+            if (-not (Test-NeteaseWindowListeningAllowed $neteaseDetail)) { return $null }
         }
         $label = Get-MusicAppLabel $fgMusicKey
         if ($label) {
@@ -792,6 +1031,39 @@ function Get-ListeningLine {
         }
     }
 
+    return $null
+}
+
+function Get-ListeningLine {
+    $neteaseState = (Get-NeteasePlaybackDetail).State
+    $line = Resolve-ListeningLineNow
+
+    if ($line) {
+        $script:LastListeningLine = $line
+        $script:LastListeningSeenAt = Get-Date
+        return $line
+    }
+
+    if ($neteaseState -eq 'paused') {
+        $script:LastListeningLine = $null
+        $script:LastListeningSeenAt = [datetime]::MinValue
+        $script:LastNeteaseTimelinePos = $null
+        $script:LastNeteaseTimelineStillSince = [datetime]::MinValue
+        $script:LastNeteaseWindowSongKey = $null
+        $script:LastNeteaseWindowSongSince = [datetime]::MinValue
+        $script:LastNeteaseWindowPlayConfirmedAt = [datetime]::MinValue
+        return $null
+    }
+
+    $grace = Get-ListeningGraceSeconds
+    if ($grace -gt 0 -and $script:LastListeningLine) {
+        $elapsed = ((Get-Date) - $script:LastListeningSeenAt).TotalSeconds
+        if ($elapsed -le $grace) {
+            return $script:LastListeningLine
+        }
+    }
+
+    $script:LastListeningLine = $null
     return $null
 }
 
@@ -1047,9 +1319,26 @@ function Push-StatusToGit {
     }
 }
 
+$script:LastNeteaseCookieSync = [datetime]::MinValue
+
+function Sync-NeteaseCookieIfDue {
+    if ($script:LastNeteaseCookieSync -ne [datetime]::MinValue -and
+        ((Get-Date) - $script:LastNeteaseCookieSync).TotalHours -lt 12) { return }
+    $syncScript = Join-Path $PSScriptRoot 'sync-netease-cookie.ps1'
+    if (-not (Test-Path $syncScript)) { return }
+    try {
+        & $syncScript 2>&1 | ForEach-Object { if ($_) { Write-Host "  [netease-cookie] $_" } }
+    } catch {
+        Write-Host "  [netease-cookie] sync failed: $_"
+    }
+    $script:LastNeteaseCookieSync = Get-Date
+}
+
 if ($Loop) {
     if (-not (Enter-SingleInstanceLock)) { exit 0 }
 }
+
+Stop-OtherSyncInstances
 
 Update-StatusFile
 
@@ -1057,8 +1346,10 @@ if ($Loop) {
     Write-Host "Loop every ${IntervalSeconds}s. Ctrl+C to stop."
     if ($Post) { Write-Host "Remote post enabled (no Git push)." }
     if ($Push) { Write-Host "Legacy Git push enabled." }
+    Sync-NeteaseCookieIfDue
     while ($true) {
         Start-Sleep -Seconds $IntervalSeconds
+        Sync-NeteaseCookieIfDue
         Update-StatusFile
     }
 }

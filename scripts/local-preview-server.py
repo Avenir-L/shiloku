@@ -258,9 +258,9 @@ class PreviewHandler(SimpleHTTPRequestHandler):
 
             if action == "search":
                 keywords = (query.get("keywords") or [""])[0].strip()
-                limit = int((query.get("limit") or ["12"])[0])
+                limit = int((query.get("limit") or ["30"])[0])
                 offset = int((query.get("offset") or ["0"])[0])
-                limit = max(1, min(limit, 20))
+                limit = max(1, min(limit, 30))
                 offset = max(0, offset)
                 if not keywords:
                     self._json(400, {"error": "请输入搜索关键词"})
@@ -314,6 +314,12 @@ class PreviewHandler(SimpleHTTPRequestHandler):
                     if not self._safe_write(chunk):
                         break
                 stream.close()
+                return
+
+            if action == "playable":
+                ids = (query.get("ids") or [""])[0].strip()
+                song_ids = [part.strip() for part in ids.split(",") if part.strip()]
+                self._json(200, {"playable": netease_api.get_playable_map(song_ids)})
                 return
 
             if action == "listen-stats":

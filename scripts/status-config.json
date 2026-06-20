@@ -4,16 +4,16 @@
   "idle": "💤 zzz 离开中",
   "idleSeconds": 300,
   "listeningPrefix": "正在听",
-  "listeningGraceSeconds": 0,
+  "listeningGraceSeconds": 30,
   "statusSeparator": " · ",
   "displayMode": "merge",
   "carouselSeconds": 8,
-  "syncIntervalSeconds": 5,
-  "remotePostMinIntervalSeconds": 8,
-  "remoteHeartbeatSeconds": 120,
-  "remoteMaxPostsPerHour": 150,
-  "remoteRateLimitCooldownSeconds": 300,
-  "pushHeartbeatSeconds": 120,
+  "syncIntervalSeconds": 10,
+  "remotePostMinIntervalSeconds": 25,
+  "remoteHeartbeatSeconds": 300,
+  "remoteMaxPostsPerHour": 36,
+  "remoteRateLimitCooldownSeconds": 600,
+  "pushHeartbeatSeconds": 300,
   "statusPostUrl": "https://www.shiloku.cn/api/status/update",
   "unknownProcessPrefix": "在用",
   "activityPrefix": "在用",
@@ -63,7 +63,7 @@
     "firefox": "🌐 在用 Firefox"
   },
   "musicApps": {
-    "cloudmusic": { "name": "网易云音乐", "match": ["cloudmusic", "CloudMusic", "NetEase", "Netease", "163", "wangyi", "orpheus"] },
+    "cloudmusic": { "name": "网易云音乐", "match": ["cloudmusic", "cloudmusic.exe", "CloudMusic", "NetEase", "Netease", "163", "wangyi", "orpheus"] },
     "QQMusic": { "name": "QQ 音乐", "match": ["QQMusic", "QQMusicLite"] },
     "Spotify": { "name": "Spotify", "match": ["Spotify"] }
   }

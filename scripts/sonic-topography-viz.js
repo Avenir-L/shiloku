@@ -297,17 +297,26 @@ class SonicAudioAnalyzer {
   connect() {
     if (this.sourceReady) return true;
     try {
-      this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      this.analyser = this.audioCtx.createAnalyser();
-      this.analyser.fftSize = 1024;
-      this.analyser.smoothingTimeConstant = 0.8;
+      if (!this.audioCtx) {
+        this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (!this.analyser) {
+        this.analyser = this.audioCtx.createAnalyser();
+        this.analyser.fftSize = 1024;
+        this.analyser.smoothingTimeConstant = 0.8;
+        this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+      }
       const source = this.audioCtx.createMediaElementSource(this.audioEl);
       source.connect(this.analyser);
       this.analyser.connect(this.audioCtx.destination);
-      this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
       this.sourceReady = true;
       return true;
     } catch (error) {
+      const message = String(error?.message || error);
+      if (message.includes('already connected')) {
+        this.sourceReady = true;
+        return true;
+      }
       console.warn('[sonic-viz] 音频分析器连接失败:', error);
       return false;
     }
@@ -817,9 +826,7 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
   }
 
   function ensureAudio() {
-    if (analyzer.isPlaying || !audioEl.paused) {
-      analyzer.ensureReady();
-    }
+    analyzer.ensureReady();
   }
 
   function animate(now = 0) {
@@ -998,6 +1005,7 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
 
   window.__shilokuViz = {
     testRipple: () => addRipple(0, 0, 2.5),
+    ensureAudio,
   };
 
   return { analyzer, renderer, resize };

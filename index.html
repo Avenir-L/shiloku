@@ -1182,32 +1182,51 @@ html {
     height: 100dvh;
     min-height: 100vh;
     min-height: 100dvh;
-    display: none;
-    align-items: center;
-    justify-content: center;
+    display: block;
     overflow: hidden;
     isolation: isolate;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transform: translateY(12px);
+    transform: translateY(12px) scale(0.985);
     transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
                 transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
                 visibility 0.55s;
 }
 
 body.music-room-open #music-room {
-    display: flex;
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
 }
 
-body.music-room-open .layout-container,
-body.music-room-open .footer-notice {
+body.intro-done .layout-container,
+body.intro-done .footer-notice {
+    transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 0.55s ease;
+}
+
+body.music-room-open .layout-container {
+    animation: none;
     opacity: 0;
     pointer-events: none;
+    transform: scale(0.985) translateY(-8px);
+    filter: blur(3px);
+}
+
+body.music-room-open .footer-notice {
+    animation: none;
+    opacity: 0;
+    pointer-events: none;
+}
+
+html.music-room-open,
+body.music-room-open {
+    overflow: hidden !important;
+    height: 100%;
+    overscroll-behavior: none;
 }
 
 .music-bg-layer {
@@ -1990,6 +2009,32 @@ body.music-room-open .footer-notice {
     min-width: 0;
 }
 
+#netease-results li.unplayable {
+    opacity: 0.58;
+}
+
+#netease-results li.unplayable .result-name {
+    color: rgba(255,255,255,0.55);
+}
+
+#netease-results .result-fee {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+    color: rgba(255, 220, 160, 0.95);
+    border: 1px solid rgba(255, 220, 160, 0.35);
+    background: rgba(255, 220, 160, 0.08);
+}
+
+#netease-results li.playable-checking {
+    opacity: 0.82;
+}
+
 #netease-results .result-add-btn {
     flex-shrink: 0;
     width: 32px;
@@ -2036,6 +2081,88 @@ body.music-room-open .footer-notice {
 #netease-results .result-meta {
     font-size: 12px;
     color: rgba(255,255,255,0.42);
+}
+
+.netease-queue-wrap {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.netease-queue-wrap[hidden] {
+    display: none;
+}
+
+.netease-queue-title {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 8px;
+}
+
+#netease-queue {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+#netease-queue li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+#netease-queue li:hover { background: rgba(255,255,255,0.08); }
+
+#netease-queue li.active {
+    background: rgba(255,255,255,0.12);
+    border-left: 3px solid var(--music-accent, #fb7185);
+}
+
+#netease-queue .queue-item-main {
+    flex: 1;
+    min-width: 0;
+}
+
+#netease-queue .queue-item-title {
+    display: block;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#netease-queue .queue-item-artist {
+    display: block;
+    font-size: 11px;
+    color: rgba(255,255,255,0.42);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#netease-queue .queue-remove-btn {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.55);
+    cursor: pointer;
+    line-height: 1;
+}
+
+#netease-queue .queue-remove-btn:hover {
+    background: rgba(255,255,255,0.16);
+    color: rgba(255,255,255,0.9);
 }
 
 .netease-tip {
@@ -2280,6 +2407,21 @@ body.music-room-open .footer-notice {
         font-size: 11px !important;
         letter-spacing: 0.22em !important;
         text-indent: 0.22em !important;
+    }
+
+    body.music-room-open .layout-container {
+        transform: none !important;
+        filter: none !important;
+    }
+
+    body.intro-done .layout-container,
+    body.intro-done .footer-notice {
+        transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #music-room {
+        height: 100dvh;
+        min-height: 100dvh;
     }
 }
  /* 悬浮球样式 */
@@ -2817,8 +2959,25 @@ body.music-room-open .footer-notice {
         };
 
         document.addEventListener('DOMContentLoaded', () => {
+            const STATUS_POLL_MS = 10000;
+            const STATUS_POLL_HIDDEN_MS = 60000;
+            let statusPollTimer = null;
+
+            const scheduleStatusPoll = () => {
+                if (statusPollTimer) clearInterval(statusPollTimer);
+                const interval = document.hidden ? STATUS_POLL_HIDDEN_MS : STATUS_POLL_MS;
+                statusPollTimer = setInterval(() => {
+                    if (document.hidden) return;
+                    fetchRemoteStatus();
+                }, interval);
+            };
+
             fetchRemoteStatus();
-            setInterval(fetchRemoteStatus, 3000);
+            scheduleStatusPoll();
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) fetchRemoteStatus();
+                scheduleStatusPoll();
+            });
         });
 
         (function initAboutModal() {
@@ -2844,7 +3003,7 @@ body.music-room-open .footer-notice {
             });
         })();
 
-        // 音乐室导航：点击按钮切换全屏音乐室
+        // 音乐室导航：点击按钮切换全屏音乐室，并同步手机返回键
         document.addEventListener('DOMContentLoaded', () => {
             const musicRoom = document.getElementById('music-room');
             const navBtn = document.getElementById('page-nav-btn');
@@ -2852,7 +3011,9 @@ body.music-room-open .footer-notice {
             const navText = navBtn?.querySelector('.nav-text');
             if (!musicRoom || !navBtn) return;
 
+            const MUSIC_ROOM_HISTORY = { shiloku: 'music-room' };
             let inMusicRoom = false;
+            let skipHistorySync = false;
 
             function setNavToMusic() {
                 inMusicRoom = false;
@@ -2871,22 +3032,54 @@ body.music-room-open .footer-notice {
                 navBtn.setAttribute('aria-label', '返回主页');
             }
 
-            function openMusicRoom() {
-                setNavToHome();
+            function applyMusicRoomOpenState() {
+                document.documentElement.classList.add('music-room-open');
                 document.body.classList.add('music-room-open', 'in-music-room');
                 musicRoom.classList.add('is-visible');
+            }
+
+            function applyMusicRoomCloseState() {
+                document.documentElement.classList.remove('music-room-open');
+                document.body.classList.remove('music-room-open', 'in-music-room');
+                musicRoom.classList.remove('is-visible');
+            }
+
+            function openMusicRoom(fromHistory = false) {
+                if (inMusicRoom) return;
+                setNavToHome();
+                applyMusicRoomOpenState();
+                if (!fromHistory) {
+                    history.pushState(MUSIC_ROOM_HISTORY, '', location.pathname + location.search + location.hash);
+                }
                 window.dispatchEvent(new CustomEvent('music-room:open'));
             }
 
-            function closeMusicRoom() {
+            function closeMusicRoom(fromHistory = false) {
+                if (!inMusicRoom) return;
                 setNavToMusic();
-                document.body.classList.remove('music-room-open', 'in-music-room');
-                musicRoom.classList.remove('is-visible');
+                applyMusicRoomCloseState();
                 window.clearMusicStatusOverride?.();
+                if (!fromHistory && history.state?.shiloku === 'music-room') {
+                    skipHistorySync = true;
+                    history.back();
+                }
             }
+
+            window.addEventListener('popstate', (event) => {
+                if (skipHistorySync) {
+                    skipHistorySync = false;
+                    return;
+                }
+                if (event.state?.shiloku === 'music-room') {
+                    if (!inMusicRoom) openMusicRoom(true);
+                    return;
+                }
+                if (inMusicRoom) closeMusicRoom(true);
+            });
 
             window.__shilokuOpenMusicRoom = openMusicRoom;
             window.__shilokuCloseMusicRoom = closeMusicRoom;
+            window.__shilokuIsMusicRoomOpen = () => inMusicRoom;
 
             navBtn.addEventListener('click', () => {
                 if (inMusicRoom) closeMusicRoom();
@@ -3179,14 +3372,18 @@ body.music-room-open .footer-notice {
             <input type="text" id="netease-search-input" placeholder="搜索歌曲、歌手..." autocomplete="off">
             <button type="button" id="netease-search-btn">搜索</button>
         </div>
-        <p id="netease-search-status">输入歌名后搜索，只显示当前能播放的歌曲</p>
+        <p id="netease-search-status">输入歌名后搜索，结果与网易云一致</p>
         <ul id="netease-results"></ul>
+        <div class="netease-queue-wrap" id="netease-queue-wrap" hidden>
+            <div class="netease-queue-title">临时播放列表</div>
+            <ul id="netease-queue"></ul>
+        </div>
         <div class="netease-pagination" id="netease-pagination" hidden>
             <button type="button" id="netease-prev-btn" disabled>上一页</button>
             <span id="netease-page-info"></span>
             <button type="button" id="netease-next-btn" disabled>下一页</button>
         </div>
-        <p class="netease-tip" data-i18n="neteaseTip">点击歌曲播放；点右侧 + 加入播放列表（列表会自动保存在浏览器里）。</p>
+        <p class="netease-tip" data-i18n="neteaseTip">点击歌曲播放；点右侧 + 加入临时播放列表（关闭页面后清空，不会进本地列表）。</p>
     </aside>
 
     <div class="aether-ui">
@@ -3275,7 +3472,7 @@ body.music-room-open .footer-notice {
     </div>
 
     <img src="avatar.jpg" id="album-cover" alt="" hidden>
-    <audio id="bg-audio" preload="auto" disablepictureinpicture disableremoteplayback controlslist="nofullscreen nodownload noremoteplayback noplaybackrate" tabindex="-1" aria-hidden="true"></audio>
+    <audio id="bg-audio" preload="auto" crossorigin="anonymous" disablepictureinpicture disableremoteplayback controlslist="nofullscreen nodownload noremoteplayback noplaybackrate" tabindex="-1" aria-hidden="true"></audio>
 </section>
 <script>
     // 1. 控制面板打开与关闭
@@ -3411,7 +3608,11 @@ const LOCAL_SONGS = [
 let playlistCategoryFilter = 'all';
 
 let songs = [...LOCAL_SONGS];
+let neteaseQueue = [];
+let playbackSource = 'local'; // local | netease | preview
+let neteasePreviewSong = null;
 let currentSongIndex = 0;
+let lastLocalIndex = 0;
 let isPlaying = false;
 let currentLyricIndex = -1; 
 let currentLyricsData = []; 
@@ -3426,40 +3627,124 @@ let neteaseHasMore = false;
 let neteaseSearchKeywords = '';
 const NETEASE_PAGE_SIZE = 30;
 
+const NETEASE_QUEUE_KEY = 'shiloku-netease-queue-v1';
+
+function getCurrentSong() {
+    if (playbackSource === 'preview') return neteasePreviewSong;
+    if (playbackSource === 'netease') return neteaseQueue[currentSongIndex] || null;
+    return songs[currentSongIndex] || null;
+}
+
+function isLocalPlaylistSong(song) {
+    return Boolean(song?.src) && !song?.isNeteaseOnly;
+}
+
+function resetLocalPlaylist() {
+    songs = [...LOCAL_SONGS];
+    if (currentSongIndex >= songs.length) {
+        currentSongIndex = Math.max(0, songs.length - 1);
+    }
+    if (lastLocalIndex >= songs.length) {
+        lastLocalIndex = Math.max(0, songs.length - 1);
+    }
+}
+
+function migrateLegacyNeteasePlaylist(saved) {
+    if (!saved || !Array.isArray(saved.neteaseSongs) || !saved.neteaseSongs.length) {
+        return false;
+    }
+
+    const legacy = saved.neteaseSongs
+        .filter((entry) => entry?.neteaseId)
+        .map((entry) => ({
+            title: entry.title || '未知歌曲',
+            artist: entry.artist || '未知歌手',
+            neteaseId: entry.neteaseId,
+            cover: entry.cover || '',
+            isNeteaseOnly: true,
+        }));
+    if (!legacy.length) return false;
+
+    const existingIds = new Set(neteaseQueue.map((song) => song.neteaseId));
+    legacy.forEach((song) => {
+        if (!existingIds.has(song.neteaseId)) {
+            neteaseQueue.push(song);
+            existingIds.add(song.neteaseId);
+        }
+    });
+    persistNeteaseQueue();
+    return true;
+}
+
 function restorePlaylistFromStorage() {
+    resetLocalPlaylist();
     const saved = window.shilokuLoadPlaylist?.();
-    if (!saved) return;
-    if (Array.isArray(saved.neteaseSongs) && saved.neteaseSongs.length) {
-        saved.neteaseSongs.forEach((entry) => {
-            if (entry?.isNeteaseOnly && entry.neteaseId) songs.push(entry);
-        });
+    let shouldRewriteStorage = false;
+
+    if (saved) {
+        if (migrateLegacyNeteasePlaylist(saved)) {
+            shouldRewriteStorage = true;
+        } else if (Array.isArray(saved.neteaseSongs) && saved.neteaseSongs.length) {
+            shouldRewriteStorage = true;
+        }
+        if (Number.isInteger(saved.currentIndex) && saved.currentIndex >= 0 && saved.currentIndex < songs.length) {
+            currentSongIndex = saved.currentIndex;
+            lastLocalIndex = saved.currentIndex;
+        }
+        if (saved.playMode === 'one' || saved.playMode === 'list') playMode = saved.playMode;
+        if (typeof saved.shuffleOn === 'boolean') shuffleOn = saved.shuffleOn;
+        if (typeof saved.volume === 'number' && saved.volume >= 0 && saved.volume <= 1) {
+            const vs = document.getElementById('volume-slider');
+            if (vs) vs.value = saved.volume;
+        }
     }
-    if (Number.isInteger(saved.currentIndex) && saved.currentIndex >= 0 && saved.currentIndex < songs.length) {
-        currentSongIndex = saved.currentIndex;
+
+    try {
+        const raw = sessionStorage.getItem(NETEASE_QUEUE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                const fromSession = parsed.filter((entry) => entry?.isNeteaseOnly && entry.neteaseId);
+                if (fromSession.length) {
+                    const existingIds = new Set(neteaseQueue.map((song) => song.neteaseId));
+                    fromSession.forEach((song) => {
+                        if (!existingIds.has(song.neteaseId)) {
+                            neteaseQueue.push(song);
+                            existingIds.add(song.neteaseId);
+                        }
+                    });
+                }
+            }
+        }
+    } catch { /* ignore */ }
+
+    resetLocalPlaylist();
+    if (shouldRewriteStorage) {
+        persistPlaylistState();
     }
-    if (saved.playMode === 'one' || saved.playMode === 'list') playMode = saved.playMode;
-    if (typeof saved.shuffleOn === 'boolean') shuffleOn = saved.shuffleOn;
-    if (typeof saved.volume === 'number' && saved.volume >= 0 && saved.volume <= 1) {
-        const vs = document.getElementById('volume-slider');
-        if (vs) vs.value = saved.volume;
-    }
+}
+
+function persistNeteaseQueue() {
+    try {
+        sessionStorage.setItem(NETEASE_QUEUE_KEY, JSON.stringify(neteaseQueue));
+    } catch { /* quota */ }
 }
 
 function persistPlaylistState() {
     window.shilokuSavePlaylist?.({
-        neteaseSongs: songs.filter((s) => s.isNeteaseOnly).map((s) => window.shilokuSerializeNetease?.(s) || s),
-        currentIndex: currentSongIndex,
+        currentIndex: lastLocalIndex,
         playMode,
         shuffleOn,
         volume: Number(document.getElementById('volume-slider')?.value) || 1,
     });
+    persistNeteaseQueue();
 }
 
-window.__shilokuCurrentSong = () => songs[currentSongIndex] || null;
+window.__shilokuCurrentSong = () => getCurrentSong();
 window.__shilokuLocalIndex = (song) => LOCAL_SONGS.findIndex((s) => s.src === song?.src && s.title === song?.title);
 
 function notifyNowPlaying() {
-    window.dispatchEvent(new CustomEvent('shiloku:nowplaying', { detail: { song: songs[currentSongIndex] || null } }));
+    window.dispatchEvent(new CustomEvent('shiloku:nowplaying', { detail: { song: getCurrentSong() } }));
 }
 
 const neteaseSearchInput = document.getElementById('netease-search-input');
@@ -3472,6 +3757,8 @@ const neteasePaginationEl = document.getElementById('netease-pagination');
 const neteasePrevBtn = document.getElementById('netease-prev-btn');
 const neteaseNextBtn = document.getElementById('netease-next-btn');
 const neteasePageInfoEl = document.getElementById('netease-page-info');
+const neteaseQueueWrapEl = document.getElementById('netease-queue-wrap');
+const neteaseQueueEl = document.getElementById('netease-queue');
 const playlistDrawer = document.getElementById('playlist-drawer');
 const playlistBackdrop = document.getElementById('playlist-backdrop');
 const playlistToggleBtn = document.getElementById('playlist-toggle-btn');
@@ -3479,6 +3766,7 @@ const playlistToggleBtn = document.getElementById('playlist-toggle-btn');
 const lyricsCache = {};
 const audio = document.getElementById('bg-audio');
 if (audio) {
+    audio.crossOrigin = 'anonymous';
     audio.disablePictureInPicture = true;
     if ('disableRemotePlayback' in audio) audio.disableRemotePlayback = true;
 }
@@ -3533,14 +3821,47 @@ function toggleShuffle() {
     persistPlaylistState();
 }
 
-function getNextIndex() {
-    if (songs.length <= 1) return 0;
+function getLocalSongIndices() {
+    return songs.map((_, index) => index);
+}
+
+function getLocalNextIndex(fromIndex = currentSongIndex) {
+    const candidates = getLocalSongIndices();
+    if (!candidates.length) return 0;
+    if (candidates.length === 1) return candidates[0];
+    const pos = candidates.indexOf(fromIndex);
+    if (pos < 0) return candidates[0];
     if (shuffleOn) {
         let idx;
-        do { idx = Math.floor(Math.random() * songs.length); } while (idx === currentSongIndex);
+        do { idx = candidates[Math.floor(Math.random() * candidates.length)]; } while (idx === fromIndex);
         return idx;
     }
-    return (currentSongIndex + 1) % songs.length;
+    return candidates[(pos + 1) % candidates.length];
+}
+
+function getLocalPrevIndex(fromIndex = currentSongIndex) {
+    const candidates = getLocalSongIndices();
+    if (!candidates.length) return 0;
+    if (candidates.length === 1) return candidates[0];
+    const pos = candidates.indexOf(fromIndex);
+    if (pos < 0) return candidates[candidates.length - 1];
+    return candidates[(pos - 1 + candidates.length) % candidates.length];
+}
+
+function getNeteaseNextIndex() {
+    if (neteaseQueue.length <= 1) return -1;
+    if (shuffleOn) {
+        let idx;
+        do { idx = Math.floor(Math.random() * neteaseQueue.length); } while (idx === currentSongIndex);
+        return idx;
+    }
+    return (currentSongIndex + 1) % neteaseQueue.length;
+}
+
+function getNeteasePrevIndex() {
+    if (neteaseQueue.length <= 1) return -1;
+    if (shuffleOn && playHistory.length > 0) return playHistory[playHistory.length - 1];
+    return (currentSongIndex - 1 + neteaseQueue.length) % neteaseQueue.length;
 }
 
 function applySiteAccent(r, g, b) {
@@ -3622,7 +3943,30 @@ function extractTimedLyricLines(text) {
 }
 
 function isLyricMetaLine(text) {
-    return !text || text.startsWith('{') || /^(作词|作曲|编曲|制作人|演唱|词|曲)[:：]/.test(text);
+    const line = String(text || '').trim();
+    if (!line || line.startsWith('{')) return true;
+    if (/^(作词|作曲|编曲|制作人|演唱|词\s*[:：]|曲\s*[:：])/u.test(line)) return true;
+    if (/^(lyrics?|composer|writer|producer|arrangement)\s*[:：]/i.test(line)) return true;
+    return false;
+}
+
+function isLyricSkipLine(text) {
+    const line = normalizeLyricLine(text);
+    if (!line) return true;
+    if (isLyricMetaLine(line)) return true;
+    if (/\bon the (beat|track)\b/i.test(line)) return true;
+    if (/^\[?(prod|beat)\]?[\s.:]/i.test(line)) return true;
+    return false;
+}
+
+function normalizeLyricLine(text) {
+    let line = String(text || '').trim();
+    if (!line) return '';
+    if (line.includes('+')) {
+        const parts = line.split('+').map((part) => part.trim()).filter(Boolean);
+        line = parts[parts.length - 1] || line;
+    }
+    return line.replace(/\*{2,}/g, '').trim();
 }
 
 function findTranslationForLine(time, index, mainCount, transLines, transByTime) {
@@ -3654,8 +3998,12 @@ function findTranslationForLine(time, index, mainCount, transLines, transByTime)
 }
 
 function mergeLyricWithTranslation(mainText, transText) {
-    const mainLines = extractTimedLyricLines(mainText).filter((line) => !isLyricMetaLine(line.text));
-    const transLines = extractTimedLyricLines(transText).filter((line) => !isLyricMetaLine(line.text));
+    const mainLines = extractTimedLyricLines(mainText)
+        .map((line) => ({ time: line.time, text: normalizeLyricLine(line.text) }))
+        .filter((line) => !isLyricSkipLine(line.text));
+    const transLines = extractTimedLyricLines(transText)
+        .map((line) => ({ time: line.time, text: normalizeLyricLine(line.text) }))
+        .filter((line) => !isLyricSkipLine(line.text));
     if (!mainLines.length) return [];
 
     const transByTime = new Map();
@@ -3679,12 +4027,13 @@ function parseLRCText(text, transText = '') {
     const timeMap = new Map();
 
     extractTimedLyricLines(text).forEach(({ time, text: content }) => {
-        if (isLyricMetaLine(content)) return;
+        const normalized = normalizeLyricLine(content);
+        if (isLyricSkipLine(normalized)) return;
         if (timeMap.has(time)) {
-            timeMap.get(time).trans = content;
+            timeMap.get(time).trans = normalized;
             return;
         }
-        const lyricObj = { time, text: content, trans: '' };
+        const lyricObj = { time, text: normalized, trans: '' };
         timeMap.set(time, lyricObj);
         result.push(lyricObj);
     });
@@ -3700,6 +4049,7 @@ async function initPlayer() {
     await loadSong(currentSongIndex);
     renderPlaylistCategoryBar();
     renderPlaylist();
+    renderNeteaseQueue();
     notifyNowPlaying();
     audio.addEventListener('ended', onTrackEnded);
     setupNeteaseSearch();
@@ -3722,9 +4072,9 @@ async function initPlayer() {
     window.__shilokuHandleDeepLink?.({
         openMusicRoom: () => window.__shilokuOpenMusicRoom?.(),
         playNeteaseById: async (id) => {
-            const existing = songs.find((s) => s.neteaseId === id);
-            if (existing) {
-                await playSongAt(songs.indexOf(existing), false);
+            const queueIndex = findNeteaseQueueIndex(id);
+            if (queueIndex >= 0) {
+                await playNeteaseAt(queueIndex, false);
                 if (!isPlaying) await togglePlay();
                 return;
             }
@@ -3732,12 +4082,12 @@ async function initPlayer() {
                 const res = await fetch(`/api/netease/search?keywords=${id}&limit=5&offset=0`);
                 const data = await res.json();
                 const hit = data.songs?.find((s) => s.id === id) || data.songs?.[0];
-                if (hit) await addNeteaseSongToPlaylist(hit, { play: true });
+                if (hit) await addNeteaseToQueue(hit, { play: true });
             } catch { /* 深链失败时仅打开音乐室 */ }
         },
         playLocalAt: async (index) => {
             if (index >= 0 && index < LOCAL_SONGS.length) {
-                await playSongAt(index, false);
+                await playLocalAt(index, false);
                 if (!isPlaying) await togglePlay();
             }
         },
@@ -3745,7 +4095,7 @@ async function initPlayer() {
 }
 
 function getListenText() {
-    const song = songs[currentSongIndex];
+    const song = getCurrentSong();
     if (!song) return '正在听歌';
     return song.artist ? `正在听 ${song.title} - ${song.artist}` : `正在听 ${song.title}`;
 }
@@ -3760,36 +4110,130 @@ function neteaseSongToPlaylistEntry(song) {
     };
 }
 
-function findNeteasePlaylistIndex(neteaseId) {
-    return songs.findIndex((item) => item.isNeteaseOnly && item.neteaseId === neteaseId);
+function findNeteaseQueueIndex(neteaseId) {
+    return neteaseQueue.findIndex((item) => item.neteaseId === neteaseId);
 }
 
-function isNeteaseSongInPlaylist(neteaseId) {
-    return findNeteasePlaylistIndex(neteaseId) >= 0;
+function isNeteaseSongInQueue(neteaseId) {
+    return findNeteaseQueueIndex(neteaseId) >= 0;
 }
 
-async function addNeteaseSongToPlaylist(song, { play = false } = {}) {
-    let index = findNeteasePlaylistIndex(song.id);
+async function addNeteaseToQueue(song, { play = false } = {}) {
+    let index = findNeteaseQueueIndex(song.id);
     if (index < 0) {
-        songs.push(neteaseSongToPlaylistEntry(song));
-        index = songs.length - 1;
-        renderPlaylist();
+        neteaseQueue.push(neteaseSongToPlaylistEntry(song));
+        index = neteaseQueue.length - 1;
         void loadNeteaseLyrics(song.id);
-        if (neteaseSearchStatus) neteaseSearchStatus.textContent = `已加入播放列表：${song.name}`;
-        persistPlaylistState();
+        if (neteaseSearchStatus) neteaseSearchStatus.textContent = `已加入临时列表：${song.name}`;
+        persistNeteaseQueue();
+        renderNeteaseQueue();
     } else if (neteaseSearchStatus) {
-        neteaseSearchStatus.textContent = `已在列表中：${song.name}`;
+        neteaseSearchStatus.textContent = `已在临时列表中：${song.name}`;
     }
     renderNeteaseResults();
     if (play) {
         playHistory = [];
-        togglePlaylist(false);
-        toggleNeteaseDrawer(false);
-        await playSongAt(index, false);
+        toggleNeteaseDrawer(true);
+        await playNeteaseAt(index, false);
         if (!isPlaying) await togglePlay();
     }
-    persistPlaylistState();
     return index;
+}
+
+function removeNeteaseFromQueue(index) {
+    if (index < 0 || index >= neteaseQueue.length) return;
+    neteaseQueue.splice(index, 1);
+    persistNeteaseQueue();
+    if (playbackSource === 'netease') {
+        if (!neteaseQueue.length) {
+            playbackSource = 'local';
+            currentSongIndex = lastLocalIndex;
+        } else if (currentSongIndex >= neteaseQueue.length) {
+            currentSongIndex = neteaseQueue.length - 1;
+        }
+    }
+    renderNeteaseQueue();
+    renderNeteaseResults();
+    updatePlaylistHighlight();
+}
+
+function neteaseFeeLabel(fee) {
+    const value = Number(fee) || 0;
+    if (value & 1) return 'VIP';
+    if (value & 4) return '付费';
+    return '';
+}
+
+function guessNeteasePlayable() {
+    return true;
+}
+
+let neteasePlayableRequestSeq = 0;
+
+async function hydrateNeteasePlayableFlags(songIds) {
+    const reqId = ++neteasePlayableRequestSeq;
+    const ids = [...new Set((songIds || []).map((id) => String(id)).filter(Boolean))].slice(0, 30);
+    if (!ids.length) return;
+
+    const cacheKey = 'shiloku-playable-cache-v1';
+    let cache = {};
+    try {
+        cache = JSON.parse(sessionStorage.getItem(cacheKey) || '{}');
+    } catch { cache = {}; }
+
+    const now = Date.now();
+    const ttlMs = 30 * 60 * 1000;
+    const flags = {};
+    const missing = [];
+
+    ids.forEach((id) => {
+        const entry = cache[id];
+        if (entry && (now - entry.at) < ttlMs) {
+            flags[id] = entry.playable;
+        } else {
+            missing.push(id);
+        }
+    });
+
+    const applyFlags = () => {
+        if (reqId !== neteasePlayableRequestSeq) return;
+        let changed = false;
+        neteaseResults.forEach((song) => {
+            const next = flags[String(song.id)];
+            if (typeof next !== 'boolean') return;
+            if (song.playable !== next) {
+                song.playable = next;
+                changed = true;
+            }
+        });
+        if (changed) renderNeteaseResults();
+    };
+
+    applyFlags();
+    if (!missing.length) return;
+
+    try {
+        const res = await fetch(`/api/netease/playable?ids=${encodeURIComponent(missing.join(','))}`, {
+            signal: AbortSignal.timeout(30000),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        Object.entries(data.playable || {}).forEach(([id, playable]) => {
+            flags[id] = playable;
+            cache[id] = { playable, at: now };
+        });
+        applyFlags();
+    } catch { /* 后台校验失败也不挡列表 */ }
+
+    try {
+        sessionStorage.setItem(cacheKey, JSON.stringify(cache));
+    } catch { /* quota */ }
+}
+
+async function ensureNeteaseSongPlayable(song) {
+    if (!song || typeof song.playable === 'boolean') return song?.playable;
+    await hydrateNeteasePlayableFlags([song.id]);
+    return typeof song.playable === 'boolean' ? song.playable : true;
 }
 
 function renderNeteaseResults() {
@@ -3798,18 +4242,23 @@ function renderNeteaseResults() {
     neteaseResults.forEach((song) => {
         const li = document.createElement('li');
         li.dataset.id = String(song.id);
-        const inList = isNeteaseSongInPlaylist(song.id);
+        const inList = isNeteaseSongInQueue(song.id);
+        const feeLabel = neteaseFeeLabel(song.fee);
+        const unplayable = song.playable === false;
+        const checking = song.playable == null;
+        li.classList.toggle('unplayable', unplayable);
+        li.classList.toggle('playable-checking', checking);
         li.innerHTML = `
             <div class="result-body">
-                <div class="result-name">${song.name}</div>
+                <div class="result-name">${song.name}${feeLabel ? `<span class="result-fee">${feeLabel}</span>` : ''}${unplayable ? '<span class="result-fee">暂不可播</span>' : ''}</div>
                 <div class="result-meta">${song.artist || '未知歌手'}${song.album ? ` · ${song.album}` : ''}</div>
             </div>
-            <button type="button" class="result-add-btn${inList ? ' in-list' : ''}" title="${inList ? '已在列表' : '加入播放列表'}" aria-label="${inList ? '已在列表' : '加入播放列表'}">+</button>
+            <button type="button" class="result-add-btn${inList ? ' in-list' : ''}" title="${inList ? '已在临时列表' : '加入临时列表'}" aria-label="${inList ? '已在临时列表' : '加入临时列表'}">+</button>
         `;
         li.querySelector('.result-body').addEventListener('click', () => playNeteaseSong(song));
         li.querySelector('.result-add-btn').addEventListener('click', (event) => {
             event.stopPropagation();
-            addNeteaseSongToPlaylist(song);
+            addNeteaseToQueue(song);
         });
         neteaseResultsEl.appendChild(li);
     });
@@ -3818,11 +4267,51 @@ function renderNeteaseResults() {
 
 function updateNeteaseHighlight() {
     if (!neteaseResultsEl) return;
-    const current = songs[currentSongIndex];
-    const activeId = current?.isNeteaseOnly ? current.neteaseId : null;
+    const current = getCurrentSong();
+    const activeId = (playbackSource === 'netease' || playbackSource === 'preview') && current?.neteaseId
+        ? current.neteaseId
+        : null;
     neteaseResultsEl.querySelectorAll('li').forEach((li) => {
         li.classList.toggle('active', activeId && li.dataset.id === String(activeId));
     });
+    if (neteaseQueueEl) {
+        neteaseQueueEl.querySelectorAll('li').forEach((li) => {
+            const index = Number(li.dataset.index);
+            li.classList.toggle(
+                'active',
+                playbackSource === 'netease'
+                && Number.isInteger(index)
+                && index === currentSongIndex,
+            );
+        });
+    }
+}
+
+function renderNeteaseQueue() {
+    if (!neteaseQueueEl || !neteaseQueueWrapEl) return;
+    neteaseQueueEl.innerHTML = '';
+    neteaseQueueWrapEl.toggleAttribute('hidden', !neteaseQueue.length);
+    neteaseQueue.forEach((song, index) => {
+        const li = document.createElement('li');
+        li.dataset.index = String(index);
+        li.innerHTML = `
+            <div class="queue-item-main">
+                <span class="queue-item-title">${song.title}</span>
+                <span class="queue-item-artist">${song.artist}</span>
+            </div>
+            <button type="button" class="queue-remove-btn" title="移出临时列表" aria-label="移出临时列表">×</button>
+        `;
+        li.querySelector('.queue-item-main')?.addEventListener('click', async () => {
+            await playNeteaseAt(index, false);
+            if (!isPlaying) await togglePlay();
+        });
+        li.querySelector('.queue-remove-btn')?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            removeNeteaseFromQueue(index);
+        });
+        neteaseQueueEl.appendChild(li);
+    });
+    updateNeteaseHighlight();
 }
 
 function updateNeteasePaginationUI() {
@@ -3856,7 +4345,7 @@ async function searchNetease(offset = 0) {
 
     try {
         const response = await fetch(
-            `/api/netease/search?keywords=${encodeURIComponent(keywords)}&limit=12&offset=${offset}`,
+            `/api/netease/search?keywords=${encodeURIComponent(keywords)}&limit=30&offset=${offset}`,
             { signal: controller.signal },
         );
         const text = await response.text();
@@ -3870,7 +4359,10 @@ async function searchNetease(offset = 0) {
             throw new Error('bad-response');
         }
         if (!response.ok) throw new Error(data.error || 'api-error');
-        neteaseResults = data.songs || [];
+        neteaseResults = (data.songs || []).map((song) => ({
+            ...song,
+            playable: guessNeteasePlayable(song),
+        }));
         neteaseSearchKeywords = keywords;
         neteaseSearchOffset = data.offset ?? offset;
         neteaseSearchTotal = data.total ?? 0;
@@ -3880,9 +4372,10 @@ async function searchNetease(offset = 0) {
         toggleNeteaseDrawer(true);
         if (neteaseSearchStatus) {
             neteaseSearchStatus.textContent = neteaseResults.length
-                ? `本页 ${neteaseResults.length} 首可播放`
-                : '这一页没有能直接播放的歌曲，试试翻页或换关键词';
+                ? `本页 ${neteaseResults.length} 首${neteaseSearchTotal ? ` · 共 ${neteaseSearchTotal} 首` : ''}`
+                : '没有找到相关歌曲，换个关键词试试';
         }
+        hydrateNeteasePlayableFlags(neteaseResults.map((song) => song.id));
     } catch (error) {
         if (!neteaseSearchStatus) return;
         if (error.name === 'AbortError') {
@@ -3918,9 +4411,29 @@ async function checkNeteaseApi() {
 }
 
 async function playNeteaseSong(song) {
+    if (song.playable === false) {
+        if (neteaseSearchStatus) neteaseSearchStatus.textContent = '这首歌暂时播不了，可能需要会员或有版权限制';
+        return;
+    }
     try {
         if (neteaseSearchStatus) neteaseSearchStatus.textContent = '正在加载...';
-        await addNeteaseSongToPlaylist(song, { play: true });
+        if (song.playable == null) {
+            const playable = await ensureNeteaseSongPlayable(song);
+            if (playable === false) {
+                if (neteaseSearchStatus) neteaseSearchStatus.textContent = '这首歌暂时播不了，可能需要会员或有版权限制';
+                renderNeteaseResults();
+                return;
+            }
+        }
+        const queueIndex = findNeteaseQueueIndex(song.id);
+        playHistory = [];
+        togglePlaylist(false);
+        if (queueIndex >= 0) {
+            await playNeteaseAt(queueIndex, false);
+        } else {
+            await playNeteasePreview(song);
+        }
+        if (!isPlaying) await togglePlay();
         if (neteaseSearchStatus) neteaseSearchStatus.textContent = '';
     } catch (error) {
         if (neteaseSearchStatus) neteaseSearchStatus.textContent = '这首歌暂时播不了，换一首试试';
@@ -3961,7 +4474,7 @@ function toggleNeteaseDrawer(open) {
         playlistDrawer?.classList.remove('show');
         neteaseSearchInput?.focus();
         if (neteaseSearchStatus && !neteaseResults.length) {
-            neteaseSearchStatus.textContent = '输入歌名后搜索，只显示当前能播放的歌曲';
+            neteaseSearchStatus.textContent = '输入歌名后搜索，结果与网易云一致';
         }
         checkNeteaseApi();
     }
@@ -3974,13 +4487,7 @@ async function resolveSongAudioSrc(song) {
         return song.src;
     }
     if (song.neteaseId) {
-        try {
-            const urlRes = await fetch(`/api/netease/url?id=${encodeURIComponent(song.neteaseId)}`);
-            const urlData = await urlRes.json();
-            if (urlData.url) return urlData.url;
-        } catch (error) {
-            console.warn('网易云直链不可用，尝试代理', error);
-        }
+        // 走同源代理，否则跨域直链会让 Web Audio 频谱全为 0
         return `/api/netease/audio?id=${encodeURIComponent(song.neteaseId)}`;
     }
     return song.src || '';
@@ -3991,6 +4498,7 @@ async function applySongAudioSrc(song) {
     if (!src) return false;
 
     stopVolumeFade();
+    audio.crossOrigin = 'anonymous';
     audio.src = src;
     isAudioLoaded = true;
 
@@ -4012,6 +4520,7 @@ async function applySongAudioSrc(song) {
     });
 
     updateProgressUI();
+    window.__shilokuViz?.ensureAudio?.();
     return ready;
 }
 
@@ -4061,8 +4570,7 @@ async function loadSongLyrics(song) {
 }
 
 // 异步加载控制器：先更新界面，歌词可后台加载
-async function loadSong(index, { deferLyrics = false, resetAudio = true } = {}) {
-    const song = songs[index];
+async function loadSongByEntry(song, { deferLyrics = false, resetAudio = true } = {}) {
     if (!song) return;
 
     if (resetAudio) {
@@ -4101,12 +4609,20 @@ async function loadSong(index, { deferLyrics = false, resetAudio = true } = {}) 
     await loadSongLyrics(song);
 }
 
+async function loadSong(index, options = {}) {
+    playbackSource = 'local';
+    neteasePreviewSong = null;
+    currentSongIndex = index;
+    lastLocalIndex = index;
+    await loadSongByEntry(songs[index], options);
+}
+
 function renderLyrics() {
     lyricsList.innerHTML = '';
     resetLyricScrollTransform();
 
     if (currentLyricsData.length === 0) {
-        const song = songs[currentSongIndex];
+        const song = getCurrentSong();
         const emptyText = song?.isNeteaseOnly
             ? '这首歌暂无歌词'
             : '🎵 纯音乐，享受此刻';
@@ -4241,6 +4757,8 @@ let lyricScrubbing = false;
 let lyricScrubPointerId = null;
 let lyricScrubLastY = 0;
 let lyricScrubMoved = 0;
+let lyricScrubWasPlaying = false;
+let lyricScrubPausedForDrag = false;
 let lastSingingIndex = -1;
 let lyricItemsCache = [];
 let lyricAnchorCenters = [];
@@ -4343,6 +4861,34 @@ function seekToLyricIndex(index) {
     applyLyricSeek(currentLyricsData[index].time);
 }
 
+function previewLyricScroll(scrollY) {
+    const clampedScroll = clampLyricScroll(scrollY);
+    const previewTime = getTimeFromScrollY(clampedScroll);
+    applyLyricScrollPosition(clampedScroll);
+    syncLyrics(previewTime);
+}
+
+function pauseAudioForLyricScrub() {
+    if (lyricScrubPausedForDrag) return;
+    lyricScrubWasPlaying = isPlaying;
+    if (isPlaying) {
+        audio.pause();
+        window.shilokuStopListen?.();
+    }
+    lyricScrubPausedForDrag = true;
+}
+
+function resumeAudioAfterLyricScrub() {
+    if (!lyricScrubPausedForDrag) return;
+    if (lyricScrubWasPlaying) {
+        audio.play().catch(() => {});
+        markMusicPlaying();
+        window.shilokuStartListen?.();
+    }
+    lyricScrubPausedForDrag = false;
+    lyricScrubWasPlaying = false;
+}
+
 function seekFromLyricScroll(scrollY) {
     const clampedScroll = clampLyricScroll(scrollY);
     applyLyricSeek(getTimeFromScrollY(clampedScroll), clampedScroll);
@@ -4375,13 +4921,18 @@ function setupLyricScrub() {
         lyricScrubMoved += Math.abs(delta);
         if (lyricScrubMoved < LYRIC_SCRUB_TAP_THRESHOLD) return;
 
-        seekFromLyricScroll(lyricScrollY + delta);
+        pauseAudioForLyricScrub();
+        previewLyricScroll(lyricScrollY + delta);
     });
 
     const endLyricScrub = (event) => {
         if (!lyricScrubbing || event.pointerId !== lyricScrubPointerId) return;
 
-        if (lyricScrubMoved < LYRIC_SCRUB_TAP_THRESHOLD) {
+        const dragged = lyricScrubMoved >= LYRIC_SCRUB_TAP_THRESHOLD;
+        if (dragged) {
+            seekFromLyricScroll(lyricScrollY);
+            resumeAudioAfterLyricScrub();
+        } else {
             const target = isLyricTextTarget(event.target)
                 ? event.target.closest('li[id^="lyric-"]')
                 : null;
@@ -4394,6 +4945,8 @@ function setupLyricScrub() {
         lyricScrubbing = false;
         lyricScrubPointerId = null;
         lyricScrubMoved = 0;
+        lyricScrubPausedForDrag = false;
+        lyricScrubWasPlaying = false;
         lyricsList.classList.remove('is-scrubbing');
         try {
             lyricsList.releasePointerCapture(event.pointerId);
@@ -4576,7 +5129,7 @@ function formatTime(seconds) {
 // ⏯️ 播放控制器：真正赋予灵魂并下载的时刻！
 async function togglePlay() {
     if (!isAudioLoaded) {
-        const loaded = await applySongAudioSrc(songs[currentSongIndex]);
+        const loaded = await applySongAudioSrc(getCurrentSong());
         if (!loaded) return;
     }
 
@@ -4597,17 +5150,15 @@ async function togglePlay() {
     window.shilokuRefreshListenStats?.();
 }
 
-async function playSongAt(index, pushHistory = false) {
+async function playEntry(song, { pushHistory = false } = {}) {
     window.shilokuStopListen?.();
     if (pushHistory) {
         playHistory.push(currentSongIndex);
         if (playHistory.length > 50) playHistory.shift();
     }
-    currentSongIndex = index;
-    const song = songs[currentSongIndex];
     const shouldPlay = isPlaying;
 
-    await loadSong(currentSongIndex, { deferLyrics: true, resetAudio: false });
+    await loadSongByEntry(song, { deferLyrics: true, resetAudio: false });
 
     if (shouldPlay && song) {
         stopVolumeFade();
@@ -4638,10 +5189,50 @@ async function playSongAt(index, pushHistory = false) {
     }
 
     window.shilokuRefreshListenStats?.();
-
-    window.shilokuUpdateShareUrl?.(songs[currentSongIndex]);
+    window.shilokuUpdateShareUrl?.(song);
     notifyNowPlaying();
     persistPlaylistState();
+}
+
+async function playLocalAt(index, pushHistory = false) {
+    if (pushHistory && playbackSource === 'local') {
+        playHistory.push(currentSongIndex);
+        if (playHistory.length > 50) playHistory.shift();
+    }
+    playbackSource = 'local';
+    neteasePreviewSong = null;
+    currentSongIndex = index;
+    lastLocalIndex = index;
+    await playEntry(songs[index], { pushHistory: false });
+    updatePlaylistHighlight();
+    renderNeteaseQueue();
+}
+
+async function playNeteaseAt(index, pushHistory = false) {
+    const song = neteaseQueue[index];
+    if (!song) return;
+    if (pushHistory && playbackSource === 'netease') {
+        playHistory.push(currentSongIndex);
+        if (playHistory.length > 50) playHistory.shift();
+    }
+    playbackSource = 'netease';
+    neteasePreviewSong = null;
+    currentSongIndex = index;
+    await playEntry(song, { pushHistory: false });
+    renderNeteaseQueue();
+}
+
+async function playNeteasePreview(song) {
+    playbackSource = 'preview';
+    neteasePreviewSong = neteaseSongToPlaylistEntry(song);
+    void loadNeteaseLyrics(song.id);
+    await playEntry(neteasePreviewSong, { pushHistory: false });
+    renderNeteaseResults();
+    renderNeteaseQueue();
+}
+
+async function playSongAt(index, pushHistory = false) {
+    await playLocalAt(index, pushHistory);
 }
 
 async function onTrackEnded() {
@@ -4652,18 +5243,61 @@ async function onTrackEnded() {
         await audio.play();
         return;
     }
-    await playSongAt(getNextIndex(), shuffleOn);
+    if (playbackSource === 'preview') {
+        await playLocalAt(getLocalNextIndex(lastLocalIndex), shuffleOn);
+        return;
+    }
+    if (playbackSource === 'netease') {
+        const next = getNeteaseNextIndex();
+        if (next >= 0) {
+            await playNeteaseAt(next, shuffleOn);
+            return;
+        }
+        await playLocalAt(getLocalNextIndex(lastLocalIndex), false);
+        return;
+    }
+    await playLocalAt(getLocalNextIndex(currentSongIndex), shuffleOn);
 }
 
 async function nextSong() {
-    await playSongAt(getNextIndex(), shuffleOn);
+    if (playbackSource === 'preview') {
+        await playLocalAt(getLocalNextIndex(lastLocalIndex), shuffleOn);
+        return;
+    }
+    if (playbackSource === 'netease') {
+        const next = getNeteaseNextIndex();
+        if (next >= 0) {
+            await playNeteaseAt(next, shuffleOn);
+            return;
+        }
+        await playLocalAt(getLocalNextIndex(lastLocalIndex), false);
+        return;
+    }
+    await playLocalAt(getLocalNextIndex(currentSongIndex), shuffleOn);
 }
 
 async function prevSong() {
+    if (playbackSource === 'preview') {
+        await playLocalAt(getLocalPrevIndex(lastLocalIndex), false);
+        return;
+    }
+    if (playbackSource === 'netease') {
+        if (shuffleOn && playHistory.length > 0) {
+            await playNeteaseAt(playHistory.pop(), false);
+            return;
+        }
+        const prev = getNeteasePrevIndex();
+        if (prev >= 0) {
+            await playNeteaseAt(prev, false);
+            return;
+        }
+        await playLocalAt(getLocalPrevIndex(lastLocalIndex), false);
+        return;
+    }
     if (shuffleOn && playHistory.length > 0) {
-        await playSongAt(playHistory.pop(), false);
+        await playLocalAt(playHistory.pop(), false);
     } else {
-        await playSongAt((currentSongIndex - 1 + songs.length) % songs.length, false);
+        await playLocalAt(getLocalPrevIndex(currentSongIndex), false);
     }
 }
 
@@ -4893,7 +5527,7 @@ function renderPlaylist() {
 
     const filtered = songs
         .map((song, index) => ({ song, index }))
-        .filter(({ song }) => songMatchesCategoryFilter(song));
+        .filter(({ song }) => isLocalPlaylistSong(song) && songMatchesCategoryFilter(song));
 
     if (!filtered.length) {
         const empty = document.createElement('li');
@@ -4917,7 +5551,7 @@ function renderPlaylist() {
         li.querySelector('.playlist-item-main')?.addEventListener('click', async () => {
             playHistory = [];
             togglePlaylist(false);
-            await playSongAt(index, false);
+            await playLocalAt(index, false);
             if (!isPlaying) await togglePlay();
         });
 
@@ -4955,7 +5589,10 @@ function updatePlaylistHighlight() {
     const listItems = playlistEl.getElementsByTagName('li');
     for (let i = 0; i < listItems.length; i++) {
         const index = Number(listItems[i].dataset.index);
-        listItems[i].classList.toggle('active', Number.isInteger(index) && index === currentSongIndex);
+        listItems[i].classList.toggle(
+            'active',
+            playbackSource === 'local' && Number.isInteger(index) && index === currentSongIndex,
+        );
     }
     updateNeteaseHighlight();
 }

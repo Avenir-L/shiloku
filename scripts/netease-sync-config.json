@@ -1,0 +1,10 @@
+{
+  "browsers": ["edge", "chrome"],
+  "watchDownloads": true,
+  "syncIntervalHours": 12,
+  "pushToVercel": true,
+  "pushMinIntervalHours": 24,
+  "redeployOnCookieUpdate": false,
+  "vercelProjectId": "prj_2U1vvvwX0I4sftAHbh1tJ2m3iHo8",
+  "vercelProjectName": "avenir"
+}

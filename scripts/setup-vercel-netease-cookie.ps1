@@ -178,4 +178,16 @@ $project = Find-ShilokuProject -Token $token -TeamId $teamId
 Write-Host "Project: $($project.name) ($($project.id))"
 Upsert-NeteaseCookieEnv -Token $token -TeamId $teamId -ProjectId $project.id -CookieValue $cookieHeader
 Write-Host 'NETEASE_COOKIE set on Vercel.'
-Trigger-Redeploy -Token $token -TeamId $teamId -ProjectId $project.id
+$syncConfigFile = Join-Path $PSScriptRoot 'netease-sync-config.json'
+$redeploy = $false
+if (Test-Path $syncConfigFile) {
+    try {
+        $syncCfg = Get-Content $syncConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($syncCfg.redeployOnCookieUpdate) { $redeploy = $true }
+    } catch {}
+}
+if ($redeploy) {
+    Trigger-Redeploy -Token $token -TeamId $teamId -ProjectId $project.id
+} else {
+    Write-Host 'Skip redeploy (redeployOnCookieUpdate=false). New cookie applies on next normal deploy.'
+}

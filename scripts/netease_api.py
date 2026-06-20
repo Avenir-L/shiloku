@@ -13,8 +13,8 @@ NETEASE_HEADERS = {
 
 _playable_cache = {}
 _search_cache = {}
-_playable_ttl = 600
-_search_ttl = 300
+_playable_ttl = 1800
+_search_ttl = 900
 PAGE_RAW_SIZE = 30
 _COOKIE_FILE = os.path.join(os.path.dirname(__file__), "netease.cookies.txt")
 
@@ -96,27 +96,52 @@ def filter_playable(raw_songs, result_limit):
     return playable
 
 
-def search_songs(keywords, result_limit=12, offset=0):
+def get_playable_map(song_ids):
+    result = {}
+    for song_id in (song_ids or [])[:30]:
+        key = str(song_id)
+        try:
+            result[key] = bool(get_playable_url(key))
+        except Exception:
+            result[key] = False
+    return result
+
+
+def search_songs(keywords, result_limit=30, offset=0):
     offset = max(0, int(offset))
     fetch_limit = PAGE_RAW_SIZE
-    cache_key = f"{keywords.lower()}::{offset}::{result_limit}::{fetch_limit}"
+    cookie = _cookie_header().get("Cookie", "")
+    cookie_tag = "auth" if "MUSIC_U=" in cookie else "anon"
+    cache_key = f"{cookie_tag}::{keywords.lower()}::{offset}::{result_limit}::{fetch_limit}"
     now = time.time()
     cached = _search_cache.get(cache_key)
     if cached and cached["expires_at"] > now:
         return {**cached["payload"], "cached": True}
 
-    data = _fetch_json(
-        "https://music.163.com/api/search/get/web",
-        method="POST",
-        data={
-            "s": keywords,
-            "type": "1",
-            "offset": str(offset),
-            "total": "true",
-            "limit": str(fetch_limit),
-        },
-    )
-    result = data.get("result") or {}
+    params = {
+        "s": keywords,
+        "type": "1",
+        "offset": str(offset),
+        "total": "true",
+        "limit": str(fetch_limit),
+    }
+    result = None
+    try:
+        get_url = "https://music.163.com/api/search/get?" + urllib.parse.urlencode(params)
+        data = _fetch_json(get_url)
+        if data.get("code") == 200 and (data.get("result") or {}).get("songs"):
+            result = data["result"]
+    except Exception:
+        result = None
+    if not result:
+        data = _fetch_json(
+            "https://music.163.com/api/search/get/web",
+            method="POST",
+            data=params,
+        )
+        if data.get("code") == 200 and data.get("result"):
+            result = data["result"]
+    result = result or {}
     raw = []
     for song in result.get("songs") or []:
         album = song.get("album") or {}
@@ -129,7 +154,7 @@ def search_songs(keywords, result_limit=12, offset=0):
             "duration": song.get("duration") or 0,
             "fee": song.get("fee"),
         })
-    songs = filter_playable(raw, result_limit)
+    songs = raw
     total = int(result.get("songCount") or 0)
     fetched = len(raw)
     has_more = offset + fetched < total
@@ -141,7 +166,8 @@ def search_songs(keywords, result_limit=12, offset=0):
         "hasMore": has_more,
         "nextOffset": offset + fetched if has_more else offset,
     }
-    _search_cache[cache_key] = {"payload": payload, "expires_at": now + _search_ttl}
+    if total > 0 or songs:
+        _search_cache[cache_key] = {"payload": payload, "expires_at": now + _search_ttl}
     return payload
 
 

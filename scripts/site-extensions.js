@@ -112,7 +112,10 @@ export function updateShareUrl(song) {
         else if (song.neteaseId) url.searchParams.set('music', `netease:${song.neteaseId}`);
     }
     url.searchParams.set('room', 'music');
-    history.replaceState(null, '', url.pathname + url.search + url.hash);
+    const nextState = document.body.classList.contains('music-room-open')
+        ? { shiloku: 'music-room' }
+        : null;
+    history.replaceState(nextState, '', url.pathname + url.search + url.hash);
 }
 
 export async function copyShareLink(song) {
