@@ -2633,16 +2633,12 @@ body.music-room-open .footer-notice {
         // 在线状态（FlowTrak / Steam Rich Presence 风格：主行 + 副行，可合并或轮播）
         let remoteStatus = window.shilokuI18n?.t?.('statusDefault') || '在线摸鱼中';
         let remotePresence = { text: '在线摸鱼中', mode: 'online', primary: '在线摸鱼中', lines: ['在线摸鱼中'] };
-        let musicStatusOverride = null;
-        let musicPausedAt = null;
-        let musicPauseTimer = null;
         let statusOffline = false;
         let statusCarouselTimer = null;
         let statusCarouselIndex = 0;
         const statusPrimaryEl = document.getElementById('status-primary');
         const statusSecondaryEl = document.getElementById('status-secondary');
         const statusPillEl = document.getElementById('status-pill');
-        const MUSIC_PAUSE_GRACE_MS = 60 * 1000;
         const STATUS_OFFLINE_MS = 15 * 60 * 1000;
         const STATUS_OFFLINE_TEXT = window.shilokuI18n?.t?.('statusOffline') || '💤 电脑已关机';
         const IS_LOCAL_PREVIEW = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
@@ -2650,19 +2646,6 @@ body.music-room-open .footer-notice {
         const STATUS_SOURCES = IS_LOCAL_PREVIEW
             ? ['/api/status', 'status.json']
             : ['/api/status'];
-
-        function stripListeningFromLines(lines) {
-            if (!Array.isArray(lines) || !lines.length) return lines;
-            const sep = ' · ';
-            const joined = lines.join(sep);
-            if (!joined.includes('正在听')) return lines;
-            const parts = joined.split(sep).filter((p) => !p.trim().startsWith('正在听'));
-            return parts.length ? parts : ['在线摸鱼中'];
-        }
-
-        function shouldHideListeningStatus() {
-            return musicPausedAt && (Date.now() - musicPausedAt >= MUSIC_PAUSE_GRACE_MS);
-        }
 
         function stopStatusCarousel() {
             if (statusCarouselTimer) {
@@ -2717,10 +2700,7 @@ body.music-room-open .footer-notice {
         function renderStatusText() {
             if (!statusPrimaryEl) return;
 
-            if (musicStatusOverride) {
-                stopStatusCarousel();
-                showPresenceLines(musicStatusOverride);
-            } else if (statusOffline) {
+            if (statusOffline) {
                 stopStatusCarousel();
                 showPresenceLines(STATUS_OFFLINE_TEXT);
             } else {
@@ -2728,32 +2708,17 @@ body.music-room-open .footer-notice {
             }
 
             if (statusPillEl) {
-                const mode = statusOffline && !musicStatusOverride
+                const mode = statusOffline
                     ? 'offline'
                     : (remotePresence.mode || 'online');
-                statusPillEl.classList.toggle('offline', mode === 'offline' || (statusOffline && !musicStatusOverride));
-                statusPillEl.classList.toggle('idle', mode === 'idle' && !musicStatusOverride && !statusOffline);
-                statusPillEl.classList.toggle('online', mode === 'online' && !musicStatusOverride && !statusOffline);
+                statusPillEl.classList.toggle('offline', mode === 'offline' || statusOffline);
+                statusPillEl.classList.toggle('idle', mode === 'idle' && !statusOffline);
+                statusPillEl.classList.toggle('online', mode === 'online' && !statusOffline);
             }
         }
 
-        window.markMusicPaused = function() {
-            if (musicPausedAt) return;
-            musicPausedAt = Date.now();
-            clearTimeout(musicPauseTimer);
-            musicPauseTimer = setTimeout(() => {
-                musicStatusOverride = null;
-                musicPausedAt = null;
-                renderStatusText();
-            }, MUSIC_PAUSE_GRACE_MS);
-            renderStatusText();
-        };
-
-        window.markMusicPlaying = function() {
-            musicPausedAt = null;
-            clearTimeout(musicPauseTimer);
-            musicPauseTimer = null;
-        };
+        window.markMusicPaused = function() {};
+        window.markMusicPlaying = function() {};
 
         function parseStatusTime(iso) {
             if (!iso) return NaN;
@@ -2837,22 +2802,17 @@ body.music-room-open .footer-notice {
         }
 
         window.setStatus = function(text, options = {}) {
-            if (options.override) {
-                musicStatusOverride = text;
-            } else if (options.remote) {
+            if (options.remote) {
                 remoteStatus = text;
                 statusOffline = !!options.offline;
             } else {
                 remoteStatus = text;
-                musicStatusOverride = null;
                 statusOffline = false;
             }
             renderStatusText();
         };
 
         window.clearMusicStatusOverride = function() {
-            musicStatusOverride = null;
-            renderStatusText();
             fetchRemoteStatus();
         };
 
@@ -2923,7 +2883,6 @@ body.music-room-open .footer-notice {
                 document.body.classList.remove('music-room-open', 'in-music-room');
                 musicRoom.classList.remove('is-visible');
                 window.clearMusicStatusOverride?.();
-                window.markMusicPlaying?.();
             }
 
             window.__shilokuOpenMusicRoom = openMusicRoom;
@@ -4624,7 +4583,6 @@ async function togglePlay() {
         audio.play();
         setMainPlayState(true);
         markMusicPlaying();
-        setStatus(getListenText(), { override: true });
         window.shilokuStartListen?.();
     }
     isPlaying = !isPlaying;
@@ -4662,7 +4620,6 @@ async function playSongAt(index, pushHistory = false) {
         }
         setMainPlayState(true);
         markMusicPlaying();
-        setStatus(getListenText(), { override: true });
         window.shilokuStartListen?.();
     } else {
         isAudioLoaded = false;
