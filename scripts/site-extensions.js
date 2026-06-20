@@ -318,7 +318,10 @@ function setupLangSwitcher() {
 
 function setupThemePicker() {
     const wrap = document.getElementById('theme-picker');
+    const shell = document.getElementById('theme-picker-wrap');
+    const toggle = document.getElementById('theme-picker-toggle');
     if (!wrap) return;
+
     wrap.innerHTML = Object.entries(MUSIC_THEMES).map(([id, theme]) =>
         `<button type="button" class="theme-swatch" data-theme-id="${id}" title="${t(theme.labelKey)}" aria-label="${t(theme.labelKey)}" style="${theme.accent ? `--swatch:${theme.accent.join(',')}` : ''}"></button>`,
     ).join('');
@@ -326,6 +329,26 @@ function setupThemePicker() {
         btn.addEventListener('click', () => applyMusicTheme(btn.dataset.themeId));
     });
     applyMusicTheme(getSavedTheme());
+
+    if (!toggle || !shell) return;
+
+    const setOpen = (open) => {
+        shell.classList.toggle('is-open', open);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+
+    toggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        setOpen(!shell.classList.contains('is-open'));
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!shell.contains(event.target)) setOpen(false);
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') setOpen(false);
+    });
 }
 
 function setupShareButton() {

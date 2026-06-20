@@ -962,8 +962,8 @@
         height: auto !important;
         min-height: 100dvh !important;
         flex-direction: column !important;
-        padding: max(16px, env(safe-area-inset-top)) 5vw max(96px, calc(env(safe-area-inset-bottom) + 84px)) !important;
-        gap: 18px !important;
+        padding: max(20px, env(safe-area-inset-top)) 5vw max(168px, calc(env(safe-area-inset-bottom) + 152px)) !important;
+        gap: 28px !important;
         align-items: flex-start !important;
         overflow: visible !important;
         justify-content: flex-start !important;
@@ -984,9 +984,9 @@
     .main-controls { gap: 15px !important; width: 100% !important; }
     
     #ai-float-button {
-        transform: scale(0.85) !important;
-        bottom: max(58px, calc(env(safe-area-inset-bottom) + 50px)) !important;
-        right: max(14px, env(safe-area-inset-right)) !important;
+        transform: scale(0.82) !important;
+        bottom: max(12px, env(safe-area-inset-bottom)) !important;
+        right: max(12px, env(safe-area-inset-right)) !important;
     }
 
     .left-column, .right-column {
@@ -995,7 +995,11 @@
         text-align: center !important;
         height: auto !important;
         justify-content: flex-start !important;
-        gap: 14px;
+        gap: 22px;
+    }
+
+    .right-column > .top-area:empty {
+        display: none;
     }
 
     .avatar-wrap {
@@ -1017,26 +1021,59 @@
     .link-group { justify-content: center !important; flex-wrap: wrap; }
     .divider { margin-left: auto; margin-right: auto; }
     .status-pill { justify-content: center; max-width: 100%; }
-    .tag-group { justify-content: center; margin-top: 10px; margin-bottom: 4px; }
-    .about-more-btn { margin-top: 10px; }
-    .time-display { font-size: clamp(48px, 16vw, 72px) !important; margin-top: 8px; }
-    .daily-quote-wrap { max-width: 100%; margin-top: 6px; }
-    .mid-area.bio { padding-bottom: 4px; }
-    .bottom-area { margin-top: 4px; }
+    .tag-group { justify-content: center; gap: 8px; margin-top: 14px; margin-bottom: 10px; }
+    .about-more-btn { margin-top: 12px; }
+    .time-greeting { margin-bottom: 10px; font-size: 14px; }
+    .time-header {
+        font-size: clamp(15px, 4.2vw, 18px) !important;
+        letter-spacing: 2px !important;
+        margin-bottom: 6px !important;
+    }
+    .time-date { margin-bottom: 8px; font-size: 13px; }
+    .time-display {
+        font-size: clamp(34px, 10vw, 52px) !important;
+        margin-top: 4px;
+        letter-spacing: 0.02em !important;
+    }
+    .daily-quote-wrap { max-width: 100%; margin-top: 10px; margin-bottom: 14px; }
+    .daily-quote { font-size: 14px; line-height: 1.6; }
+    .mid-area.bio { padding-bottom: 8px; margin-top: 4px; }
+    .left-column .bottom-area {
+        margin-top: 20px;
+        padding-top: 4px;
+    }
+    .right-column .bottom-area {
+        margin-top: 12px;
+        margin-bottom: 8px;
+        width: 100%;
+    }
+    .section-title { margin-bottom: 14px; letter-spacing: 3px; font-size: 13px; }
+    .link-group {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 10px !important;
+        width: 100%;
+    }
+    .btn {
+        width: min(100%, 280px);
+        box-sizing: border-box;
+    }
     .corner-tools {
-        bottom: max(54px, calc(env(safe-area-inset-bottom) + 46px)) !important;
-        left: max(10px, env(safe-area-inset-left)) !important;
+        bottom: max(12px, env(safe-area-inset-bottom)) !important;
+        left: max(12px, env(safe-area-inset-left)) !important;
         flex-direction: row;
-        flex-wrap: wrap;
-        gap: 6px;
-        max-width: min(72vw, 280px);
+        flex-wrap: nowrap;
+        gap: 8px;
+        max-width: calc(100vw - 88px);
     }
     .footer-notice {
-        bottom: max(10px, env(safe-area-inset-bottom)) !important;
-        max-width: calc(100vw - 24px);
+        bottom: max(58px, calc(env(safe-area-inset-bottom) + 48px)) !important;
+        max-width: calc(100vw - 96px);
         white-space: normal;
         line-height: 1.45;
         text-align: center;
+        font-size: 10px !important;
+        letter-spacing: 1px !important;
     }
 
     .playlist-drawer,
@@ -1051,21 +1088,27 @@
     .layout-container {
         padding-left: 16px !important;
         padding-right: 16px !important;
-        gap: 12px !important;
+        gap: 24px !important;
+        padding-bottom: max(176px, calc(env(safe-area-inset-bottom) + 160px)) !important;
     }
 
-    .avatar-wrap { width: 108px; height: 108px; }
-    .avatar { width: 108px; height: 108px; }
+    .avatar-wrap { width: 100px; height: 100px; margin-top: 0; margin-bottom: 16px; }
+    .avatar { width: 100px; height: 100px; }
+    .name-box { margin-bottom: 14px; }
     .page-nav-btn { padding: 8px 14px !important; font-size: 12px !important; }
-    .btn { padding: 10px 18px; font-size: 13px; }
-    .tag { font-size: 12px; padding: 5px 12px; }
+    .bio { font-size: 15px !important; line-height: 1.85 !important; }
+    .bio-title { margin-bottom: 14px !important; }
+    .btn { padding: 10px 18px; font-size: 13px; width: min(100%, 260px); }
+    .tag { font-size: 12px; padding: 5px 11px; }
+    .time-display { font-size: clamp(30px, 9vw, 46px) !important; }
     .footer-notice {
         left: 50%;
         transform: translateX(-50%);
-        width: calc(100% - 32px);
+        width: calc(100% - 48px);
         text-align: center;
         white-space: normal;
         line-height: 1.5;
+        bottom: max(54px, calc(env(safe-area-inset-bottom) + 44px)) !important;
     }
 }
     /* ================== 全局平滑滚动（关键！） ================== */
@@ -2086,9 +2129,9 @@ body.music-room-open .footer-notice {
 /* 手机端适配：稍微往上提一点，防止被浏览器自带的底部工具栏挡住 */
 @media (max-width: 768px) {
     .footer-notice {
-        bottom: max(12px, env(safe-area-inset-bottom));
-        font-size: 11px;
-        letter-spacing: 2px;
+        bottom: max(58px, calc(env(safe-area-inset-bottom) + 48px));
+        font-size: 10px;
+        letter-spacing: 1px;
     }
 
     .page-nav-btn.is-home-back {
@@ -3035,9 +3078,11 @@ body.music-room-open .footer-notice {
             <button type="button" class="aether-dock-btn aether-dock-btn-share" id="share-song-btn" data-i18n-title="shareSong" title="复制分享链接" aria-label="复制分享链接">
                 <span class="aether-dock-icon">⎘</span>
             </button>
-            <div class="theme-picker-wrap">
-                <span class="theme-picker-label" data-i18n="themeLabel">主题</span>
-                <div id="theme-picker"></div>
+            <div class="theme-picker-wrap" id="theme-picker-wrap">
+                <button type="button" class="theme-picker-toggle" id="theme-picker-toggle" aria-expanded="false" aria-controls="theme-picker">
+                    <span data-i18n="themeLabel">主题</span>
+                </button>
+                <div id="theme-picker" class="theme-picker-panel" role="group" aria-label="主题配色"></div>
             </div>
         </nav>
 
@@ -3791,15 +3836,7 @@ function toggleNeteaseDrawer(open) {
 
 async function resolveSongAudioSrc(song) {
     if (song.neteaseId) {
-        try {
-            const urlRes = await fetch(`/api/netease/url?id=${encodeURIComponent(song.neteaseId)}`);
-            const urlData = await urlRes.json();
-            if (urlData.url) {
-                return `/api/netease/audio?id=${encodeURIComponent(song.neteaseId)}`;
-            }
-        } catch (error) {
-            console.warn('网易云音频不可用，尝试本地文件', error);
-        }
+        return `/api/netease/audio?id=${encodeURIComponent(song.neteaseId)}`;
     }
     return song.src || '';
 }
@@ -3834,8 +3871,26 @@ async function loadNeteaseLyrics(neteaseId) {
     }
 }
 
-// 🔄 异步加载控制器：现在只“虚空加载”颜值，绝对不碰音频文件
-async function loadSong(index) {
+async function loadSongLyrics(song) {
+    if (song.lrc) {
+        currentLyricsData = await fetchAndParseLRC(song.lrc);
+    } else if (song.isNeteaseOnly && song.neteaseId) {
+        currentLyricsData = await loadNeteaseLyrics(song.neteaseId);
+    } else {
+        currentLyricsData = [];
+    }
+
+    renderLyrics();
+
+    const lyricPool = currentLyricsData
+        .map((l) => l.text)
+        .filter((t) => t && t.length > 4 && t.length < 80 && !/^[\[{]/.test(t));
+    window.__shilokuLyricPool = lyricPool;
+    window.shilokuRefreshDailyQuote?.(lyricPool);
+}
+
+// 异步加载控制器：先更新界面，歌词可后台加载
+async function loadSong(index, { deferLyrics = false } = {}) {
     const song = songs[index];
     if (!song) return;
 
@@ -3863,21 +3918,14 @@ async function loadSong(index) {
     lyricAnchorCenters = [];
     lyricScrollY = 0;
     resetLyricScrollTransform();
-
-    if (song.lrc) {
-        currentLyricsData = await fetchAndParseLRC(song.lrc);
-    } else if (song.isNeteaseOnly && song.neteaseId) {
-        currentLyricsData = await loadNeteaseLyrics(song.neteaseId);
-    }
-
-    renderLyrics();
     updatePlaylistHighlight();
 
-    const lyricPool = currentLyricsData
-        .map((l) => l.text)
-        .filter((t) => t && t.length > 4 && t.length < 80 && !/^[\[{]/.test(t));
-    window.__shilokuLyricPool = lyricPool;
-    window.shilokuRefreshDailyQuote?.(lyricPool);
+    if (deferLyrics) {
+        void loadSongLyrics(song);
+        return;
+    }
+
+    await loadSongLyrics(song);
 }
 
 function renderLyrics() {
@@ -4380,13 +4428,20 @@ async function playSongAt(index, pushHistory = false) {
         if (playHistory.length > 50) playHistory.shift();
     }
     currentSongIndex = index;
-    await loadSong(currentSongIndex);
-    if (isPlaying) {
-        await applySongAudioSrc(songs[currentSongIndex]);
+    const song = songs[currentSongIndex];
+    const shouldPlay = isPlaying;
+
+    if (shouldPlay && song) {
+        const uiTask = loadSong(currentSongIndex, { deferLyrics: true });
+        const audioTask = applySongAudioSrc(song);
+        await Promise.all([uiTask, audioTask]);
         await audio.play();
         markMusicPlaying();
         setStatus(getListenText(), { override: true });
+    } else {
+        await loadSong(currentSongIndex);
     }
+
     window.shilokuUpdateShareUrl?.(songs[currentSongIndex]);
     notifyNowPlaying();
     persistPlaylistState();

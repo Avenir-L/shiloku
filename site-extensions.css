@@ -225,22 +225,74 @@ body.in-music-room #guestbook-panel {
 
 /* 音乐室：主题 + 分享 */
 .theme-picker-wrap {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 6px;
     margin-left: 4px;
 }
 
-.theme-picker-label {
+.theme-picker-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 6px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(148, 163, 184, 0.85);
     font-size: 10px;
     letter-spacing: 1px;
-    color: rgba(148, 163, 184, 0.7);
     text-transform: uppercase;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.15s, background 0.15s;
+}
+
+.theme-picker-toggle:hover,
+.theme-picker-wrap.is-open .theme-picker-toggle {
+    color: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.theme-picker-toggle::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid currentColor;
+    opacity: 0.7;
+    transition: transform 0.2s ease;
+}
+
+.theme-picker-wrap.is-open .theme-picker-toggle::after {
+    transform: rotate(180deg);
+}
+
+.theme-picker-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 20;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(4, 8, 16, 0.92);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    max-width: calc(100vw - 24px);
+}
+
+.theme-picker-wrap.is-open .theme-picker-panel {
+    display: flex;
 }
 
 #theme-picker {
     display: flex;
     gap: 5px;
+    flex-wrap: wrap;
 }
 
 .theme-swatch {
@@ -314,21 +366,46 @@ body.in-music-room #guestbook-panel {
 }
 
 @media (max-width: 768px) {
+    .daily-quote-wrap {
+        margin-top: 10px;
+        margin-bottom: 14px;
+    }
+
+    .daily-quote-label {
+        margin-bottom: 6px;
+    }
+
     .corner-tools {
-        left: max(10px, env(safe-area-inset-left));
-        bottom: max(54px, calc(env(safe-area-inset-bottom) + 46px));
+        left: max(12px, env(safe-area-inset-left));
+        bottom: max(12px, env(safe-area-inset-bottom));
         flex-direction: row;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         align-items: center;
-        gap: 6px;
-        max-width: min(72vw, 280px);
+        gap: 8px;
+        max-width: calc(100vw - 88px);
     }
+
+    .lang-switcher {
+        flex-shrink: 0;
+    }
+
+    .corner-tool-btn {
+        padding: 7px 12px;
+        font-size: 11px;
+        white-space: nowrap;
+    }
+
     #guestbook-panel {
-        left: 10px;
-        bottom: max(96px, calc(env(safe-area-inset-bottom) + 88px));
-        width: calc(100vw - 20px);
+        left: max(12px, env(safe-area-inset-left));
+        right: max(12px, env(safe-area-inset-right));
+        bottom: max(64px, calc(env(safe-area-inset-bottom) + 56px));
+        width: auto;
+        max-height: min(380px, 52vh);
     }
+
     .shiloku-toast {
-        bottom: max(96px, calc(env(safe-area-inset-bottom) + 88px));
+        bottom: max(72px, calc(env(safe-area-inset-bottom) + 64px));
+        max-width: calc(100vw - 32px);
+        text-align: center;
     }
 }
