@@ -2695,6 +2695,7 @@ body.music-room-open .footer-notice {
                         lines: [STATUS_OFFLINE_TEXT],
                     };
                     setStatus(STATUS_OFFLINE_TEXT, { remote: true, offline: true });
+                    window.shilokuUpdateRemoteListening?.(remotePresence);
                     return;
                 }
             } else if (!data.text) {
@@ -2705,6 +2706,7 @@ body.music-room-open .footer-notice {
                     lines: [STATUS_OFFLINE_TEXT],
                 };
                 setStatus(STATUS_OFFLINE_TEXT, { remote: true, offline: true });
+                window.shilokuUpdateRemoteListening?.(remotePresence);
                 return;
             }
 
@@ -2719,6 +2721,7 @@ body.music-room-open .footer-notice {
                     carouselSeconds: data.carouselSeconds || 8,
                 };
                 setStatus(data.text, { remote: true, offline: false });
+                window.shilokuUpdateRemoteListening?.(remotePresence);
             }
         }
 
@@ -3280,14 +3283,16 @@ body.music-room-open .footer-notice {
         historyBox.scrollTop = historyBox.scrollHeight;
 
         try {
-            const nowPlaying = window.__shilokuCurrentSong?.();
+            const nowPlaying = window.__shilokuAiNowPlaying?.();
             const lang = window.shilokuI18n?.getLang?.() || 'zh';
             const response = await fetch(CHAT_API, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: message,
-                    nowPlaying: nowPlaying ? { title: nowPlaying.title, artist: nowPlaying.artist } : null,
+                    nowPlaying: nowPlaying?.title
+                        ? { title: nowPlaying.title, artist: nowPlaying.artist || '' }
+                        : null,
                     lang,
                 })
             });
