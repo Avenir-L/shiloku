@@ -3836,6 +3836,13 @@ function toggleNeteaseDrawer(open) {
 
 async function resolveSongAudioSrc(song) {
     if (song.neteaseId) {
+        try {
+            const urlRes = await fetch(`/api/netease/url?id=${encodeURIComponent(song.neteaseId)}`);
+            const urlData = await urlRes.json();
+            if (urlData.url) return urlData.url;
+        } catch (error) {
+            console.warn('网易云直链不可用，尝试代理', error);
+        }
         return `/api/netease/audio?id=${encodeURIComponent(song.neteaseId)}`;
     }
     return song.src || '';
@@ -3871,15 +3878,21 @@ async function loadNeteaseLyrics(neteaseId) {
     }
 }
 
+let lyricLoadSeq = 0;
+
 async function loadSongLyrics(song) {
+    const seq = ++lyricLoadSeq;
+    let lyrics = [];
+
     if (song.lrc) {
-        currentLyricsData = await fetchAndParseLRC(song.lrc);
+        lyrics = await fetchAndParseLRC(song.lrc);
     } else if (song.isNeteaseOnly && song.neteaseId) {
-        currentLyricsData = await loadNeteaseLyrics(song.neteaseId);
-    } else {
-        currentLyricsData = [];
+        lyrics = await loadNeteaseLyrics(song.neteaseId);
     }
 
+    if (seq !== lyricLoadSeq) return;
+
+    currentLyricsData = lyrics;
     renderLyrics();
 
     const lyricPool = currentLyricsData
@@ -4435,7 +4448,14 @@ async function playSongAt(index, pushHistory = false) {
         const uiTask = loadSong(currentSongIndex, { deferLyrics: true });
         const audioTask = applySongAudioSrc(song);
         await Promise.all([uiTask, audioTask]);
-        await audio.play();
+        try {
+            await audio.play();
+        } catch (error) {
+            console.warn('播放失败', error);
+            isPlaying = false;
+            setMainPlayState(false);
+            return;
+        }
         markMusicPlaying();
         setStatus(getListenText(), { override: true });
     } else {
