@@ -60,6 +60,7 @@
 
 .daily-quote-wrap {
     margin-top: 10px;
+    margin-bottom: 14px;
     max-width: 420px;
 }
 
@@ -365,14 +366,23 @@ body.in-music-room #guestbook-panel {
 }
 
 .listen-stats-wrap {
-    margin-top: 8px;
+    margin: 0;
     padding: 0;
     border: none;
     background: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    max-width: 100%;
+    max-width: min(320px, 100%);
     text-align: right;
+}
+
+.right-column > .top-area.right-top-stats {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding-top: 2vh;
+    flex-shrink: 0;
 }
 
 .listen-stats-inline {
@@ -409,16 +419,21 @@ body.in-music-room #guestbook-panel {
 }
 
 @media (max-width: 768px) {
+    .right-column > .top-area.right-top-stats {
+        padding-top: 0;
+        justify-content: flex-end;
+    }
+
     .listen-stats-wrap {
-        margin-top: 6px;
+        max-width: 100%;
     }
 
     .listen-stats-inline {
-        justify-content: center;
+        justify-content: flex-end;
     }
 
     .listen-stats-extra {
-        text-align: center;
+        text-align: right;
     }
 }
 

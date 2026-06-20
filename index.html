@@ -2316,21 +2316,22 @@ body.music-room-open .footer-notice {
         </div>
 
         <div class="column right-column">
-            <div class="top-area"></div>
+            <div class="top-area right-top-stats">
+                <div class="listen-stats-wrap" id="listen-stats-wrap">
+                    <div class="listen-stats-inline">
+                        <span class="listen-stats-label" data-i18n="listenStatsLabel">听歌统计</span>
+                        <span class="listen-stats-chip"><span data-i18n="listenToday">今日</span> <strong id="listen-today">0 分钟</strong></span>
+                        <span class="listen-stats-chip"><span data-i18n="listenMonth">本月</span> <strong id="listen-month">0 分钟</strong></span>
+                    </div>
+                    <div class="listen-stats-extra" id="listen-stats-extra" hidden></div>
+                </div>
+            </div>
 
             <div class="mid-area animate-item delay-2">
                 <div class="time-greeting" id="time-greeting">夜深了</div>
                 <div class="daily-quote-wrap">
                     <div class="daily-quote-label" data-i18n="dailyQuoteLabel">今日一句</div>
                     <div class="daily-quote" id="daily-quote"></div>
-                    <div class="listen-stats-wrap" id="listen-stats-wrap">
-                        <div class="listen-stats-inline">
-                            <span class="listen-stats-label" data-i18n="listenStatsLabel">听歌统计</span>
-                            <span class="listen-stats-chip"><span data-i18n="listenToday">今日</span> <strong id="listen-today">0 分钟</strong></span>
-                            <span class="listen-stats-chip"><span data-i18n="listenMonth">本月</span> <strong id="listen-month">0 分钟</strong></span>
-                        </div>
-                        <div class="listen-stats-extra" id="listen-stats-extra" hidden></div>
-                    </div>
                 </div>
                 <div class="time-header" data-i18n="timeHeader">北京时间 / BEIJING TIME</div>
                 <div class="time-date" id="time-date">----年--月--日 · ---</div>
