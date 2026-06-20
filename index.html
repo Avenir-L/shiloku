@@ -4055,7 +4055,10 @@ async function initPlayer() {
     setupNeteaseSearch();
     startLyricScrollLoop();
     setupLyricScrub();
-    window.addEventListener('music-room:open', () => refreshLyricPanel());
+    window.addEventListener('music-room:open', () => {
+        ensureLyricScrollSynced();
+        refreshLyricPanel();
+    });
     window.addEventListener('shiloku:langchange', () => {
         renderPlaylistCategoryBar();
         renderPlaylistCategoryPanel();
@@ -4759,10 +4762,14 @@ let lyricScrubLastY = 0;
 let lyricScrubMoved = 0;
 let lyricScrubWasPlaying = false;
 let lyricScrubPausedForDrag = false;
+let lyricScrubStartScrollY = 0;
+let lyricScrubStartClientY = 0;
+let lyricScrubFocusIndex = -1;
 let lastSingingIndex = -1;
 let lyricItemsCache = [];
 let lyricAnchorCenters = [];
 const LYRIC_SCRUB_TAP_THRESHOLD = 8;
+const INTRO_SCROLL_HEADROOM = 160;
 const LYRIC_HIGHLIGHT_SPEED = 1.48;
 const LYRIC_TARGET_FPS = 60;
 const LYRIC_FRAME_MS = 1000 / LYRIC_TARGET_FPS;
@@ -4794,50 +4801,131 @@ function getLyricPivotY() {
     return container ? container.clientHeight * 0.44 : 0;
 }
 
-function getLyricLineCenters() {
-    if (lyricAnchorCenters.length === lyricItemsCache.length) return lyricAnchorCenters;
-    return lyricItemsCache.map((li) => lyricLineCenter(li));
+function readLyricScrollYFromDom() {
+    if (!lyricsScrollEl) return null;
+    const match = lyricsScrollEl.style.transform.match(/translate3d\([^,]+,\s*([-\d.]+)px/i);
+    return match ? Number.parseFloat(match[1]) : null;
+}
+
+function ensureLyricScrollSynced() {
+    if (!lyricItemsCache.length || !currentLyricsData?.length) return;
+
+    remeasureLyricAnchors();
+    if (!lyricAnchorCenters.length) return;
+
+    lyricScrollY = computeLyricScrollOffset(audio.currentTime || 0);
+    applyLyricScrollPosition(lyricScrollY);
+}
+
+function captureLyricScrollForScrub() {
+    const fromDom = readLyricScrollYFromDom();
+    if (Number.isFinite(fromDom)) {
+        lyricScrollY = fromDom;
+        return;
+    }
+    if (lyricAnchorCenters.length) {
+        lyricScrollY = computeLyricScrollOffset(audio.currentTime || 0);
+        applyLyricScrollPosition(lyricScrollY);
+    }
+}
+
+function getFirstLyricTime() {
+    return currentLyricsData?.[0]?.time ?? 0;
+}
+
+function getLyricScrollBounds() {
+    const pivot = getLyricPivotY();
+    const firstY = lyricAnchorCenter(0);
+    const lastY = lyricAnchorCenter(currentLyricsData.length - 1);
+    const max = pivot - firstY;
+    return {
+        min: pivot - lastY,
+        max,
+        introMax: max + INTRO_SCROLL_HEADROOM,
+    };
 }
 
 function getTimeFromScrollY(scrollY) {
-    if (!currentLyricsData?.length) return 0;
+    if (!audio.duration || !lyricAnchorCenters.length) return audio.currentTime || 0;
 
-    const pivot = getLyricPivotY();
-    const focusY = pivot - scrollY;
-    const centers = getLyricLineCenters();
+    const bounds = getLyricScrollBounds();
+    const firstTime = getFirstLyricTime();
+    const clamped = clampLyricScroll(scrollY);
 
-    if (focusY <= centers[0]) return currentLyricsData[0].time;
-    const lastIndex = currentLyricsData.length - 1;
-    if (focusY >= centers[lastIndex]) {
-        const tail = audio.duration
-            ? Math.min(audio.duration, currentLyricsData[lastIndex].time + 4)
-            : currentLyricsData[lastIndex].time + 4;
-        return tail;
+    if (firstTime > 0.5 && clamped >= bounds.max - 0.5) {
+        const introSpan = bounds.introMax - bounds.max;
+        if (introSpan > 0 && clamped <= bounds.introMax + 0.5) {
+            const ratio = (bounds.introMax - clamped) / introSpan;
+            return Math.max(0, Math.min(firstTime, ratio * firstTime));
+        }
+        return 0;
     }
 
-    let idx = 0;
-    for (let i = 0; i < lastIndex; i++) {
-        if (focusY >= centers[i]) idx = i;
+    let lo = Math.max(0, firstTime);
+    let hi = audio.duration;
+
+    for (let i = 0; i < 32; i++) {
+        const mid = (lo + hi) * 0.5;
+        const midScroll = computeLyricScrollOffset(mid);
+        if (Math.abs(midScroll - clamped) < 0.35) return mid;
+        if (midScroll > clamped) lo = mid;
+        else hi = mid;
     }
 
-    const nextIdx = Math.min(idx + 1, lastIndex);
-    const span = centers[nextIdx] - centers[idx];
-    const ratio = span > 0 ? Math.min(1, Math.max(0, (focusY - centers[idx]) / span)) : 0;
-    const timeSpan = currentLyricsData[nextIdx].time - currentLyricsData[idx].time;
-    return currentLyricsData[idx].time + timeSpan * ratio;
+    return (lo + hi) * 0.5;
+}
+
+function getLyricIndexAtPivot(scrollY) {
+    if (!lyricAnchorCenters.length) return 0;
+
+    const focusY = getLyricPivotY() - scrollY;
+    let bestIdx = 0;
+    let bestDist = Infinity;
+
+    lyricAnchorCenters.forEach((centerY, index) => {
+        const dist = Math.abs(centerY - focusY);
+        if (dist < bestDist) {
+            bestDist = dist;
+            bestIdx = index;
+        }
+    });
+
+    return bestIdx;
+}
+
+function updateLyricScrubPreview(scrollY) {
+    const idx = getLyricIndexAtPivot(scrollY);
+    if (idx === lyricScrubFocusIndex) return;
+
+    lyricItemsCache.forEach((li, i) => {
+        const isFocus = i === idx;
+        li.classList.toggle('scrub-focus', isFocus);
+        li.classList.remove('active', 'next', 'past');
+        li.dataset.dist = String(Math.min(4, Math.abs(i - idx)));
+
+        if (isFocus) {
+            updateLyricLineChunks(li, 1, 'past');
+        } else {
+            updateLyricLineChunks(li, 0, 'future');
+        }
+    });
+
+    lyricScrubFocusIndex = idx;
+}
+
+function clearLyricScrubPreview() {
+    lyricScrubFocusIndex = -1;
+    lyricItemsCache.forEach((li) => li.classList.remove('scrub-focus'));
 }
 
 function clampLyricScroll(scrollY) {
     if (!currentLyricsData?.length) return 0;
 
-    const pivot = getLyricPivotY();
-    const firstY = lyricAnchorCenter(0);
-    const lastY = lyricAnchorCenter(currentLyricsData.length - 1);
     if (!lyricAnchorCenters.length) return scrollY;
 
-    const minScroll = pivot - lastY;
-    const maxScroll = pivot - firstY;
-    return Math.min(maxScroll, Math.max(minScroll, scrollY));
+    const bounds = getLyricScrollBounds();
+    const maxBound = lyricScrubbing ? bounds.introMax : bounds.max;
+    return Math.min(maxBound, Math.max(bounds.min, scrollY));
 }
 
 function applyLyricSeek(time, scrollY = null) {
@@ -4863,9 +4951,8 @@ function seekToLyricIndex(index) {
 
 function previewLyricScroll(scrollY) {
     const clampedScroll = clampLyricScroll(scrollY);
-    const previewTime = getTimeFromScrollY(clampedScroll);
     applyLyricScrollPosition(clampedScroll);
-    syncLyrics(previewTime);
+    updateLyricScrubPreview(clampedScroll);
 }
 
 function pauseAudioForLyricScrub() {
@@ -4890,6 +4977,7 @@ function resumeAudioAfterLyricScrub() {
 }
 
 function seekFromLyricScroll(scrollY) {
+    remeasureLyricAnchors();
     const clampedScroll = clampLyricScroll(scrollY);
     applyLyricSeek(getTimeFromScrollY(clampedScroll), clampedScroll);
 }
@@ -4904,12 +4992,18 @@ function setupLyricScrub() {
         if (!document.body.classList.contains('music-room-open')) return;
         if (!currentLyricsData?.length || !audio.duration) return;
 
+        remeasureLyricAnchors();
+        captureLyricScrollForScrub();
+
         lyricScrubbing = true;
         lyricScrubPointerId = event.pointerId;
+        lyricScrubStartClientY = event.clientY;
+        lyricScrubStartScrollY = lyricScrollY;
         lyricScrubLastY = event.clientY;
         lyricScrubMoved = 0;
         lyricsList.classList.add('is-scrubbing');
         lyricsList.setPointerCapture(event.pointerId);
+        updateLyricScrubPreview(lyricScrollY);
         event.preventDefault();
     });
 
@@ -4922,15 +5016,21 @@ function setupLyricScrub() {
         if (lyricScrubMoved < LYRIC_SCRUB_TAP_THRESHOLD) return;
 
         pauseAudioForLyricScrub();
-        previewLyricScroll(lyricScrollY + delta);
+        previewLyricScroll(lyricScrubStartScrollY + (event.clientY - lyricScrubStartClientY));
     });
 
-    const endLyricScrub = (event) => {
+    const endLyricScrub = async (event) => {
         if (!lyricScrubbing || event.pointerId !== lyricScrubPointerId) return;
 
         const dragged = lyricScrubMoved >= LYRIC_SCRUB_TAP_THRESHOLD;
         if (dragged) {
             seekFromLyricScroll(lyricScrollY);
+            if (audio.seeking) {
+                await new Promise((resolve) => {
+                    audio.addEventListener('seeked', resolve, { once: true });
+                    setTimeout(resolve, 120);
+                });
+            }
             resumeAudioAfterLyricScrub();
         } else {
             const target = isLyricTextTarget(event.target)
@@ -4947,6 +5047,7 @@ function setupLyricScrub() {
         lyricScrubMoved = 0;
         lyricScrubPausedForDrag = false;
         lyricScrubWasPlaying = false;
+        clearLyricScrubPreview();
         lyricsList.classList.remove('is-scrubbing');
         try {
             lyricsList.releasePointerCapture(event.pointerId);
@@ -4977,9 +5078,17 @@ function computeLyricScrollOffset(currentTime) {
     const container = document.querySelector('.aether-lyrics');
     if (!container || !currentLyricsData?.length || !lyricAnchorCenters.length) return lyricScrollY;
 
+    const pivot = container.clientHeight * 0.44;
+    const firstTime = getFirstLyricTime();
+    const bounds = getLyricScrollBounds();
+
+    if (firstTime > 0.5 && currentTime < firstTime) {
+        const ratio = Math.max(0, Math.min(1, currentTime / firstTime));
+        return bounds.introMax + (bounds.max - bounds.introMax) * ratio;
+    }
+
     const idx = getSingingLyricIndex(currentTime);
     const currY = lyricAnchorCenter(idx);
-    const pivot = container.clientHeight * 0.44;
     let focusY = currY;
     const nextLine = currentLyricsData[idx + 1];
 

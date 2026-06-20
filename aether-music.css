@@ -173,17 +173,27 @@ body.music-room-open .footer-notice {
 }
 
 .aether-nav-btn {
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 76px;
+    padding: 0;
     border: none;
     background: transparent;
     color: rgba(148, 163, 184, 0.45);
-    font-size: 10px;
-    letter-spacing: 0.2em;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
+    white-space: nowrap;
     cursor: pointer;
-    padding: 12px 0;
     margin-bottom: 28px;
+    transform: rotate(90deg);
+    transform-origin: center center;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     transition: color 0.2s, opacity 0.2s;
     pointer-events: auto;
 }
@@ -227,6 +237,41 @@ body.music-room-open .aether-sidebar-rail {
 
 #lyrics-list.is-scrubbing li {
     transition: none;
+}
+
+#lyrics-list.is-scrubbing li.scrub-focus {
+    opacity: 1;
+    transform: scale(1) translateZ(24px) translateX(var(--lyric-curve-x, 8px));
+    filter: blur(0);
+    z-index: 2;
+}
+
+#lyrics-list.is-scrubbing li.scrub-focus .lyric-text {
+    color: #fff;
+    font-weight: 600;
+    transform: scale(1);
+    text-shadow:
+        0 2px 18px rgba(0, 0, 0, 0.95),
+        0 0 6px rgba(0, 0, 0, 0.75),
+        0 0 28px color-mix(in srgb, var(--aether-accent) 62%, transparent),
+        0 0 2px rgba(0, 0, 0, 1);
+}
+
+#lyrics-list.is-scrubbing li.scrub-focus .lyric-trans {
+    opacity: 0.92;
+    transform: scale(1);
+    color: rgba(255, 255, 255, 0.82);
+}
+
+#lyrics-list.is-scrubbing li.scrub-focus .lyric-line-chunks .lyric-chunk {
+    opacity: 1;
+    transform: scale(1);
+    color: #fff;
+}
+
+#lyrics-list.is-scrubbing li:not(.scrub-focus) {
+    opacity: 0.28;
+    filter: blur(0.35px);
 }
 
 .aether-lyrics-inner {
@@ -1047,8 +1092,11 @@ body.music-room-open .aether-stats {
     }
 
     .aether-nav-btn {
+        width: 44px;
+        height: 68px;
         margin-bottom: 18px;
-        font-size: 9px;
+        font-size: 10px;
+        letter-spacing: 0.12em;
     }
 
     .aether-sidebar-theme .theme-picker-panel {
@@ -1104,6 +1152,10 @@ body.music-room-open .aether-stats {
     }
 
     #lyrics-list li.active {
+        transform: scale(1) translateX(var(--lyric-curve-x, 0px));
+    }
+
+    #lyrics-list.is-scrubbing li.scrub-focus {
         transform: scale(1) translateX(var(--lyric-curve-x, 0px));
     }
 

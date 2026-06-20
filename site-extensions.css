@@ -239,14 +239,24 @@ body.in-music-room #guestbook-panel {
 }
 
 .aether-sidebar-theme .theme-picker-toggle {
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    padding: 12px 0;
-    letter-spacing: 0.2em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 76px;
+    padding: 0;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    font-size: 10px;
+    white-space: nowrap;
+    transform: rotate(90deg);
+    transform-origin: center center;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     color: rgba(148, 163, 184, 0.45);
-    gap: 6px;
+    gap: 0;
 }
 
 .aether-sidebar-theme .theme-picker-toggle:hover,
