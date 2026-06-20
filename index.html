@@ -1787,9 +1787,17 @@ body.music-room-open .footer-notice {
     flex-shrink: 0;
 }
 
-#playlist .playlist-song-category {
-    max-width: 108px;
-    padding: 4px 8px;
+#playlist .playlist-category-picker {
+    position: relative;
+    flex-shrink: 0;
+}
+
+#playlist .playlist-category-picker-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 120px;
+    padding: 4px 10px;
     border-radius: 999px;
     border: 1px solid rgba(255,255,255,0.16);
     background: rgba(255,255,255,0.06);
@@ -1797,6 +1805,77 @@ body.music-room-open .footer-notice {
     font-size: 11px;
     font-family: inherit;
     cursor: pointer;
+    white-space: nowrap;
+}
+
+#playlist .playlist-category-picker-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 88px;
+}
+
+#playlist .playlist-category-picker-chevron {
+    font-size: 10px;
+    opacity: 0.55;
+    flex-shrink: 0;
+}
+
+#playlist .playlist-category-picker-btn:hover,
+#playlist .playlist-category-picker.is-open .playlist-category-picker-btn {
+    border-color: var(--music-accent, rgba(251, 113, 133, 0.5));
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+}
+
+#playlist .playlist-category-picker-menu {
+    position: fixed;
+    z-index: 120;
+    min-width: 128px;
+    max-width: 200px;
+    max-height: min(240px, 42vh);
+    overflow-y: auto;
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(14, 14, 20, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+}
+
+#playlist .playlist-category-picker-menu[hidden] {
+    display: none !important;
+}
+
+#playlist .playlist-category-picker-option {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: rgba(255,255,255,0.78);
+    font-size: 11px;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+#playlist .playlist-category-picker-option:hover {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+}
+
+#playlist .playlist-category-picker-option.is-active {
+    background: var(--site-accent-soft, rgba(251, 113, 133, 0.22));
+    color: #fff;
+    font-weight: 600;
+}
+
+#playlist .playlist-category-picker-menu::-webkit-scrollbar { width: 4px; }
+#playlist .playlist-category-picker-menu::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
 }
 
 #playlist li:hover { background: rgba(255,255,255,0.08); }
@@ -4739,20 +4818,77 @@ function renderPlaylistCategoryBar() {
     });
 }
 
-function buildSongCategorySelect(song, index) {
+function closeAllCategoryPickers() {
+    document.querySelectorAll('.playlist-category-picker.is-open').forEach((picker) => {
+        picker.classList.remove('is-open');
+        const menu = picker.querySelector('.playlist-category-picker-menu');
+        const btn = picker.querySelector('.playlist-category-picker-btn');
+        if (menu) {
+            menu.hidden = true;
+            menu.style.top = '';
+            menu.style.left = '';
+            menu.style.right = '';
+        }
+        btn?.setAttribute('aria-expanded', 'false');
+    });
+}
+
+function positionCategoryPickerMenu(picker) {
+    const btn = picker.querySelector('.playlist-category-picker-btn');
+    const menu = picker.querySelector('.playlist-category-picker-menu');
+    if (!btn || !menu) return;
+
+    menu.hidden = false;
+    menu.style.visibility = 'hidden';
+    menu.style.display = 'block';
+
+    const btnRect = btn.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    menu.style.visibility = '';
+
+    let top = btnRect.bottom + 6;
+    if (top + menuRect.height > window.innerHeight - 8) {
+        top = Math.max(8, btnRect.top - menuRect.height - 6);
+    }
+
+    let left = btnRect.right - menuRect.width;
+    if (left < 8) left = 8;
+    if (left + menuRect.width > window.innerWidth - 8) {
+        left = window.innerWidth - menuRect.width - 8;
+    }
+
+    menu.style.top = `${top}px`;
+    menu.style.left = `${left}px`;
+}
+
+function getCategoryLabel(categoryId, api, t) {
+    if (categoryId === 'uncategorized') return t('playlistUncategorized');
+    return api.getCategoryName(categoryId) || t('playlistUncategorized');
+}
+
+function buildSongCategoryPicker(song, index) {
     const api = getPlaylistCategoriesApi();
     const t = window.shilokuI18n?.t || ((key) => key);
     if (!api) return '';
 
     const current = getSongCategoryId(song);
+    const currentLabel = getCategoryLabel(current, api, t);
     const options = [
-        `<option value="uncategorized"${current === 'uncategorized' ? ' selected' : ''}>${t('playlistUncategorized')}</option>`,
-        ...api.listCategories().map((cat) =>
-            `<option value="${cat.id}"${current === cat.id ? ' selected' : ''}>${cat.name}</option>`,
-        ),
+        { id: 'uncategorized', label: t('playlistUncategorized') },
+        ...api.listCategories().map((cat) => ({ id: cat.id, label: cat.name })),
     ];
 
-    return `<select class="playlist-song-category" data-index="${index}" aria-label="${t('playlistPickCategory')}">${options.join('')}</select>`;
+    const optionsHtml = options.map((opt) =>
+        `<button type="button" class="playlist-category-picker-option${current === opt.id ? ' is-active' : ''}" data-value="${opt.id}">${opt.label}</button>`,
+    ).join('');
+
+    return `<div class="playlist-category-picker" data-index="${index}">
+        <button type="button" class="playlist-category-picker-btn" aria-haspopup="listbox" aria-expanded="false">
+            <span class="playlist-category-picker-label">${currentLabel}</span>
+            <span class="playlist-category-picker-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="playlist-category-picker-menu" role="listbox" hidden>${optionsHtml}</div>
+    </div>`;
 }
 
 function renderPlaylist() {
@@ -4779,7 +4915,7 @@ function renderPlaylist() {
                 <span class="playlist-item-title">${song.title}</span>
                 <span class="playlist-item-artist">${song.artist}</span>
             </div>
-            <div class="playlist-item-meta">${buildSongCategorySelect(song, index)}</div>
+            <div class="playlist-item-meta">${buildSongCategoryPicker(song, index)}</div>
         `;
 
         li.querySelector('.playlist-item-main')?.addEventListener('click', async () => {
@@ -4789,16 +4925,29 @@ function renderPlaylist() {
             if (!isPlaying) await togglePlay();
         });
 
-        li.querySelector('.playlist-song-category')?.addEventListener('click', (event) => {
+        const picker = li.querySelector('.playlist-category-picker');
+        const pickerBtn = picker?.querySelector('.playlist-category-picker-btn');
+        const pickerMenu = picker?.querySelector('.playlist-category-picker-menu');
+
+        pickerBtn?.addEventListener('click', (event) => {
             event.stopPropagation();
+            const isOpen = picker.classList.contains('is-open');
+            closeAllCategoryPickers();
+            if (!isOpen) {
+                picker.classList.add('is-open');
+                pickerBtn.setAttribute('aria-expanded', 'true');
+                positionCategoryPickerMenu(picker);
+            }
         });
 
-        li.querySelector('.playlist-song-category')?.addEventListener('change', (event) => {
-            event.stopPropagation();
-            const value = event.target.value;
-            getPlaylistCategoriesApi()?.setSongCategory?.(song, value);
-            renderPlaylistCategoryBar();
-            renderPlaylist();
+        pickerMenu?.querySelectorAll('.playlist-category-picker-option').forEach((optBtn) => {
+            optBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                getPlaylistCategoriesApi()?.setSongCategory?.(song, optBtn.dataset.value);
+                closeAllCategoryPickers();
+                renderPlaylistCategoryBar();
+                renderPlaylist();
+            });
         });
 
         playlistEl.appendChild(li);
@@ -4816,6 +4965,12 @@ function updatePlaylistHighlight() {
 }
 mainPlayBtn.addEventListener('click', togglePlay);
 
+document.addEventListener('click', (event) => {
+    if (!event.target.closest('.playlist-category-picker')) {
+        closeAllCategoryPickers();
+    }
+});
+
 document.addEventListener('keydown', (event) => {
     if (event.code !== 'Space' && event.key !== ' ') return;
     if (!document.body.classList.contains('music-room-open')) return;
@@ -4831,6 +4986,7 @@ document.getElementById('next-btn').addEventListener('click', nextSong);
 document.getElementById('prev-btn').addEventListener('click', prevSong);
 function togglePlaylist(open) {
     const show = open ?? !playlistDrawer?.classList.contains('show');
+    if (!show) closeAllCategoryPickers();
     playlistDrawer?.classList.toggle('show', show);
     if (show) {
         neteaseDrawer?.classList.remove('show');
