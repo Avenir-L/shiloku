@@ -316,6 +316,10 @@ class PreviewHandler(SimpleHTTPRequestHandler):
                 stream.close()
                 return
 
+            if action == "listen-stats":
+                self._json(200, netease_api.listen_stats())
+                return
+
             self._json(404, {"error": "接口不存在"})
         except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
             return

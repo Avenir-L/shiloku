@@ -2262,6 +2262,21 @@ body.music-room-open .footer-notice {
                     <div class="daily-quote-label" data-i18n="dailyQuoteLabel">今日一句</div>
                     <div class="daily-quote" id="daily-quote"></div>
                 </div>
+                <div class="listen-stats-wrap" id="listen-stats-wrap">
+                    <div class="listen-stats-label" data-i18n="listenStatsLabel">听歌统计</div>
+                    <div class="listen-stats-rows">
+                        <div class="listen-stats-row">
+                            <span data-i18n="listenToday">今日</span>
+                            <strong id="listen-today">0 分钟</strong>
+                        </div>
+                        <div class="listen-stats-row">
+                            <span data-i18n="listenMonth">本月</span>
+                            <strong id="listen-month">0 分钟</strong>
+                        </div>
+                    </div>
+                    <div class="listen-stats-note" data-i18n="listenSiteNote">统计音乐室播放时长</div>
+                    <div class="listen-stats-extra" id="listen-stats-extra" hidden></div>
+                </div>
                 <div class="time-header" data-i18n="timeHeader">北京时间 / BEIJING TIME</div>
                 <div class="time-date" id="time-date">----年--月--日 · ---</div>
                 <div class="time-display" id="big-time">00:00:00</div>
@@ -3045,6 +3060,7 @@ body.music-room-open .footer-notice {
     <div class="playlist-backdrop" id="playlist-backdrop"></div>
     <aside class="playlist-drawer" id="playlist-drawer">
         <div class="playlist-drawer-header">PLAYLIST</div>
+        <div class="playlist-category-bar" id="playlist-category-bar" role="tablist" aria-label="歌单分类"></div>
         <ul id="playlist"></ul>
     </aside>
 
@@ -3249,37 +3265,53 @@ const LOCAL_SONGS = [
         src: "listen.mp3",
         neteaseId: 453176145,
         cover: "listen.jpg",
-        lrc: "listen.lrc"
+        lrc: "listen.lrc",
+        category: "rock",
     },
     {
         title: "Beautiful World",
         artist: "宇多田光",
         src: "beautiful_world.mp3",
         cover: "beautiful_world.jpg",
-        lrc: "beautiful_world.lrc"
+        lrc: "beautiful_world.lrc",
+        category: "jpop",
     },
     {
         title: "夕日坂",
         artist: "doriko / 初音ミク",
         src: "yuuhizaka.mp3",
         cover: "yuuhizaka.jpg",
-        lrc: "yuuhizaka.lrc"
+        lrc: "yuuhizaka.lrc",
+        category: "vocaloid",
     },
     {
         title: "Hypnotized",
         artist: "Purple Disco Machine",
         src: "Hypnotized.mp3",
         cover: "Hypnotized.jpg",
-        lrc: "Hypnotized.lrc"
+        lrc: "Hypnotized.lrc",
+        category: "electronic",
     },
     {
         title: "mede:mede",
         artist: "Reol",
         src: "medemede.mp3",
         cover: "medemede.jpg",
-        lrc: "medemede.lrc"
+        lrc: "medemede.lrc",
+        category: "jpop",
     },
 ];
+
+const PLAYLIST_CATEGORIES = [
+    { id: 'all', labelKey: 'playlistAll' },
+    { id: 'rock', labelKey: 'playlistCatRock' },
+    { id: 'jpop', labelKey: 'playlistCatJpop' },
+    { id: 'vocaloid', labelKey: 'playlistCatVocaloid' },
+    { id: 'electronic', labelKey: 'playlistCatElectronic' },
+    { id: 'netease', labelKey: 'playlistCatNetease' },
+];
+
+let playlistCategoryFilter = 'all';
 
 let songs = [...LOCAL_SONGS];
 let currentSongIndex = 0;
@@ -3569,6 +3601,7 @@ async function initPlayer() {
     updatePlayModeUI();
     setMainPlayState(isPlaying);
     await loadSong(currentSongIndex);
+    renderPlaylistCategoryBar();
     renderPlaylist();
     notifyNowPlaying();
     audio.addEventListener('ended', onTrackEnded);
@@ -3576,6 +3609,10 @@ async function initPlayer() {
     startLyricScrollLoop();
     setupLyricScrub();
     window.addEventListener('music-room:open', () => refreshLyricPanel());
+    window.addEventListener('shiloku:langchange', () => {
+        renderPlaylistCategoryBar();
+        renderPlaylist();
+    });
     let lyricAnchorResizeTimer = null;
     window.addEventListener('resize', () => {
         if (!document.body.classList.contains('music-room-open') || !lyricItemsCache.length) return;
@@ -4424,6 +4461,7 @@ async function togglePlay() {
         await pauseWithFade();
         setMainPlayState(false);
         markMusicPaused();
+        window.shilokuStopListen?.();
     } else {
         stopVolumeFade();
         applyVolumeFromSlider(volumeSlider.value);
@@ -4431,11 +4469,14 @@ async function togglePlay() {
         setMainPlayState(true);
         markMusicPlaying();
         setStatus(getListenText(), { override: true });
+        window.shilokuStartListen?.();
     }
     isPlaying = !isPlaying;
+    window.shilokuRefreshListenStats?.();
 }
 
 async function playSongAt(index, pushHistory = false) {
+    window.shilokuStopListen?.();
     if (pushHistory) {
         playHistory.push(currentSongIndex);
         if (playHistory.length > 50) playHistory.shift();
@@ -4458,9 +4499,12 @@ async function playSongAt(index, pushHistory = false) {
         }
         markMusicPlaying();
         setStatus(getListenText(), { override: true });
+        window.shilokuStartListen?.();
     } else {
         await loadSong(currentSongIndex);
     }
+
+    window.shilokuRefreshListenStats?.();
 
     window.shilokuUpdateShareUrl?.(songs[currentSongIndex]);
     notifyNowPlaying();
@@ -4488,11 +4532,54 @@ async function prevSong() {
     }
 }
 
+function getSongCategory(song) {
+    if (song?.isNeteaseOnly) return 'netease';
+    return song?.category || 'other';
+}
+
+function getPlaylistCategoryLabel(categoryId) {
+    const item = PLAYLIST_CATEGORIES.find((c) => c.id === categoryId);
+    if (!item) return categoryId;
+    return window.shilokuI18n?.t?.(item.labelKey) || item.labelKey;
+}
+
+function renderPlaylistCategoryBar() {
+    const bar = document.getElementById('playlist-category-bar');
+    if (!bar) return;
+
+    bar.innerHTML = PLAYLIST_CATEGORIES.map((cat) =>
+        `<button type="button" class="playlist-category-btn${playlistCategoryFilter === cat.id ? ' is-active' : ''}" data-category="${cat.id}" role="tab" aria-selected="${playlistCategoryFilter === cat.id ? 'true' : 'false'}">${getPlaylistCategoryLabel(cat.id)}</button>`,
+    ).join('');
+
+    bar.querySelectorAll('.playlist-category-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            playlistCategoryFilter = btn.dataset.category || 'all';
+            renderPlaylistCategoryBar();
+            renderPlaylist();
+        });
+    });
+}
+
 function renderPlaylist() {
+    if (!playlistEl) return;
     playlistEl.innerHTML = '';
-    songs.forEach((song, index) => {
+
+    const filtered = songs
+        .map((song, index) => ({ song, index }))
+        .filter(({ song }) => playlistCategoryFilter === 'all' || getSongCategory(song) === playlistCategoryFilter);
+
+    if (!filtered.length) {
+        const empty = document.createElement('li');
+        empty.className = 'playlist-empty-hint';
+        empty.textContent = window.shilokuI18n?.t?.('playlistEmptyCategory') || '这个分类里还没有歌';
+        playlistEl.appendChild(empty);
+        return;
+    }
+
+    filtered.forEach(({ song, index }) => {
         const li = document.createElement('li');
-        const tag = song.isNeteaseOnly ? '<span class="playlist-tag">NETEASE</span>' : '<span class="playlist-tag">LOCAL</span>';
+        li.dataset.index = String(index);
+        const tag = song.isNeteaseOnly ? '<span class="playlist-tag">NETEASE</span>' : `<span class="playlist-tag">${getPlaylistCategoryLabel(getSongCategory(song))}</span>`;
         li.innerHTML = `<span>${song.title}</span> ${tag} <span style="opacity: 0.5; font-size: 12px;">${song.artist}</span>`;
         li.addEventListener('click', async () => {
             playHistory = [];
@@ -4508,7 +4595,8 @@ function renderPlaylist() {
 function updatePlaylistHighlight() {
     const listItems = playlistEl.getElementsByTagName('li');
     for (let i = 0; i < listItems.length; i++) {
-        listItems[i].classList.toggle('active', i === currentSongIndex);
+        const index = Number(listItems[i].dataset.index);
+        listItems[i].classList.toggle('active', Number.isInteger(index) && index === currentSongIndex);
     }
     updateNeteaseHighlight();
 }

@@ -364,6 +364,107 @@ body.in-music-room #guestbook-panel {
     color: #fff;
 }
 
+.listen-stats-wrap {
+    margin-top: 12px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    max-width: 100%;
+    text-align: left;
+}
+
+.listen-stats-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    margin-bottom: 8px;
+}
+
+.listen-stats-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.listen-stats-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.listen-stats-row span:first-child {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 12px;
+    letter-spacing: 1px;
+}
+
+.listen-stats-row strong {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+}
+
+.listen-stats-note,
+.listen-stats-extra {
+    margin-top: 8px;
+    font-size: 10px;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.38);
+}
+
+.playlist-category-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.playlist-category-btn {
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.playlist-category-btn:hover {
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #fff;
+}
+
+.playlist-category-btn.is-active {
+    border-color: color-mix(in srgb, var(--site-accent, #fb7185) 55%, rgba(255, 255, 255, 0.2));
+    background: color-mix(in srgb, var(--site-accent, #fb7185) 18%, rgba(255, 255, 255, 0.06));
+    color: #fff;
+}
+
+#playlist .playlist-empty-hint {
+    padding: 24px 8px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.42);
+    font-size: 13px;
+    font-style: italic;
+    cursor: default;
+}
+
+#playlist .playlist-empty-hint:hover {
+    background: transparent;
+}
+
 @media (max-width: 768px) {
     .daily-quote-wrap {
         margin-top: 10px;
