@@ -297,6 +297,54 @@
             background: #000;
         }
 
+        .splash-mobile-fallback {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .splash-mobile-logo {
+            font-size: clamp(28px, 9vw, 42px);
+            letter-spacing: 0.42em;
+            text-indent: 0.42em;
+            color: rgba(255, 255, 255, 0.92);
+            font-weight: 700;
+            animation: mobileSplashLogo 1.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .splash-mobile-sub {
+            font-size: clamp(14px, 4.5vw, 18px);
+            letter-spacing: 0.28em;
+            color: rgba(251, 113, 133, 0.88);
+            animation: mobileSplashSub 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+        }
+
+        @keyframes mobileSplashLogo {
+            0% { opacity: 0; transform: translateY(18px) scale(0.94); filter: blur(6px); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+
+        @keyframes mobileSplashSub {
+            0% { opacity: 0; transform: translateY(12px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .intro-splash.use-mobile-intro {
+            background: radial-gradient(circle at 50% 38%, rgba(251, 113, 133, 0.12), transparent 52%), #06040c;
+        }
+
+        .intro-splash.use-mobile-intro .splash-video {
+            display: none;
+        }
+
+        .intro-splash.use-mobile-intro .splash-mobile-fallback {
+            display: flex;
+        }
+
         .splash-skip-hint {
             position: absolute;
             right: 22px;
@@ -889,9 +937,10 @@
 
 @media (max-width: 768px) {
     html, body {
-        overflow: hidden !important;
-        height: 100vh !important;
-        height: 100dvh !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        min-height: 100dvh;
+        height: auto !important;
     }
 
     .bg-image {
@@ -899,15 +948,13 @@
     }
 
     .layout-container {
-        height: 100vh !important;
-        height: 100dvh !important;
-        min-height: 100vh !important;
+        height: auto !important;
         min-height: 100dvh !important;
         flex-direction: column !important;
-        padding: max(16px, env(safe-area-inset-top)) 5vw max(12px, env(safe-area-inset-bottom)) !important;
+        padding: max(16px, env(safe-area-inset-top)) 5vw max(96px, calc(env(safe-area-inset-bottom) + 84px)) !important;
         gap: 18px !important;
         align-items: flex-start !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         justify-content: flex-start !important;
     }
 
@@ -927,7 +974,7 @@
     
     #ai-float-button {
         transform: scale(0.85) !important;
-        bottom: max(14px, env(safe-area-inset-bottom)) !important;
+        bottom: max(58px, calc(env(safe-area-inset-bottom) + 50px)) !important;
         right: max(14px, env(safe-area-inset-right)) !important;
     }
 
@@ -959,8 +1006,27 @@
     .link-group { justify-content: center !important; flex-wrap: wrap; }
     .divider { margin-left: auto; margin-right: auto; }
     .status-pill { justify-content: center; max-width: 100%; }
-    .tag-group { justify-content: center; }
+    .tag-group { justify-content: center; margin-top: 10px; margin-bottom: 4px; }
+    .about-more-btn { margin-top: 10px; }
     .time-display { font-size: clamp(48px, 16vw, 72px) !important; margin-top: 8px; }
+    .daily-quote-wrap { max-width: 100%; margin-top: 6px; }
+    .mid-area.bio { padding-bottom: 4px; }
+    .bottom-area { margin-top: 4px; }
+    .corner-tools {
+        bottom: max(54px, calc(env(safe-area-inset-bottom) + 46px)) !important;
+        left: max(10px, env(safe-area-inset-left)) !important;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 6px;
+        max-width: min(72vw, 280px);
+    }
+    .footer-notice {
+        bottom: max(10px, env(safe-area-inset-bottom)) !important;
+        max-width: calc(100vw - 24px);
+        white-space: normal;
+        line-height: 1.45;
+        text-align: center;
+    }
 
     .playlist-drawer,
     .netease-drawer {
@@ -2070,6 +2136,10 @@ body.music-room-open .footer-notice {
 
     <div id="intro-splash" class="intro-splash" aria-hidden="true">
         <video id="splash-video" class="splash-video" src="watermark.mp4" playsinline muted autoplay preload="auto" disablepictureinpicture disableremoteplayback controlslist="nofullscreen nodownload noremoteplayback noplaybackrate"></video>
+        <div class="splash-mobile-fallback" aria-hidden="true">
+            <div class="splash-mobile-logo">SHILOKU</div>
+            <div class="splash-mobile-sub">栀落余殁</div>
+        </div>
         <span class="splash-skip-hint">点击跳过</span>
     </div>
 
@@ -2188,12 +2258,15 @@ body.music-room-open .footer-notice {
             const splash = document.getElementById('intro-splash');
             const video = document.getElementById('splash-video');
 
-            if (!splash || !video) {
+            if (!splash) {
                 document.body.classList.add('intro-done');
                 return;
             }
 
             const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const isMobileIntro = window.matchMedia('(max-width: 768px), (hover: none) and (pointer: coarse)').matches;
+            const saveData = navigator.connection?.saveData;
+
             if (prefersReduced) {
                 splash.remove();
                 document.body.classList.add('intro-done');
@@ -2201,7 +2274,6 @@ body.music-room-open .footer-notice {
             }
 
             document.body.classList.add('splash-active');
-            video.currentTime = 0;
 
             let finished = false;
             const finish = () => {
@@ -2211,9 +2283,11 @@ body.music-room-open .footer-notice {
                 document.body.classList.add('intro-done');
                 splash.classList.add('is-exiting');
                 const removeSplash = () => {
-                    video.pause();
-                    video.removeAttribute('src');
-                    video.load();
+                    if (video) {
+                        video.pause();
+                        video.removeAttribute('src');
+                        video.load();
+                    }
                     splash.remove();
                 };
                 splash.addEventListener('animationend', (e) => {
@@ -2223,14 +2297,37 @@ body.music-room-open .footer-notice {
             };
 
             splash.addEventListener('click', finish);
+
+            if (isMobileIntro || saveData) {
+                splash.classList.add('use-mobile-intro');
+                setTimeout(finish, 2600);
+                return;
+            }
+
+            if (!video) {
+                finish();
+                return;
+            }
+
+            video.currentTime = 0;
             video.addEventListener('ended', finish);
             video.addEventListener('error', finish);
             video.addEventListener('loadedmetadata', () => {
-                setTimeout(finish, (video.duration * 1000) + 800);
+                const ms = Number.isFinite(video.duration) && video.duration > 0
+                    ? (video.duration * 1000) + 800
+                    : 6000;
+                setTimeout(finish, ms);
             }, { once: true });
 
+            setTimeout(finish, 12000);
+
             const playPromise = video.play();
-            if (playPromise) playPromise.catch(finish);
+            if (playPromise) {
+                playPromise.catch(() => {
+                    splash.classList.add('use-mobile-intro');
+                    setTimeout(finish, 2600);
+                });
+            }
         })();
 
         (function preloadSiteAssets() {

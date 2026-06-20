@@ -315,12 +315,20 @@ body.in-music-room #guestbook-panel {
 
 @media (max-width: 768px) {
     .corner-tools {
-        left: 10px;
-        bottom: 10px;
+        left: max(10px, env(safe-area-inset-left));
+        bottom: max(54px, calc(env(safe-area-inset-bottom) + 46px));
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        max-width: min(72vw, 280px);
     }
     #guestbook-panel {
         left: 10px;
-        bottom: 56px;
+        bottom: max(96px, calc(env(safe-area-inset-bottom) + 88px));
         width: calc(100vw - 20px);
+    }
+    .shiloku-toast {
+        bottom: max(96px, calc(env(safe-area-inset-bottom) + 88px));
     }
 }
