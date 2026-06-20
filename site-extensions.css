@@ -290,7 +290,6 @@ body.in-music-room #guestbook-panel {
 }
 
 #theme-picker {
-    display: flex;
     gap: 5px;
     flex-wrap: wrap;
 }

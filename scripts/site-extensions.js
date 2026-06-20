@@ -325,17 +325,23 @@ function setupThemePicker() {
     wrap.innerHTML = Object.entries(MUSIC_THEMES).map(([id, theme]) =>
         `<button type="button" class="theme-swatch" data-theme-id="${id}" title="${t(theme.labelKey)}" aria-label="${t(theme.labelKey)}" style="${theme.accent ? `--swatch:${theme.accent.join(',')}` : ''}"></button>`,
     ).join('');
+
+    const setOpen = (open) => {
+        if (!shell || !toggle) return;
+        shell.classList.toggle('is-open', open);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+
     wrap.querySelectorAll('.theme-swatch').forEach((btn) => {
-        btn.addEventListener('click', () => applyMusicTheme(btn.dataset.themeId));
+        btn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            applyMusicTheme(btn.dataset.themeId);
+            setOpen(false);
+        });
     });
     applyMusicTheme(getSavedTheme());
 
     if (!toggle || !shell) return;
-
-    const setOpen = (open) => {
-        shell.classList.toggle('is-open', open);
-        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    };
 
     toggle.addEventListener('click', (event) => {
         event.stopPropagation();
