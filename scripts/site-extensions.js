@@ -6,12 +6,6 @@ import {
     getGreetingForHour, formatDateLine, applyI18nDom,
 } from './i18n.js';
 import {
-    setupListeningStatsUI,
-    refreshListenStatsUI,
-    startListeningSession,
-    stopListeningSession,
-} from './listening-stats.js';
-import {
     getSongKey,
     listCategories,
     getCategoryName,
@@ -441,10 +435,7 @@ export function initSiteExtensions() {
     setupThemePicker();
     setupShareButton();
     setupAiMusicHooks();
-    setupListeningStatsUI();
     refreshDailyQuote();
-
-    window.addEventListener('shiloku:langchange', () => refreshListenStatsUI());
 
     window.shilokuI18n = { t, getLang, setLang, getGreetingForHour, formatDateLine, applyI18nDom };
     window.shilokuSavePlaylist = savePlaylistState;
@@ -457,9 +448,6 @@ export function initSiteExtensions() {
     window.shilokuGetSavedTheme = getSavedTheme;
     window.shilokuHandleDeepLink = handleMusicDeepLink;
     window.__shilokuRefreshTime?.();
-    window.shilokuStartListen = startListeningSession;
-    window.shilokuStopListen = stopListeningSession;
-    window.shilokuRefreshListenStats = refreshListenStatsUI;
     window.shilokuPlaylistCategories = {
         getSongKey,
         listCategories,
