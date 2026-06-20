@@ -3233,29 +3233,22 @@ body.music-room-open .footer-notice {
     <div class="aether-ui">
         <div class="aether-brand">SHILOKU.</div>
 
-        <nav class="aether-dock" aria-label="音乐功能">
-            <button type="button" class="aether-dock-btn" id="playlist-toggle-dock" title="本地歌单" aria-label="本地歌单">
-                <span class="aether-dock-icon">🎵</span>
-            </button>
-            <button type="button" class="aether-dock-btn aether-dock-btn-accent" id="netease-search-toggle-dock" title="网易云搜索" aria-label="网易云搜索">
-                <span class="aether-dock-icon">☁</span>
-            </button>
-            <button type="button" class="aether-dock-btn aether-dock-btn-share" id="share-song-btn" data-i18n-title="shareSong" title="复制分享链接" aria-label="复制分享链接">
-                <span class="aether-dock-icon">⎘</span>
-            </button>
-            <div class="theme-picker-wrap" id="theme-picker-wrap">
-                <button type="button" class="theme-picker-toggle" id="theme-picker-toggle" aria-expanded="false" aria-controls="theme-picker">
-                    <span data-i18n="themeLabel">主题</span>
-                </button>
-                <div id="theme-picker" class="theme-picker-panel" role="group" aria-label="主题配色"></div>
-            </div>
-        </nav>
-
         <div class="aether-sidebar-rail">
             <aside class="aether-sidebar">
-                <button type="button" class="aether-nav-btn is-active">Visualizer</button>
-                <button type="button" class="aether-nav-btn" id="netease-search-toggle-btn">Search</button>
-                <button type="button" class="aether-nav-btn" id="playlist-toggle-btn">Playlist</button>
+                <div class="aether-sidebar-top">
+                    <button type="button" class="aether-nav-btn is-active" id="viz-nav-btn">Visualizer</button>
+                    <button type="button" class="aether-nav-btn" id="netease-search-toggle-btn">Search</button>
+                    <button type="button" class="aether-nav-btn" id="playlist-toggle-btn">Playlist</button>
+                </div>
+                <div class="aether-sidebar-bottom">
+                    <button type="button" class="aether-nav-btn aether-nav-btn-action" id="share-song-btn" data-i18n-title="shareSong" title="复制分享链接" aria-label="复制分享链接">Share</button>
+                    <div class="theme-picker-wrap aether-sidebar-theme" id="theme-picker-wrap">
+                        <button type="button" class="theme-picker-toggle" id="theme-picker-toggle" aria-expanded="false" aria-controls="theme-picker">
+                            <span data-i18n="themeLabel">主题</span>
+                        </button>
+                        <div id="theme-picker" class="theme-picker-panel" role="group" aria-label="主题配色"></div>
+                    </div>
+                </div>
             </aside>
         </div>
 
@@ -3984,29 +3977,28 @@ function setupNeteaseSearch() {
         event.stopPropagation();
         toggleNeteaseDrawer();
     });
-    document.getElementById('netease-search-toggle-dock')?.addEventListener('click', (event) => {
-        event.stopPropagation();
-        toggleNeteaseDrawer();
-    });
-    document.getElementById('playlist-toggle-dock')?.addEventListener('click', (event) => {
-        event.stopPropagation();
-        togglePlaylist();
-    });
+}
+
+function syncSidebarNavState() {
+    const neteaseOpen = neteaseDrawer?.classList.contains('show');
+    const playlistOpen = playlistDrawer?.classList.contains('show');
+    document.getElementById('viz-nav-btn')?.classList.toggle('is-active', !neteaseOpen && !playlistOpen);
+    document.getElementById('netease-search-toggle-btn')?.classList.toggle('is-active', neteaseOpen);
+    document.getElementById('playlist-toggle-btn')?.classList.toggle('is-active', playlistOpen);
 }
 
 function toggleNeteaseDrawer(open) {
     const show = open ?? !neteaseDrawer?.classList.contains('show');
     neteaseDrawer?.classList.toggle('show', show);
-    document.getElementById('netease-search-toggle-dock')?.classList.toggle('is-active', show);
     if (show) {
         playlistDrawer?.classList.remove('show');
-        document.getElementById('playlist-toggle-dock')?.classList.remove('is-active');
         neteaseSearchInput?.focus();
         if (neteaseSearchStatus && !neteaseResults.length) {
             neteaseSearchStatus.textContent = '输入歌名后搜索，只显示当前能播放的歌曲';
         }
         checkNeteaseApi();
     }
+    syncSidebarNavState();
     playlistBackdrop?.classList.toggle('show', show || playlistDrawer?.classList.contains('show'));
 }
 
@@ -5029,10 +5021,9 @@ function togglePlaylist(open) {
     playlistDrawer?.classList.toggle('show', show);
     if (show) {
         neteaseDrawer?.classList.remove('show');
-        document.getElementById('netease-search-toggle-dock')?.classList.remove('is-active');
     }
+    syncSidebarNavState();
     playlistBackdrop?.classList.toggle('show', show || neteaseDrawer?.classList.contains('show'));
-    document.getElementById('playlist-toggle-dock')?.classList.toggle('is-active', show);
 }
 
 // ======= 音量条与列表弹窗控制 =======
@@ -5103,6 +5094,12 @@ volumeSlider.addEventListener('input', (e) => {
 playlistToggleBtn?.addEventListener('click', (e) => {
     e.stopPropagation();
     togglePlaylist();
+});
+
+document.getElementById('viz-nav-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    togglePlaylist(false);
+    toggleNeteaseDrawer(false);
 });
 
 playlistBackdrop?.addEventListener('click', () => {

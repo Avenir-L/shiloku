@@ -125,60 +125,6 @@ body.music-room-open .footer-notice {
     text-shadow: 0 0 30px rgba(51, 209, 255, 0.25);
 }
 
-.aether-dock {
-    position: absolute;
-    left: 22px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 55;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    pointer-events: auto;
-}
-
-.aether-dock-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
-    background: rgba(4, 8, 16, 0.55);
-    color: rgba(255, 255, 255, 0.75);
-    cursor: pointer;
-    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
-}
-
-.aether-dock-btn:hover {
-    border-color: rgba(255, 255, 255, 0.24);
-    background: rgba(8, 14, 24, 0.62);
-    transform: scale(1.06);
-}
-
-.aether-dock-btn.is-active,
-.aether-dock-btn-accent.is-active {
-    border-color: color-mix(in srgb, var(--aether-accent) 55%, transparent);
-    background: color-mix(in srgb, var(--aether-accent) 12%, rgba(4, 8, 16, 0.55));
-    box-shadow: 0 0 14px color-mix(in srgb, var(--aether-accent) 22%, transparent);
-    color: #fff;
-}
-
-.aether-dock-btn-accent {
-    border-color: color-mix(in srgb, var(--aether-accent) 28%, rgba(255, 255, 255, 0.1));
-}
-
-.aether-dock-icon {
-    font-size: 14px;
-    line-height: 1;
-}
-
-body.music-room-open .aether-dock {
-    animation: aetherPanelIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s backwards;
-}
-
 .aether-sidebar-rail {
     position: absolute;
     left: 0;
@@ -200,7 +146,8 @@ body.music-room-open .aether-dock {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 24px 0;
+    justify-content: space-between;
+    padding: 24px 0 20px;
     background: rgba(2, 4, 10, 0.82);
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     transform: translateX(-100%);
@@ -209,6 +156,20 @@ body.music-room-open .aether-dock {
 
 .aether-sidebar-rail:hover .aether-sidebar {
     transform: translateX(0);
+}
+
+.aether-sidebar-top,
+.aether-sidebar-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.aether-sidebar-bottom {
+    margin-top: auto;
+    padding-top: 12px;
+    gap: 8px;
 }
 
 .aether-nav-btn {
@@ -231,6 +192,14 @@ body.music-room-open .aether-dock {
 .aether-nav-btn.is-active {
     color: var(--aether-accent);
     opacity: 1;
+}
+
+.aether-nav-btn-action {
+    margin-bottom: 0;
+}
+
+body.music-room-open .aether-sidebar-rail {
+    animation: aetherPanelIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s backwards;
 }
 
 .aether-lyrics {
@@ -1058,22 +1027,27 @@ body.music-room-open .aether-stats {
     }
 
     .aether-sidebar-rail {
-        display: none;
+        width: 52px;
     }
 
-    .aether-dock {
-        left: max(16px, env(safe-area-inset-left));
-        right: auto;
-        top: max(52px, calc(env(safe-area-inset-top) + 40px));
-        bottom: auto;
-        transform: none;
-        flex-direction: row;
-        gap: 8px;
+    .aether-sidebar-rail:hover {
+        width: 52px;
     }
 
-    .aether-dock-btn {
-        width: 40px;
-        height: 40px;
+    .aether-sidebar {
+        transform: translateX(0);
+        width: 52px;
+        padding-top: max(72px, calc(env(safe-area-inset-top) + 60px));
+        padding-bottom: max(16px, env(safe-area-inset-bottom));
+    }
+
+    .aether-nav-btn {
+        margin-bottom: 18px;
+        font-size: 9px;
+    }
+
+    .aether-sidebar-theme .theme-picker-panel {
+        left: calc(100% + 6px);
     }
 
     .aether-lyrics {
@@ -1304,9 +1278,8 @@ body.music-room-open .aether-stats {
         display: none;
     }
 
-    .aether-dock {
-        top: max(10px, env(safe-area-inset-top));
-        left: max(12px, env(safe-area-inset-left));
+    .aether-sidebar {
+        padding-top: max(12px, env(safe-area-inset-top));
     }
 
     .aether-lyrics {
