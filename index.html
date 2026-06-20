@@ -297,6 +297,17 @@
             background: #000;
         }
 
+        @media (max-width: 768px), (hover: none) and (pointer: coarse) {
+            .splash-video {
+                object-fit: cover;
+            }
+
+            .splash-skip-hint {
+                right: max(22px, env(safe-area-inset-right));
+                bottom: max(18px, env(safe-area-inset-bottom));
+            }
+        }
+
         .splash-mobile-fallback {
             display: none;
             flex-direction: column;
@@ -2135,7 +2146,7 @@ body.music-room-open .footer-notice {
     </div>
 
     <div id="intro-splash" class="intro-splash" aria-hidden="true">
-        <video id="splash-video" class="splash-video" src="watermark.mp4" playsinline muted autoplay preload="auto" disablepictureinpicture disableremoteplayback controlslist="nofullscreen nodownload noremoteplayback noplaybackrate"></video>
+        <video id="splash-video" class="splash-video" playsinline webkit-playsinline muted autoplay preload="auto" disablepictureinpicture disableremoteplayback controlslist="nofullscreen nodownload noremoteplayback noplaybackrate"></video>
         <div class="splash-mobile-fallback" aria-hidden="true">
             <div class="splash-mobile-logo">SHILOKU</div>
             <div class="splash-mobile-sub">栀落余殁</div>
@@ -2264,8 +2275,7 @@ body.music-room-open .footer-notice {
             }
 
             const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            const isMobileIntro = window.matchMedia('(max-width: 768px), (hover: none) and (pointer: coarse)').matches;
-            const saveData = navigator.connection?.saveData;
+            const isCoarseMobile = window.matchMedia('(max-width: 768px), (hover: none) and (pointer: coarse)').matches;
 
             if (prefersReduced) {
                 splash.remove();
@@ -2276,9 +2286,13 @@ body.music-room-open .footer-notice {
             document.body.classList.add('splash-active');
 
             let finished = false;
+            let videoPlaying = false;
+            let fallbackTimer = null;
+
             const finish = () => {
                 if (finished) return;
                 finished = true;
+                if (fallbackTimer) clearTimeout(fallbackTimer);
                 document.body.classList.remove('splash-active');
                 document.body.classList.add('intro-done');
                 splash.classList.add('is-exiting');
@@ -2296,22 +2310,32 @@ body.music-room-open .footer-notice {
                 setTimeout(removeSplash, 700);
             };
 
-            splash.addEventListener('click', finish);
-
-            if (isMobileIntro || saveData) {
+            const useTextFallback = () => {
+                if (finished || videoPlaying) return;
                 splash.classList.add('use-mobile-intro');
-                setTimeout(finish, 2600);
-                return;
-            }
+                if (fallbackTimer) clearTimeout(fallbackTimer);
+                fallbackTimer = setTimeout(finish, 2600);
+            };
+
+            splash.addEventListener('click', finish);
 
             if (!video) {
                 finish();
                 return;
             }
 
-            video.currentTime = 0;
+            const videoSrc = isCoarseMobile ? 'watermark-mobile.mp4' : 'watermark.mp4';
+            video.src = videoSrc;
+            video.load();
+
+            video.addEventListener('playing', () => {
+                videoPlaying = true;
+                splash.classList.remove('use-mobile-intro');
+            });
+
             video.addEventListener('ended', finish);
-            video.addEventListener('error', finish);
+            video.addEventListener('error', useTextFallback);
+
             video.addEventListener('loadedmetadata', () => {
                 const ms = Number.isFinite(video.duration) && video.duration > 0
                     ? (video.duration * 1000) + 800
@@ -2319,15 +2343,15 @@ body.music-room-open .footer-notice {
                 setTimeout(finish, ms);
             }, { once: true });
 
+            setTimeout(() => {
+                if (!finished && !videoPlaying && video.paused) useTextFallback();
+            }, 4000);
+
             setTimeout(finish, 12000);
 
-            const playPromise = video.play();
-            if (playPromise) {
-                playPromise.catch(() => {
-                    splash.classList.add('use-mobile-intro');
-                    setTimeout(finish, 2600);
-                });
-            }
+            const tryPlay = () => video.play();
+
+            tryPlay().catch(() => tryPlay().catch(useTextFallback));
         })();
 
         (function preloadSiteAssets() {
