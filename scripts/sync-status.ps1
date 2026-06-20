@@ -1048,7 +1048,6 @@ function Push-StatusToGit {
 }
 
 if ($Loop) {
-    Stop-OtherSyncInstances
     if (-not (Enter-SingleInstanceLock)) { exit 0 }
 }
 

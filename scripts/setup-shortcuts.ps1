@@ -1,8 +1,9 @@
-param([switch]$Autostart)
+param([switch]$NoAutostart)
 
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $ps1 = Join-Path $PSScriptRoot "sync-status.ps1"
 $bat = Join-Path $PSScriptRoot "start-status-sync.bat"
+$hiddenBat = Join-Path $PSScriptRoot "start-status-sync-hidden.bat"
 $desktop = [Environment]::GetFolderPath("Desktop")
 $startup = [Environment]::GetFolderPath("Startup")
 $wsh = New-Object -ComObject WScript.Shell
@@ -17,9 +18,11 @@ $desk.Save()
 
 Get-ChildItem $startup -Filter "*Shiloku*" -ErrorAction SilentlyContinue | Remove-Item -Force
 
-if ($Autostart) {
-    $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$ps1`" -Loop -Post -IntervalSeconds 5" -WorkingDirectory $repo
+function Register-StatusAutostartTask {
+    $action = New-ScheduledTaskAction -Execute $hiddenBat -WorkingDirectory $repo
     $trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
+    $trigger.Delay = 'PT20S'
+    $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
     $settings = New-ScheduledTaskSettingsSet `
         -AllowStartIfOnBatteries `
         -DontStopIfGoingOnBatteries `
@@ -28,13 +31,17 @@ if ($Autostart) {
         -RestartCount 999 `
         -RestartInterval (New-TimeSpan -Minutes 1) `
         -MultipleInstances IgnoreNew
-    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Force | Out-Null
+    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force | Out-Null
     Enable-ScheduledTask -TaskName $taskName | Out-Null
-    Write-Host "Autostart ON: Task Scheduler -> $taskName"
-    Write-Host "Do not also open start-status-sync.bat unless you stop the task first."
+}
+
+if (-not $NoAutostart) {
+    Register-StatusAutostartTask
+    Write-Host "Autostart ON: Task Scheduler -> $taskName (20s after login, hidden)"
+    Write-Host "Manual window: desktop shortcut or start-status-sync.bat"
 } else {
     Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
-    Write-Host "Autostart OFF: use desktop shortcut or start-status-sync.bat only."
+    Write-Host "Autostart OFF."
 }
 
 Write-Host "Desktop: $deskLnk"
