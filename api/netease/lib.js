@@ -182,6 +182,73 @@ function yrcTextToLrc(yrcText) {
     return linesOut.join('\n');
 }
 
+export async function fetchNeteaseAccount() {
+    const response = await fetch('https://music.163.com/api/nuser/account/get', {
+        headers: getNeteaseHeaders(),
+    });
+    const data = await response.json();
+    if (data?.code !== 200 || !data?.account?.id) return null;
+    return data.account;
+}
+
+export async function fetchUserLevel() {
+    const response = await fetch('https://music.163.com/api/user/level', {
+        headers: getNeteaseHeaders(),
+    });
+    const data = await response.json();
+    if (data?.code !== 200) return null;
+    return data;
+}
+
+export async function fetchWeekPlayRecord(uid) {
+    const response = await fetch(
+        `https://music.163.com/api/play/record?uid=${encodeURIComponent(uid)}&type=1`,
+        { headers: getNeteaseHeaders() },
+    );
+    const data = await response.json();
+    const weekData = Array.isArray(data?.weekData) ? data.weekData : [];
+    let seconds = 0;
+
+    weekData.forEach((item) => {
+        const durationMs = Number(item?.song?.dt) || 0;
+        const playCount = Math.min(Number(item?.playCount) || 1, 80);
+        if (durationMs > 0) seconds += Math.floor(durationMs / 1000) * playCount;
+    });
+
+    return {
+        seconds,
+        trackCount: weekData.length,
+    };
+}
+
+export async function fetchNeteaseListenStats() {
+    const cookie = parseNeteaseCookie(process.env.NETEASE_COOKIE);
+    if (!cookie) {
+        return { available: false, reason: 'missing_cookie' };
+    }
+
+    const account = await fetchNeteaseAccount();
+    if (!account?.id) {
+        return { available: false, reason: 'not_logged_in' };
+    }
+
+    const [level, week] = await Promise.all([
+        fetchUserLevel(),
+        fetchWeekPlayRecord(account.id),
+    ]);
+
+    return {
+        available: true,
+        userId: account.id,
+        nickname: account.nickname || '',
+        totalPlayCount: level?.data?.nowPlayCount ?? null,
+        weekListenSeconds: week.seconds,
+        weekTrackCount: week.trackCount,
+        officialTodayAvailable: false,
+        officialMonthAvailable: false,
+    };
+}
+
 export async function proxyNeteaseAudio(id, reqHeaders) {
     const playableUrl = await getNeteasePlayableUrl(id);
     if (!playableUrl) return null;

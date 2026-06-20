@@ -2316,7 +2316,16 @@ body.music-room-open .footer-notice {
         </div>
 
         <div class="column right-column">
-            <div class="top-area"></div>
+            <div class="top-area right-top-stats">
+                <div class="listen-stats-wrap" id="listen-stats-wrap">
+                    <div class="listen-stats-inline">
+                        <span class="listen-stats-label" data-i18n="listenStatsLabel">听歌统计</span>
+                        <span class="listen-stats-chip"><span data-i18n="listenToday">今日</span> <strong id="listen-today">0 分钟</strong></span>
+                        <span class="listen-stats-chip"><span data-i18n="listenMonth">本月</span> <strong id="listen-month">0 分钟</strong></span>
+                    </div>
+                    <div class="listen-stats-extra" id="listen-stats-extra" hidden></div>
+                </div>
+            </div>
 
             <div class="mid-area animate-item delay-2">
                 <div class="time-greeting" id="time-greeting">夜深了</div>
@@ -4507,6 +4516,7 @@ async function togglePlay() {
         await pauseWithFade();
         setMainPlayState(false);
         markMusicPaused();
+        window.shilokuStopListen?.();
     } else {
         stopVolumeFade();
         applyVolumeFromSlider(volumeSlider.value);
@@ -4514,11 +4524,14 @@ async function togglePlay() {
         setMainPlayState(true);
         markMusicPlaying();
         setStatus(getListenText(), { override: true });
+        window.shilokuStartListen?.();
     }
     isPlaying = !isPlaying;
+    window.shilokuRefreshListenStats?.();
 }
 
 async function playSongAt(index, pushHistory = false) {
+    window.shilokuStopListen?.();
     if (pushHistory) {
         playHistory.push(currentSongIndex);
         if (playHistory.length > 50) playHistory.shift();
@@ -4541,9 +4554,12 @@ async function playSongAt(index, pushHistory = false) {
         }
         markMusicPlaying();
         setStatus(getListenText(), { override: true });
+        window.shilokuStartListen?.();
     } else {
         await loadSong(currentSongIndex);
     }
+
+    window.shilokuRefreshListenStats?.();
 
     window.shilokuUpdateShareUrl?.(songs[currentSongIndex]);
     notifyNowPlaying();
