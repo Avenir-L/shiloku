@@ -526,6 +526,13 @@
             animation: status-breathe 2.8s ease-in-out infinite;
         }
 
+        .status-pill.invisible .status-dot {
+            background: #6b7280;
+            box-shadow: none;
+            opacity: 0.75;
+            animation: none;
+        }
+
         .status-body {
             display: flex;
             flex-direction: column;
@@ -2855,6 +2862,7 @@ body.music-room-open {
                     : (remotePresence.mode || 'online');
                 statusPillEl.classList.toggle('offline', mode === 'offline' || statusOffline);
                 statusPillEl.classList.toggle('idle', mode === 'idle' && !statusOffline);
+                statusPillEl.classList.toggle('invisible', mode === 'invisible' && !statusOffline);
                 statusPillEl.classList.toggle('online', mode === 'online' && !statusOffline);
             }
         }

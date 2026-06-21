@@ -2,6 +2,7 @@
   "default": "在线摸鱼中",
   "offline": "💤 电脑已关机",
   "idle": "💤 zzz 离开中",
+  "invisible": "👻 隐身中",
   "idleSeconds": 300,
   "listeningPrefix": "正在听",
   "listeningGraceSeconds": 30,
