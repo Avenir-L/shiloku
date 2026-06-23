@@ -13,7 +13,6 @@ $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $statusFile = Join-Path $repoRoot "status.json"
 $configFile = Join-Path $PSScriptRoot "status-config.json"
 $secretsFile = Join-Path $PSScriptRoot "secrets.local.json"
-$invisibleFlagFile = Join-Path $PSScriptRoot ".status-invisible"
 $config = Get-Content $configFile -Raw -Encoding UTF8 | ConvertFrom-Json
 $script:StatusSecrets = $null
 if (Test-Path $secretsFile) {
@@ -1068,29 +1067,12 @@ function Get-ListeningLine {
     return $null
 }
 
-function Test-StatusInvisible {
-    return Test-Path $invisibleFlagFile
-}
-
 function Get-StatusPayload {
     $sep = [string]$config.statusSeparator
     if (-not $sep) { $sep = ' · ' }
     $displayMode = [string]$config.displayMode
     if (-not $displayMode) { $displayMode = 'merge' }
     $carouselSeconds = if ($config.carouselSeconds) { [int]$config.carouselSeconds } else { 8 }
-
-    if (Test-StatusInvisible) {
-        $invisibleText = if ($config.invisible) { [string]$config.invisible } else { '👻 隐身中' }
-        return @{
-            text              = $invisibleText
-            mode              = 'invisible'
-            primary           = $invisibleText
-            secondary         = ''
-            lines             = @($invisibleText)
-            displayMode       = $displayMode
-            carouselSeconds   = $carouselSeconds
-        }
-    }
 
     $idleThreshold = if ($config.idleSeconds) { [int]$config.idleSeconds } else { 300 }
     if ((Get-IdleSeconds) -ge $idleThreshold) {
