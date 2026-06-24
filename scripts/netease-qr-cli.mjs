@@ -1,4 +1,4 @@
-import { checkQrLogin, createQrLoginSession, refreshLoginCookie } from '../api/netease/weapi.js';
+import { checkQrLogin, createQrLoginSession, refreshLoginCookie } from '../api/_lib/netease/weapi.js';
 
 const [, , action, ...rest] = process.argv;
 
