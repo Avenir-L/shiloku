@@ -194,6 +194,7 @@ uniform float uAir;
 uniform float uWarmth;
 uniform float uBrightness;
 uniform float uSharpness;
+uniform float uSparkleActive;
 uniform vec3 uBaseColor1;
 uniform vec3 uBaseColor2;
 uniform vec3 uCoolCore;
@@ -240,21 +241,21 @@ void main() {
     float topIntensity = smoothstep(0.0, 0.4, normElevation);
     float twinkleDistFalloff = smoothstep(60.0, 30.0, centerDist);
     float twinkleMultiplier = mix(twinkleDistFalloff, 1.0, smoothstep(0.01, 0.1, normElevation));
-    if (fract(rnd * 31.0) > 0.962 && normElevation < 0.1) {
-      topIntensity += uAir * 1.35 * twinkleMultiplier;
+    if (fract(rnd * 31.0) > 0.95 && normElevation < 0.1) {
+      topIntensity += uAir * 2.0 * twinkleMultiplier * uSparkleActive;
     }
     finalColor = mix(cBase2, currentGlow, topIntensity);
     float edgeX = smoothstep(0.05, 0.01, vUv.x) + smoothstep(0.95, 0.99, vUv.x);
     float edgeY = smoothstep(0.05, 0.01, vUv.y) + smoothstep(0.95, 0.99, vUv.y);
     float edge = min(edgeX + edgeY, 1.0);
-    finalColor += currentGlow * edge * 0.64 * (topIntensity + 0.3);
+    finalColor += currentGlow * edge * 0.8 * (topIntensity + 0.3);
     float flashChance = smoothstep(0.3, 1.0, uPresence);
-    if (fract(rnd * 53.0) > 0.984 - flashChance * 0.07) {
-      float flashSync = sin(uTime * 36.0 + rnd * 100.0) * 0.5 + 0.5;
-      finalColor += mix(vec3(1.0), vec3(0.5, 1.0, 1.0), rnd) * flashSync * uPresence * (0.48 + uSharpness * 0.95) * twinkleMultiplier;
+    if (fract(rnd * 53.0) > 0.98 - flashChance * 0.1) {
+      float flashSync = sin(uTime * 40.0 + rnd * 100.0) * 0.5 + 0.5;
+      finalColor += mix(vec3(1.0), vec3(0.5, 1.0, 1.0), rnd) * flashSync * uPresence * (1.0 + uSharpness * 2.0) * twinkleMultiplier * uSparkleActive;
     }
-    if (edge > 0.5 && fract(rnd * 89.0 + uTime * 1.8) > 0.984) {
-      finalColor += vec3(1.0) * uBrilliance * 1.28 * twinkleMultiplier;
+    if (edge > 0.5 && fract(rnd * 89.0 + uTime * 2.0) > 0.98) {
+      finalColor += vec3(1.0) * uBrilliance * 3.0 * twinkleMultiplier * uSparkleActive;
     }
   } else {
     float verticalFalloff = mix(1.0, 3.0, uSharpness);
@@ -756,6 +757,7 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
       uAir: { value: 0 },
       uWarmth: { value: 0 },
       uBrightness: { value: 0 },
+      uSparkleActive: { value: 0 },
       uSharpness: { value: 0 },
       uBaseColor1: { value: targetTheme.uBaseColor1.clone() },
       uBaseColor2: { value: targetTheme.uBaseColor2.clone() },
@@ -1211,6 +1213,7 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
     setAudioUniform('uAir', eqAir);
     setAudioUniform('uWarmth', Math.max(0, Math.min(1, (eqSubBass + eqBass + eqLowMid + eqMid) / eqDenom)));
     setAudioUniform('uBrightness', Math.max(0, Math.min(1, (eqPresence + eqBrilliance + eqAir) / eqDenom)));
+    mat.uSparkleActive.value = playing ? 1 : 0;
     setAudioUniform('uSharpness', data.sharpness * volReact);
     mat.uIdleMix.value = THREE.MathUtils.lerp(
       mat.uIdleMix.value,
