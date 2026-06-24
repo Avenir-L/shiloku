@@ -1,0 +1,27 @@
+{
+  "focusX": 0.58,
+  "overscan": 1.08,
+  "maxShift": 28,
+  "layers": [
+    {
+      "id": "far",
+      "file": "far.png",
+      "depth": 0.11
+    },
+    {
+      "id": "back",
+      "file": "back.png",
+      "depth": 0.3
+    },
+    {
+      "id": "mid",
+      "file": "mid.png",
+      "depth": 0.52
+    },
+    {
+      "id": "front",
+      "file": "front.png",
+      "depth": 0.95
+    }
+  ]
+}

@@ -407,6 +407,7 @@ def fetch_user_playlists(cookie=""):
             "id": item.get("id"),
             "name": item.get("name") or "",
             "trackCount": item.get("trackCount") or 0,
+            "cover": item.get("coverImgUrl") or item.get("picUrl") or "",
         })
     return {"valid": True, "playlists": playlists}
 

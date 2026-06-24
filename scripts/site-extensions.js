@@ -12,6 +12,9 @@ import {
     stopListeningSession,
 } from './listening-stats.js';
 import {
+    setupGallery,
+} from './gallery.js?v=20260624g';
+import {
     getSongKey,
     listCategories,
     getCategoryName,
@@ -485,6 +488,7 @@ export function initSiteExtensions() {
     initI18n();
     setupLangSwitcher();
     setupGuestbook();
+    setupGallery();
     setupThemePicker();
     setupShareButton();
     setupAiMusicHooks();

@@ -13,13 +13,17 @@ import {
     searchNetease,
     setRuntimeNeteaseCookie,
     validateNeteaseCookie,
-} from '../_lib/netease/lib.js';
-import { checkQrLogin, createQrLoginSession, refreshLoginCookie } from '../_lib/netease/weapi.js';
+} from './_lib/netease/lib.js';
+import { checkQrLogin, createQrLoginSession, refreshLoginCookie } from './_lib/netease/weapi.js';
 
 function getAction(req) {
     const raw = req.query?.path;
     if (Array.isArray(raw)) return raw.join('/');
-    return String(raw || '').trim();
+    if (raw) return String(raw).trim();
+
+    const url = String(req.url || '');
+    const match = url.match(/\/api\/netease\/([^?]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
 }
 
 function isLocalRequest(req) {
@@ -174,7 +178,8 @@ async function handleAudio(req, res) {
     const id = String(req.query.id || '');
     if (!id) return res.status(400).json({ error: '缺少歌曲 id' });
 
-    const audioResponse = await proxyNeteaseAudio(id, req.headers);
+    const cookie = resolveNeteaseCookie(req);
+    const audioResponse = await proxyNeteaseAudio(id, req.headers, cookie);
     if (!audioResponse) {
         return res.status(404).json({ error: '这首歌暂时无法播放' });
     }

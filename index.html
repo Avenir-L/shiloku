@@ -12,7 +12,7 @@
     <link rel="icon" href="favicon.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Serif+JP:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css">
-    <link rel="stylesheet" href="aether-music.css?v=20260624y">
+    <link rel="stylesheet" href="aether-music.css?v=20260624aa">
     <link rel="stylesheet" href="site-extensions.css">
     <script type="module" src="scripts/site-extensions.js?v=20260624m"></script>
     <script type="importmap">
@@ -32,6 +32,8 @@
             --site-accent-glow: rgba(251, 113, 133, 0.45);
             --site-accent-soft: rgba(251, 113, 133, 0.18);
             --accent-glow: var(--site-accent-glow);
+            --text-on-bg-shadow: 0 1px 2px rgba(0, 0, 0, 0.92), 0 4px 18px rgba(0, 0, 0, 0.68);
+            --text-on-bg-shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.82), 0 2px 12px rgba(0, 0, 0, 0.5);
         }
 
         * {
@@ -213,6 +215,31 @@
 
         @media (max-width: 768px), (hover: none) and (pointer: coarse) {
             .cursor-ring { display: none !important; }
+        }
+
+        .layout-container .name,
+        .layout-container .subtitle,
+        .layout-container .bio,
+        .layout-container .bio-title,
+        .layout-container .section-title,
+        .layout-container .time-greeting,
+        .layout-container .time-header,
+        .layout-container .time-date,
+        .layout-container .time-display,
+        .layout-container .daily-quote,
+        .layout-container .daily-quote-label,
+        .layout-container .status-pill,
+        .layout-container .email-text,
+        .layout-container .about-more-btn {
+            text-shadow: var(--text-on-bg-shadow);
+        }
+
+        .layout-container .gradient-text-flow {
+            text-shadow: none;
+        }
+
+        .layout-container .bio .char-span {
+            text-shadow: var(--text-on-bg-shadow-soft);
         }
 
         .layout-container {
@@ -543,8 +570,9 @@
             font-size: 11px;
             font-weight: 500;
             line-height: 1.35;
-            color: rgba(255, 255, 255, 0.62);
+            color: rgba(255, 255, 255, 0.78);
             word-break: break-word;
+            text-shadow: var(--text-on-bg-shadow-soft);
         }
 
         .status-pill.is-carousel .status-primary {
@@ -567,8 +595,9 @@
         .tag-group {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 18px;
+            align-items: center;
+            gap: 8px;
+            margin-top: 0;
         }
 
         .tag {
@@ -590,6 +619,12 @@
             border-color: var(--site-accent);
             transform: translateY(-2px);
             box-shadow: 0 6px 20px var(--site-accent-soft);
+        }
+
+        button.tag,
+        .tag-clickable {
+            cursor: pointer;
+            font-family: inherit;
         }
 
         .column {
@@ -694,7 +729,7 @@
         .subtitle {
             font-size: 17px; 
             font-weight: 600; 
-            color: rgba(255, 255, 255, 0.72); 
+            color: rgba(255, 255, 255, 0.9); 
             letter-spacing: 2px;
             margin-bottom: 25px;
         }
@@ -717,13 +752,26 @@
         .bio {
             font-size: 21px; 
             font-weight: 600; 
-            color: rgba(255, 255, 255, 0.88);
+            color: rgba(255, 255, 255, 0.96);
             line-height: 2.2; 
             text-align: justify;
             max-width: 520px; 
         }
 
         .bio p { margin-bottom: 15px; }
+
+        .bio p:last-child {
+            margin-bottom: 6px;
+        }
+
+        .bio-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            max-width: 520px;
+        }
 
         .about-more-btn {
             margin-top: 14px;
@@ -741,6 +789,31 @@
             z-index: 20;
             pointer-events: auto;
             transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+        }
+
+        .bio-actions .about-more-btn {
+            margin-top: 0;
+            padding: 7px 16px;
+        }
+
+        .left-column .bottom-area .tag-group {
+            margin-bottom: 22px;
+            max-width: 520px;
+        }
+
+        .left-column .bottom-area {
+            margin-top: auto;
+            width: 100%;
+        }
+
+        #gallery-open-btn {
+            border-color: rgba(251, 113, 133, 0.45);
+            background: rgba(251, 113, 133, 0.14);
+        }
+
+        #gallery-open-btn:hover {
+            border-color: var(--site-accent);
+            background: var(--site-accent-soft);
         }
 
         .about-more-btn:hover {
@@ -816,15 +889,6 @@
             position: relative;
         }
 
-        .name .char-span {
-            -webkit-text-fill-color: currentColor;
-        }
-
-        .name .char-span:hover {
-            -webkit-text-fill-color: #fff;
-            color: #fff;
-        }
-
         .section-title {
             font-size: 14px; 
             font-weight: 700; 
@@ -841,12 +905,23 @@
             letter-spacing: 1px;
             font-family: Arial, sans-serif; 
             text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.25s ease, transform 0.25s ease, text-shadow 0.25s ease;
+        }
+
+        a.email-text:hover {
+            color: var(--site-accent);
+            transform: translateY(-1px);
+            text-shadow: 0 4px 16px var(--site-accent-soft);
         }
 
         .time-greeting {
             font-size: 15px;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.75);
+            color: rgba(255, 255, 255, 0.9);
             letter-spacing: 2px;
             margin-bottom: 8px;
         }
@@ -863,22 +938,33 @@
         .time-date {
             font-size: 14px;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(255, 255, 255, 0.8);
             letter-spacing: 3px;
             margin-bottom: 12px;
         }
 
+        .time-display-wrap {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            overflow: visible;
+            padding-right: 2px;
+        }
+
         .time-display {
-            font-size: clamp(36px, 6.2vw, 128px);
+            font-size: clamp(28px, 5.2vw, 92px);
             font-weight: 900;
-            letter-spacing: 0.04em;
-            line-height: 1;
+            letter-spacing: 0.02em;
+            line-height: 1.05;
             font-variant-numeric: tabular-nums;
             color: #ffffff;
             text-shadow: 0 0 24px var(--site-accent-soft), 0 5px 20px rgba(0,0,0,0.2);
             transition: opacity 0.3s ease, text-shadow 0.5s ease;
+            width: fit-content;
             max-width: 100%;
             white-space: nowrap;
+            text-align: right;
+            overflow: visible;
         }
 
         .time-display.tick {
@@ -943,7 +1029,7 @@
     .name { font-size: 38px; }
     .bio-title { font-size: 28px; }
     .bio { font-size: 19px; line-height: 2; }
-    .time-display { font-size: clamp(36px, 6.2vw, 112px); }
+    .time-display { font-size: clamp(28px, 5vw, 88px); }
 }
 
 @media (max-width: 768px) {
@@ -1021,8 +1107,23 @@
     .link-group { justify-content: center !important; flex-wrap: wrap; }
     .divider { margin-left: auto; margin-right: auto; }
     .status-pill { justify-content: center; max-width: 100%; }
-    .tag-group { justify-content: center; gap: 8px; margin-top: 14px; margin-bottom: 10px; }
-    .about-more-btn { margin-top: 12px; }
+    .bio-actions {
+        margin-top: 12px;
+        justify-content: center;
+        max-width: 100%;
+    }
+    .left-column .bottom-area .tag-group {
+        justify-content: center;
+        gap: 7px;
+        margin-bottom: 18px;
+        max-width: 100%;
+        width: 100%;
+    }
+    .left-column .bottom-area {
+        margin-top: auto;
+        align-items: center;
+    }
+    .about-more-btn { margin-top: 0; }
     .time-greeting { margin-bottom: 10px; font-size: 14px; }
     .time-header {
         font-size: clamp(15px, 4.2vw, 18px) !important;
@@ -2382,12 +2483,13 @@ body.music-room-open {
         left: 50% !important;
         transform: translateX(-50%) !important;
         
-        color: rgba(255, 255, 255, 0.55);
+        color: rgba(255, 255, 255, 0.78);
         font-size: 13px;
         letter-spacing: 4px;
         z-index: 9999 !important; /* 确保它是最顶层的 */
         pointer-events: none;
         width: max-content;
+        text-shadow: var(--text-on-bg-shadow);
         
         /* 移动端抗抖动核心优化 */
         -webkit-backface-visibility: hidden;
@@ -2518,22 +2620,23 @@ body.music-room-open {
                     <p id="bio-p1" data-i18n="bioP1">中国人，偶尔捣鼓些没接触过的东西。</p>
                     <p id="bio-p2" data-i18n="bioP2">爱画画、听歌、打游戏，也混二次元。比较社恐，更爱打字聊天。</p>
                 </div>
-                <button type="button" class="about-more-btn hover-target" id="about-more-btn" data-i18n="aboutMore">了解更多</button>
-                <div class="tag-group animate-item delay-3">
-                    <span class="tag">绘画</span>
+                <div class="bio-actions animate-item delay-3">
+                    <button type="button" class="about-more-btn hover-target" id="about-more-btn" data-i18n="aboutMore">了解更多</button>
+                    <button type="button" class="about-more-btn hover-target" id="gallery-open-btn" data-i18n="galleryOpen">查看画作</button>
+                </div>
+            </div>
+
+            <div class="bottom-area animate-item delay-4">
+                <div class="tag-group">
+                    <button type="button" class="tag tag-clickable hover-target" id="gallery-tag-btn">绘画</button>
                     <span class="tag">初音未来</span>
                     <span class="tag">Minecraft</span>
                     <span class="tag">地平线</span>
                     <span class="tag">杀戮尖塔</span>
                     <span class="tag">Galgame</span>
                 </div>
-            </div>
-
-            <div class="bottom-area animate-item delay-3">
                 <div class="section-title" data-i18n="contact">Contact</div>
-                <div class="email-text">
-                    520avenir@gmail.com
-                </div>
+                <a href="mailto:520avenir@gmail.com" class="email-text hover-target">✉️ 520avenir@gmail.com</a>
             </div>
         </div>
 
@@ -2557,7 +2660,9 @@ body.music-room-open {
                 </div>
                 <div class="time-header" data-i18n="timeHeader">北京时间 / BEIJING TIME</div>
                 <div class="time-date" id="time-date">----年--月--日 · ---</div>
-                <div class="time-display" id="big-time">00:00:00</div>
+                <div class="time-display-wrap">
+                    <div class="time-display" id="big-time">00:00:00</div>
+                </div>
             </div>
 
             <div class="bottom-area animate-item delay-4">
@@ -2580,6 +2685,29 @@ body.music-room-open {
             <p>Hatsune Miku!</p>
             <button type="button" class="about-modal-close hover-target" id="about-modal-close" data-i18n="aboutClose">关闭</button>
         </div>
+    </div>
+
+    <div id="gallery-modal" class="gallery-modal hidden" aria-hidden="true">
+        <div class="gallery-modal-panel" role="dialog" aria-labelledby="gallery-modal-title">
+            <div class="gallery-modal-header">
+                <h3 id="gallery-modal-title" class="gradient-text-flow" data-i18n="galleryTitle">我的画作</h3>
+                <button type="button" class="gallery-close hover-target" id="gallery-close" data-i18n="galleryClose" aria-label="关闭">×</button>
+            </div>
+            <div id="gallery-grid" class="gallery-grid"></div>
+        </div>
+    </div>
+
+    <div id="gallery-lightbox" class="gallery-lightbox hidden" aria-hidden="true">
+        <button type="button" class="gallery-lightbox-close hover-target" id="gallery-lightbox-close" aria-label="关闭">×</button>
+        <button type="button" class="gallery-lightbox-nav gallery-lightbox-prev hover-target" id="gallery-lightbox-prev" aria-label="上一张">‹</button>
+        <button type="button" class="gallery-lightbox-nav gallery-lightbox-next hover-target" id="gallery-lightbox-next" aria-label="下一张">›</button>
+        <figure class="gallery-lightbox-figure">
+            <img id="gallery-lightbox-img" alt="">
+            <figcaption>
+                <span id="gallery-lightbox-title"></span>
+                <span id="gallery-lightbox-counter"></span>
+            </figcaption>
+        </figure>
     </div>
 
     <div class="corner-tools" id="corner-tools">
@@ -3105,7 +3233,6 @@ body.music-room-open {
                 p.appendChild(span);
             }
         }
-        wrapCharacters('name-text');
         wrapCharacters('bio-p1');
         wrapCharacters('bio-p2');
 
@@ -3611,6 +3738,7 @@ let playlistCategoryFilter = 'all';
 
 let songs = [...LOCAL_SONGS];
 let neteaseQueue = [];
+let activeNeteasePlaylistId = null;
 let playbackSource = 'local'; // local | netease | preview
 let neteasePreviewSong = null;
 let currentSongIndex = 0;
@@ -4152,6 +4280,7 @@ function removeNeteaseFromQueue(index) {
     if (playbackSource === 'netease') {
         if (!neteaseQueue.length) {
             playbackSource = 'local';
+            activeNeteasePlaylistId = null;
             currentSongIndex = lastLocalIndex;
         } else if (currentSongIndex >= neteaseQueue.length) {
             currentSongIndex = neteaseQueue.length - 1;
@@ -4410,8 +4539,53 @@ async function checkNeteaseApi() {
         if (!data?.ok) throw new Error('ping-fail');
         return true;
     } catch {
-        neteaseSearchStatus.textContent = '搜索接口未就绪。请运行 scripts/start-local-preview.bat 启动本地预览。';
+        const isLocal = /localhost|127\.0\.0\.1/.test(window.location.hostname);
+        neteaseSearchStatus.textContent = isLocal
+            ? '搜索接口未就绪。请运行 scripts/start-local-preview.bat 启动本地预览。'
+            : '网易云接口暂时不可用，请稍后再试，或在设置里重新登录网易云。';
         return false;
+    }
+}
+
+async function playNeteaseFromPlaylist(song, playlistSongs, playlist) {
+    if (song.playable === false) {
+        if (neteaseSearchStatus) neteaseSearchStatus.textContent = '这首歌暂时播不了，可能需要会员或有版权限制';
+        return;
+    }
+    try {
+        if (song.playable == null) {
+            const playable = await ensureNeteaseSongPlayable(song);
+            if (playable === false) {
+                if (neteaseSearchStatus) neteaseSearchStatus.textContent = '这首歌暂时播不了，可能需要会员或有版权限制';
+                return;
+            }
+        }
+
+        const entries = (playlistSongs || []).map(neteaseSongToPlaylistEntry);
+        if (!entries.length) return;
+
+        neteaseQueue = entries;
+        persistNeteaseQueue();
+        activeNeteasePlaylistId = playlist?.id ?? null;
+        void loadNeteaseLyrics(song.id);
+
+        playHistory = [];
+        toggleNeteaseDrawer(false);
+        toggleSonicSettingsDrawer(false);
+        togglePlaylist(true);
+        await window.__syncNeteasePlaylistDrawer?.(activeNeteasePlaylistId, { songs: playlistSongs });
+
+        let index = neteaseQueue.findIndex((item) => item.neteaseId === song.id);
+        if (index < 0) {
+            neteaseQueue.unshift(neteaseSongToPlaylistEntry(song));
+            persistNeteaseQueue();
+            index = 0;
+        }
+        await playNeteaseAt(index, false);
+        if (!isPlaying) await togglePlay();
+        renderNeteaseQueue();
+    } catch {
+        if (neteaseSearchStatus) neteaseSearchStatus.textContent = '这首歌暂时播不了，换一首试试';
     }
 }
 
@@ -4432,6 +4606,7 @@ async function playNeteaseSong(song) {
         }
         const queueIndex = findNeteaseQueueIndex(song.id);
         playHistory = [];
+        activeNeteasePlaylistId = null;
         togglePlaylist(false);
         if (queueIndex >= 0) {
             await playNeteaseAt(queueIndex, false);
@@ -5340,6 +5515,7 @@ async function playLocalAt(index, pushHistory = false) {
     }
     playbackSource = 'local';
     neteasePreviewSong = null;
+    activeNeteasePlaylistId = null;
     currentSongIndex = index;
     lastLocalIndex = index;
     await playEntry(songs[index], { pushHistory: false });
@@ -5360,11 +5536,13 @@ async function playNeteaseAt(index, pushHistory = false) {
     currentSongIndex = index;
     await playEntry(song, { pushHistory: false });
     renderNeteaseQueue();
+    window.__refreshPlaylistsDrawer?.();
 }
 
 async function playNeteasePreview(song) {
     playbackSource = 'preview';
     neteasePreviewSong = neteaseSongToPlaylistEntry(song);
+    activeNeteasePlaylistId = null;
     void loadNeteaseLyrics(song.id);
     await playEntry(neteasePreviewSong, { pushHistory: false });
     renderNeteaseResults();
@@ -5374,6 +5552,15 @@ async function playNeteasePreview(song) {
 window.__shilokuPlayNeteaseCloudSong = async (song) => {
     await playNeteaseSong(song);
 };
+
+window.__shilokuPlayNeteaseFromPlaylist = playNeteaseFromPlaylist;
+
+window.__shilokuGetPlaylistPlaybackState = () => ({
+    source: playbackSource === 'local' ? 'local' : playbackSource,
+    index: playbackSource === 'local' ? currentSongIndex : -1,
+    neteaseId: getCurrentSong()?.neteaseId ?? null,
+    playlistId: activeNeteasePlaylistId,
+});
 
 async function playSongAt(index, pushHistory = false) {
     await playLocalAt(index, pushHistory);
@@ -5885,7 +6072,7 @@ import { initSonicTopographyViz } from './scripts/sonic-topography-viz.js?v=2026
 import { initSonicSettingsPanel } from './scripts/sonic-settings-panel.js?v=20260624u';
 import { initSonicMusicExtras } from './scripts/sonic-music-extras.js?v=20260624n';
 import { checkNeteaseCookie, initNeteaseCookieAutoSync, syncNeteaseCookie } from './scripts/sonic-netease-api.js?v=20260624u';
-import { initSonicNeteasePlaylists } from './scripts/sonic-netease-playlists.js?v=20260624y';
+import { initSonicNeteasePlaylists } from './scripts/sonic-netease-playlists.js?v=20260624ac';
 
 window.checkNeteaseCookie = checkNeteaseCookie;
 
@@ -5914,6 +6101,7 @@ try {
     initSonicNeteasePlaylists({
         drawer: document.getElementById('playlist-drawer'),
         onPlaySong: (song) => window.__shilokuPlayNeteaseCloudSong?.(song),
+        onPlayPlaylistSong: (song, ctx) => window.__shilokuPlayNeteaseFromPlaylist?.(song, ctx?.songs, ctx?.playlist),
         getLocalSongs: () => songs
             .map((song, index) => ({ song, index }))
             .filter(({ song }) => isLocalPlaylistSong(song)),
@@ -5923,10 +6111,12 @@ try {
             await playLocalAt(index, false);
             if (!isPlaying) await togglePlay();
         },
-        getPlaybackState: () => ({
-            source: playbackSource === 'local' ? 'local' : playbackSource,
-            index: playbackSource === 'local' ? currentSongIndex : -1,
-        }),
+        getPlaybackState: () => window.__shilokuGetPlaylistPlaybackState?.() ?? {
+            source: 'local',
+            index: -1,
+            neteaseId: null,
+            playlistId: null,
+        },
     });
     initSonicMusicExtras({
         musicRoom: document.getElementById('music-room'),

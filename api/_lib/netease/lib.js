@@ -409,6 +409,7 @@ export async function fetchUserPlaylists(cookie) {
         id: playlist.id,
         name: playlist.name || '',
         trackCount: playlist.trackCount || 0,
+        cover: playlist.coverImgUrl || playlist.picUrl || '',
     }));
     return { valid: true, playlists, account };
 }

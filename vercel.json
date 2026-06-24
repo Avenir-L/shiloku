@@ -1,5 +1,11 @@
 {
   "ignoreCommand": "bash -c 'files=$(git diff --name-only HEAD^ HEAD 2>/dev/null | tr -d \"\\r\" | grep -v \"^$\" | sort); if [ \"$files\" = \"status.json\" ]; then exit 0; else exit 1; fi'",
+  "rewrites": [
+    {
+      "source": "/api/netease/:path*",
+      "destination": "/api/netease?path=:path*"
+    }
+  ],
   "headers": [
     {
       "source": "/status.json",
