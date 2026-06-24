@@ -648,6 +648,11 @@ body.music-room-open .aether-lyrics-inner {
 
 .aether-player-head {
     position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    gap: 4px 10px;
+    align-items: start;
     margin-bottom: 12px;
     padding-bottom: 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -668,6 +673,8 @@ body.music-room-open .aether-player {
 
 #aether-song-title,
 #song-title {
+    grid-column: 1;
+    grid-row: 1;
     font-size: 15px;
     font-weight: 400;
     letter-spacing: 0.08em;
@@ -675,16 +682,23 @@ body.music-room-open .aether-player {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin: 0 0 4px;
+    margin: 0;
+    min-width: 0;
 }
 
 #aether-song-meta,
 #song-artist {
+    grid-column: 1;
+    grid-row: 2;
     font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 0.18em;
     color: rgba(148, 163, 184, 0.5);
     margin: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .aether-progress-row {
@@ -1731,14 +1745,11 @@ body.music-room-open .aether-stats {
     transform: translateY(12px);
 }
 
-.aether-player-head {
-    position: relative;
-}
-
 .aether-theme-cycle-btn {
-    position: absolute;
-    top: 0;
-    right: 0;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: start;
+    flex-shrink: 0;
     border: 1px solid rgba(255, 255, 255, 0.18);
     background: rgba(255, 255, 255, 0.06);
     color: rgba(255, 255, 255, 0.72);

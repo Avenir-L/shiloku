@@ -320,9 +320,14 @@ class SonicAudioAnalyzer {
     this.audioEl = audioEl;
     this.audioCtx = null;
     this.analyser = null;
+    this.gainNode = null;
     this.inputNode = null;
     this.outputConnected = false;
+    this.gainToAnalyserConnected = false;
     this.sourceReady = false;
+    this.outputHijacked = false;
+    this.silenceNativeOutput = false;
+    this.outputGain = 0.25;
     this.dataArray = new Uint8Array(512);
     this.wallpaperAudioActiveUntil = 0;
     this.prevData = new Array(512).fill(0);
@@ -344,9 +349,24 @@ class SonicAudioAnalyzer {
   }
 
   resetPipeline() {
-    this.inputNode = null;
-    this.outputConnected = false;
     this.sourceReady = false;
+  }
+
+  hijackElementOutput({ muteNative = false } = {}) {
+    if (!this.audioEl) return;
+    this.outputHijacked = true;
+    if (muteNative) {
+      this.audioEl.muted = true;
+      this.silenceNativeOutput = true;
+    }
+  }
+
+  setOutputVolume(volume) {
+    const gain = Math.min(1, Math.max(0, Number(volume) || 0));
+    this.outputGain = gain;
+    if (this.gainNode) {
+      this.gainNode.gain.value = gain;
+    }
   }
 
   connect() {
@@ -361,7 +381,17 @@ class SonicAudioAnalyzer {
         this.analyser.smoothingTimeConstant = 0.55;
         this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
       }
+      if (!this.gainNode) {
+        this.gainNode = this.audioCtx.createGain();
+        this.gainNode.gain.value = this.outputGain;
+      }
+      if (!this.gainToAnalyserConnected) {
+        this.gainNode.connect(this.analyser);
+        this.gainToAnalyserConnected = true;
+      }
+      let muteNative = this.silenceNativeOutput;
       if (!this.inputNode) {
+        muteNative = false;
         try {
           this.inputNode = this.audioCtx.createMediaElementSource(this.audioEl);
         } catch (error) {
@@ -376,13 +406,16 @@ class SonicAudioAnalyzer {
           const stream = streamFactory.call(this.audioEl);
           if (!stream) return false;
           this.inputNode = this.audioCtx.createMediaStreamSource(stream);
+          muteNative = true;
         }
-        this.inputNode.connect(this.analyser);
+        this.inputNode.connect(this.gainNode);
       }
       if (!this.outputConnected) {
         this.analyser.connect(this.audioCtx.destination);
         this.outputConnected = true;
       }
+      this.hijackElementOutput({ muteNative });
+      this.gainNode.gain.value = this.outputGain;
       this.sourceReady = true;
       return true;
     } catch (error) {
@@ -397,6 +430,7 @@ class SonicAudioAnalyzer {
       this.connect();
     }
     this.resume();
+    window.__shilokuSyncVolume?.();
   }
 
   resume() {
@@ -757,8 +791,8 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
       uAir: { value: 0 },
       uWarmth: { value: 0 },
       uBrightness: { value: 0 },
-      uSparkleActive: { value: 0 },
       uSharpness: { value: 0 },
+      uSparkleActive: { value: 0 },
       uBaseColor1: { value: targetTheme.uBaseColor1.clone() },
       uBaseColor2: { value: targetTheme.uBaseColor2.clone() },
       uCoolCore: { value: targetTheme.uCoolCore.clone() },
@@ -1213,8 +1247,8 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
     setAudioUniform('uAir', eqAir);
     setAudioUniform('uWarmth', Math.max(0, Math.min(1, (eqSubBass + eqBass + eqLowMid + eqMid) / eqDenom)));
     setAudioUniform('uBrightness', Math.max(0, Math.min(1, (eqPresence + eqBrilliance + eqAir) / eqDenom)));
-    mat.uSparkleActive.value = playing ? 1 : 0;
     setAudioUniform('uSharpness', data.sharpness * volReact);
+    mat.uSparkleActive.value = playing ? 1 : 0;
     mat.uIdleMix.value = THREE.MathUtils.lerp(
       mat.uIdleMix.value,
       playing ? 0.38 : 1.0,
@@ -1283,6 +1317,7 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
   const onAudioStart = () => {
     analyzer.clearVisualRelease();
     analyzer.ensureReady();
+    window.__shilokuSyncVolume?.();
   };
   const onAudioPause = () => {
     analyzer.beginVisualRelease();
@@ -1313,6 +1348,9 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
     analyzer,
     testRipple: () => addRipple(0, 0, 2.5),
     ensureAudio,
+    setOutputVolume: (volume) => analyzer.setOutputVolume(volume),
+    isOutputHijacked: () => analyzer.outputHijacked,
+    needsNativeMute: () => analyzer.silenceNativeOutput,
     getRawFrequencyData: () => analyzer.getRawFrequencyData(),
     getGroundEqSettings: () => ({ ...groundEqSettings, curve: [...groundEqSettings.curve] }),
     setGroundEqSettings,

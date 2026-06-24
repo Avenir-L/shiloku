@@ -12,7 +12,7 @@
     <link rel="icon" href="favicon.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Serif+JP:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css">
-    <link rel="stylesheet" href="aether-music.css?v=20260624aa">
+    <link rel="stylesheet" href="aether-music.css?v=20260624ab">
     <link rel="stylesheet" href="site-extensions.css">
     <script type="module" src="scripts/site-extensions.js?v=20260624m"></script>
     <script type="importmap">
@@ -4724,6 +4724,7 @@ async function applySongAudioSrc(song) {
     });
 
     updateProgressUI();
+    applyVolumeFromSlider(volumeSlider?.value ?? 1);
     window.__shilokuViz?.ensureAudio?.();
     return ready;
 }
@@ -5171,6 +5172,7 @@ function pauseAudioForLyricScrub() {
 function resumeAudioAfterLyricScrub() {
     if (!lyricScrubPausedForDrag) return;
     if (lyricScrubWasPlaying) {
+        applyVolumeFromSlider(volumeSlider?.value ?? 1);
         audio.play().catch(() => {});
         markMusicPlaying();
         window.shilokuStartListen?.();
@@ -5475,13 +5477,13 @@ async function playEntry(song, { pushHistory = false } = {}) {
 
     if (shouldPlay && song) {
         stopVolumeFade();
-        applyVolumeFromSlider(volumeSlider.value);
         const loaded = await applySongAudioSrc(song);
         if (!loaded) {
             isPlaying = false;
             setMainPlayState(false);
             return;
         }
+        applyVolumeFromSlider(volumeSlider.value);
         try {
             await audio.play();
             window.__shilokuViz?.ensureAudio?.();
@@ -5964,7 +5966,7 @@ function togglePlaylist(open) {
 
 // ======= 音量条与列表弹窗控制 =======
 const VOLUME_UI_MAX = 1;
-const VOLUME_OUTPUT_MAX = 0.5;
+const VOLUME_OUTPUT_MAX = 0.25;
 const PAUSE_FADE_MS = 600;
 const volumeSlider = document.getElementById('volume-slider');
 const volumeValue = document.getElementById('volume-value');
@@ -5977,8 +5979,8 @@ function updateVolumeLabel() {
 
 updateVolumeLabel();
 
-function getTargetOutputVolume() {
-    const clamped = Math.min(VOLUME_UI_MAX, Math.max(0, Number(volumeSlider?.value) || 0));
+function getTargetOutputVolume(uiValue = volumeSlider?.value) {
+    const clamped = Math.min(VOLUME_UI_MAX, Math.max(0, Number(uiValue) || 0));
     return clamped * VOLUME_OUTPUT_MAX;
 }
 
@@ -5996,6 +5998,7 @@ function fadeAudioVolume({ from, to, durationMs, onComplete }) {
         const progress = Math.min(1, (now - startAt) / durationMs);
         const eased = 1 - Math.pow(1 - progress, 2);
         audio.volume = from + (to - from) * eased;
+        window.__shilokuViz?.setOutputVolume?.(audio.volume);
         if (progress < 1) {
             volumeFadeRafId = requestAnimationFrame(step);
             return;
@@ -6007,7 +6010,7 @@ function fadeAudioVolume({ from, to, durationMs, onComplete }) {
 }
 
 function pauseWithFade() {
-    const from = audio.volume;
+    const from = getTargetOutputVolume();
     const restoreVolume = getTargetOutputVolume();
     return new Promise((resolve) => {
         fadeAudioVolume({
@@ -6017,6 +6020,7 @@ function pauseWithFade() {
             onComplete: () => {
                 audio.pause();
                 audio.volume = restoreVolume;
+                window.__shilokuViz?.setOutputVolume?.(restoreVolume);
                 resolve();
             },
         });
@@ -6025,8 +6029,18 @@ function pauseWithFade() {
 
 function applyVolumeFromSlider(uiValue) {
     stopVolumeFade();
-    audio.volume = getTargetOutputVolume();
+    const volume = getTargetOutputVolume(uiValue);
+    if (window.__shilokuViz?.isOutputHijacked?.()) {
+        audio.muted = Boolean(window.__shilokuViz?.needsNativeMute?.());
+        window.__shilokuViz.setOutputVolume(volume);
+        return;
+    }
+    audio.muted = false;
+    audio.volume = volume;
+    window.__shilokuViz?.setOutputVolume?.(volume);
 }
+
+window.__shilokuSyncVolume = () => applyVolumeFromSlider(volumeSlider?.value);
 
 applyVolumeFromSlider(volumeSlider.value);
 
@@ -6068,7 +6082,7 @@ window.addEventListener('DOMContentLoaded', initPlayer);
 </script>
 
 <script type="module">
-import { initSonicTopographyViz } from './scripts/sonic-topography-viz.js?v=20260624z';
+import { initSonicTopographyViz } from './scripts/sonic-topography-viz.js?v=20260625vol5';
 import { initSonicSettingsPanel } from './scripts/sonic-settings-panel.js?v=20260624u';
 import { initSonicMusicExtras } from './scripts/sonic-music-extras.js?v=20260624n';
 import { checkNeteaseCookie, initNeteaseCookieAutoSync, syncNeteaseCookie } from './scripts/sonic-netease-api.js?v=20260624u';
@@ -6090,6 +6104,9 @@ try {
             energy: { value: 'stat-energy', bar: 'stat-energy-bar' },
         },
     });
+    if (typeof applyVolumeFromSlider === 'function') {
+        applyVolumeFromSlider(document.getElementById('volume-slider')?.value ?? 1);
+    }
     initSonicSettingsPanel({
         mount: document.getElementById('sonic-settings-drawer'),
         onClosePanels: () => {
