@@ -72,8 +72,30 @@ class PreviewHandler(SimpleHTTPRequestHandler):
         except OSError as e:
             self._json(500, {"error": f"写入失败: {e}"})
 
+    def do_PUT(self):
+        parsed = urlparse(self.path)
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length) if length else b"{}"
+        try:
+            payload = json.loads(body.decode("utf-8"))
+        except json.JSONDecodeError:
+            self._json(400, {"error": "请求格式错误"})
+            return
+
+        if parsed.path == "/api/netease/cookie":
+            cookie = netease_api.set_runtime_cookie(payload.get("cookie") or "")
+            self._json(200, netease_api.validate_cookie(cookie))
+            return
+
+        self.send_error(404)
+
     def do_GET(self):
         parsed = urlparse(self.path)
+        if parsed.path in ("/shiloku", "/shiloku/", "/shiloku/index.html"):
+            self.send_response(302)
+            self.send_header("Location", "/index.html")
+            self.end_headers()
+            return
         if parsed.path == "/api/status":
             self._handle_status()
             return
@@ -174,6 +196,13 @@ class PreviewHandler(SimpleHTTPRequestHandler):
             self._handle_guestbook_post(payload)
             return
 
+        if urlparse(self.path).path == "/api/netease/cookie-refresh":
+            try:
+                self._json(200, netease_api.refresh_cookie(self._request_cookie()))
+            except Exception as e:
+                self._json(500, {"error": f"续期失败: {e}"})
+            return
+
         if self.path != "/api/chat":
             self.send_error(404)
             return
@@ -244,8 +273,12 @@ class PreviewHandler(SimpleHTTPRequestHandler):
 
     def _cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Range")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Range, X-Netease-Cookie")
+
+    def _request_cookie(self):
+        header = self.headers.get("X-Netease-Cookie") or self.headers.get("x-netease-cookie") or ""
+        return netease_api.resolve_request_cookie(header)
 
     def _handle_netease_get(self, parsed):
         query = parse_qs(parsed.query)
@@ -324,6 +357,76 @@ class PreviewHandler(SimpleHTTPRequestHandler):
 
             if action == "listen-stats":
                 self._json(200, netease_api.listen_stats())
+                return
+
+            if action == "cookie":
+                self._json(200, netease_api.validate_cookie(self._request_cookie()))
+                return
+
+            if action == "cookie-bootstrap":
+                self._json(200, netease_api.bootstrap_cookie())
+                return
+
+            if action == "qr-login":
+                qr_action = (query.get("action") or ["create"])[0].strip()
+                if qr_action == "create":
+                    try:
+                        self._json(200, netease_api.qr_login_create())
+                    except Exception as e:
+                        self._json(500, {"error": str(e)})
+                    return
+                if qr_action == "check":
+                    key = (query.get("key") or [""])[0].strip()
+                    if not key:
+                        self._json(400, {"error": "缺少 key"})
+                        return
+                    try:
+                        self._json(200, netease_api.qr_login_check(key))
+                    except Exception as e:
+                        self._json(500, {"error": str(e)})
+                    return
+                self._json(400, {"error": "未知 action"})
+                return
+
+            if action == "liked":
+                result = netease_api.fetch_liked_songs(self._request_cookie(), int((query.get("limit") or ["50"])[0]))
+                if not result.get("valid"):
+                    self._json(401, {"error": "Netease cookie is invalid or expired", "songs": []})
+                    return
+                self._json(200, result)
+                return
+
+            if action == "daily-recommend":
+                result = netease_api.fetch_daily_recommend(self._request_cookie(), int((query.get("limit") or ["50"])[0]))
+                if not result.get("valid"):
+                    self._json(401, {"error": "Netease cookie is invalid or expired", "songs": []})
+                    return
+                self._json(200, result)
+                return
+
+            if action == "playlists":
+                result = netease_api.fetch_user_playlists(self._request_cookie())
+                if not result.get("valid"):
+                    self._json(401, {"error": "Netease cookie is invalid or expired", "playlists": []})
+                    return
+                playlists = result.get("playlists") or []
+                self._json(200, {"playlists": playlists[1:] if len(playlists) > 1 else []})
+                return
+
+            if action == "playlist":
+                playlist_id = (query.get("id") or [""])[0].strip()
+                if not playlist_id:
+                    self._json(400, {"error": "缺少歌单 id"})
+                    return
+                if not netease_api.fetch_account_with_cookie(self._request_cookie()):
+                    self._json(401, {"error": "Netease cookie is invalid or expired", "songs": []})
+                    return
+                songs = netease_api.fetch_playlist_songs(
+                    playlist_id,
+                    self._request_cookie(),
+                    int((query.get("limit") or ["50"])[0]),
+                )
+                self._json(200, {"songs": songs})
                 return
 
             self._json(404, {"error": "接口不存在"})

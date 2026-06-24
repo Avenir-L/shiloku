@@ -290,3 +290,234 @@ def listen_stats():
         "officialTodayAvailable": False,
         "officialMonthAvailable": False,
     }
+
+
+_runtime_cookie = ""
+
+
+def set_runtime_cookie(raw):
+    global _runtime_cookie
+    cookie = str(raw or "").strip()
+    if not cookie:
+        _runtime_cookie = ""
+        return ""
+    if cookie.startswith("# Netscape") or "\t" in cookie:
+        parts = []
+        for line in cookie.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            cols = line.split("\t")
+            if len(cols) >= 7 and cols[5]:
+                parts.append(f"{cols[5]}={cols[6]}")
+        cookie = "; ".join(parts)
+    _runtime_cookie = cookie
+    try:
+        with open(_COOKIE_FILE, "w", encoding="utf-8") as f:
+            f.write(cookie)
+    except OSError:
+        pass
+    return cookie
+
+
+def _cookie_header_with(raw_cookie=None):
+    cookie = str(raw_cookie or _runtime_cookie or os.environ.get("NETEASE_COOKIE", "")).strip()
+    if not cookie and os.path.isfile(_COOKIE_FILE):
+        try:
+            with open(_COOKIE_FILE, encoding="utf-8") as f:
+                cookie = f.read().strip()
+        except OSError:
+            cookie = ""
+    if not cookie:
+        return {}
+    if cookie.startswith("# Netscape") or "\t" in cookie:
+        parts = []
+        for line in cookie.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            cols = line.split("\t")
+            if len(cols) >= 7 and cols[5]:
+                parts.append(f"{cols[5]}={cols[6]}")
+        cookie = "; ".join(parts)
+    return {"Cookie": cookie}
+
+
+def _fetch_json_with_cookie(url, cookie="", method="GET", data=None):
+    headers = dict(NETEASE_HEADERS)
+    headers.update(_cookie_header_with(cookie))
+    body = None
+    if data is not None:
+        body = urllib.parse.urlencode(data).encode("utf-8")
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+    req = urllib.request.Request(url, data=body, headers=headers, method=method)
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def validate_cookie(cookie=""):
+    header = _cookie_header_with(cookie)
+    if not header.get("Cookie"):
+        return {"hasCookie": False, "valid": False, "userId": None, "nickname": ""}
+    account = fetch_account_with_cookie(cookie)
+    if not account:
+        return {"hasCookie": True, "valid": False, "userId": None, "nickname": ""}
+    return {
+        "hasCookie": True,
+        "valid": True,
+        "userId": account.get("id"),
+        "nickname": account.get("nickname") or "",
+    }
+
+
+def fetch_account_with_cookie(cookie=""):
+    data = _fetch_json_with_cookie("https://music.163.com/api/nuser/account/get", cookie)
+    account = data.get("account") or {}
+    if data.get("code") != 200 or not account.get("id"):
+        return None
+    return account
+
+
+def _map_song(song):
+    album = song.get("album") or {}
+    artists = song.get("artists") or song.get("ar") or []
+    return {
+        "id": song.get("id"),
+        "name": song.get("name") or "",
+        "artist": " / ".join(a.get("name", "") for a in artists if a.get("name")),
+        "album": album.get("name") or "",
+        "cover": album.get("picUrl") or album.get("blurPicUrl") or song.get("picUrl") or "",
+        "duration": song.get("duration") or song.get("dt") or 0,
+        "fee": song.get("fee"),
+    }
+
+
+def fetch_user_playlists(cookie=""):
+    account = fetch_account_with_cookie(cookie)
+    if not account:
+        return {"valid": False, "playlists": []}
+    uid = account.get("id")
+    data = _fetch_json_with_cookie(
+        f"https://music.163.com/api/user/playlist?uid={urllib.parse.quote(str(uid))}&limit=100&offset=0",
+        cookie,
+    )
+    playlists = []
+    for item in data.get("playlist") or []:
+        playlists.append({
+            "id": item.get("id"),
+            "name": item.get("name") or "",
+            "trackCount": item.get("trackCount") or 0,
+        })
+    return {"valid": True, "playlists": playlists}
+
+
+def fetch_playlist_songs(playlist_id, cookie="", result_limit=50):
+    limit = max(1, min(int(result_limit or 50), 80))
+    data = _fetch_json_with_cookie(
+        f"https://music.163.com/api/v6/playlist/detail?id={urllib.parse.quote(str(playlist_id))}&n={limit * 2}",
+        cookie,
+    )
+    tracks = ((data.get("playlist") or {}).get("tracks")) or []
+    raw = [_map_song(track) for track in tracks]
+    return filter_playable(raw, limit)
+
+
+def fetch_liked_songs(cookie="", result_limit=50):
+    payload = fetch_user_playlists(cookie)
+    if not payload.get("valid") or not payload.get("playlists"):
+        return {"valid": False, "songs": [], "playlist": None}
+    liked = payload["playlists"][0]
+    songs = fetch_playlist_songs(liked["id"], cookie, result_limit)
+    return {"valid": True, "songs": songs, "playlist": liked}
+
+
+def fetch_daily_recommend(cookie="", result_limit=50):
+    if not fetch_account_with_cookie(cookie):
+        return {"valid": False, "songs": []}
+    data = _fetch_json_with_cookie("https://music.163.com/api/v3/discovery/recommend/songs", cookie)
+    raw_items = ((data.get("data") or {}).get("dailySongs")) or data.get("recommend") or []
+    raw = [_map_song(item) for item in raw_items]
+    return {"valid": True, "songs": filter_playable(raw, max(1, min(int(result_limit or 50), 80)))}
+
+
+def resolve_request_cookie(header_cookie=""):
+    cookie = str(header_cookie or "").strip()
+    if cookie:
+        return cookie
+    if _runtime_cookie:
+        return _runtime_cookie
+    header = _cookie_header_with()
+    return header.get("Cookie", "")
+
+
+def _run_node_qr(action, *args):
+    import subprocess
+
+    cli = os.path.join(os.path.dirname(__file__), "netease-qr-cli.mjs")
+    cmd = ["node", cli, action, *args]
+    completed = subprocess.run(cmd, capture_output=True, text=True, timeout=45, check=False)
+    text = (completed.stdout or completed.stderr or "").strip()
+    if not text:
+        raise RuntimeError("扫码服务无响应，请确认已安装 Node.js")
+    data = json.loads(text.splitlines()[-1])
+    if data.get("error"):
+        raise RuntimeError(data["error"])
+    return data
+
+
+def qr_login_create():
+    return _run_node_qr("create")
+
+
+def qr_login_check(key):
+    result = _run_node_qr("check", str(key or ""))
+    cookie = str(result.get("cookie") or "").strip()
+    if cookie:
+        set_runtime_cookie(cookie)
+    payload = {
+        "code": result.get("code"),
+        "message": result.get("message") or "",
+        "hasCookie": bool(cookie),
+    }
+    if result.get("code") == 803:
+        payload["expired"] = True
+    if result.get("code") == 801:
+        payload["waiting"] = True
+    if result.get("code") == 802:
+        payload["scanned"] = True
+    if result.get("code") == 800 and cookie:
+        account = validate_cookie(cookie)
+        payload.update({
+            "cookie": cookie,
+            "valid": account.get("valid"),
+            "nickname": account.get("nickname") or "",
+            "userId": account.get("userId"),
+        })
+    return payload
+
+
+def refresh_cookie(cookie=""):
+    resolved = resolve_request_cookie(cookie)
+    if not resolved:
+        return {"hasCookie": False, "valid": False, "cookie": ""}
+    result = _run_node_qr("refresh", resolved)
+    next_cookie = str(result.get("cookie") or resolved).strip()
+    set_runtime_cookie(next_cookie)
+    account = validate_cookie(next_cookie)
+    return {
+        **account,
+        "cookie": next_cookie,
+        "refreshCode": result.get("code"),
+    }
+
+
+def bootstrap_cookie():
+    header = _cookie_header_with()
+    cookie = header.get("Cookie", "")
+    if not cookie:
+        return {"hasCookie": False, "valid": False, "cookie": ""}
+    account = validate_cookie(cookie)
+    return {
+        **account,
+        "cookie": cookie if account.get("valid") else "",
+    }

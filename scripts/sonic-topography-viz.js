@@ -1,5 +1,34 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { applyGroundEqValue, readGroundEqSettingsStorage, writeGroundEqSettingsStorage } from './sonic/ground-eq.js';
+import {
+  applyStoredTriggerConfig,
+  readTriggerSettingsStorage,
+  snapshotTriggerConfig,
+  writeTriggerSettingsStorage,
+} from './sonic/trigger-settings.js';
+import {
+  BUILT_IN_THEME_IDS,
+  CUSTOM_THEME_ID,
+  cycleThemeId,
+  readActiveCustomThemeStorage,
+  readActiveThemeStorage,
+  readCustomThemeStorage,
+  readThemeRotationStorage,
+  resolveThemeVisual,
+  writeActiveCustomThemeStorage,
+  writeActiveThemeStorage,
+  writeCustomThemeStorage,
+  writeThemeRotationStorage,
+} from './sonic/themes.js';
+import {
+  applyVizBackgroundSettings,
+  buildCustomPalette,
+  extractPaletteFromCoverUrl,
+  readVizBackgroundStorage,
+  VIZ_BG_MODE_FOLLOW_SONG,
+  writeVizBackgroundStorage,
+} from './sonic/viz-background.js';
 
 const VIZ_MAX_DELTA = 1 / 24;
 
@@ -22,16 +51,6 @@ function getVizDeviceProfile() {
   };
 }
 
-const NOCTURNAL = {
-  uBaseColor1: new THREE.Color(0.01, 0.02, 0.04),
-  uBaseColor2: new THREE.Color(0.03, 0.05, 0.09),
-  uCoolCore: new THREE.Color(0.0, 0.3, 1.0),
-  uCoolEdge: new THREE.Color(0.6, 0.2, 1.0),
-  uWarmCore: new THREE.Color(1.0, 0.2, 0.1),
-  uWarmEdge: new THREE.Color(1.0, 0.6, 0.0),
-  uRippleColor: new THREE.Color(0.2, 0.9, 1.0),
-  uGlowIntensity: 0.9,
-};
 
 const VERTEX_SHADER = `
 #include <common>
@@ -48,6 +67,7 @@ uniform float uHighMid;
 uniform float uSmoothness;
 uniform float uDensity;
 uniform float uEnergy;
+uniform float uIdleMix;
 uniform vec2 uRipplePos[10];
 uniform float uRippleTime[10];
 uniform float uRippleStrength[10];
@@ -90,33 +110,32 @@ void main() {
   vInstancePos = pos2D;
   float centerDist = length(pos2D);
   vDistance = centerDist;
-  float rnd = random(pos2D);
 
   vec2 movingPos = pos2D * 0.05 + vec2(uTime * 0.1, uTime * 0.05);
   float baseNoise = (snoise(movingPos) + 1.0) * 0.5;
   float wave = sin(pos2D.x * 0.15 + pos2D.y * 0.1 - uTime * 0.6) * 0.5 + 0.5;
   float globalFalloff = smoothstep(60.0, 30.0, centerDist);
-  float idleElevation = mix(baseNoise, wave, uSmoothness * 0.5 + 0.2) * 0.8 * globalFalloff;
+  float idleElevation = mix(baseNoise, wave, uSmoothness * 0.5 + 0.2) * 0.95 * globalFalloff;
 
   float subRegion = smoothstep(25.0, 0.0, centerDist);
-  float subLift = uSubBass * subRegion * 5.0;
+  float subLift = uSubBass * subRegion * 5.5;
   float bassNoise = snoise(pos2D * 0.1 - vec2(0.0, uTime * 0.2));
   float bassRegion = smoothstep(35.0, 5.0, centerDist + bassNoise * 5.0);
-  float bassLift = uBass * bassRegion * (smoothstep(0.0, 1.0, rnd + uDensity * 0.5)) * 4.0;
+  float bassMask = snoise(pos2D * 0.11 + vec2(uTime * 0.18, uTime * 0.12));
+  float bassLift = uBass * bassRegion * smoothstep(0.12, 0.88, bassMask * 0.5 + 0.5 + uDensity * 0.25) * 4.5;
   float lowMidNoise = snoise(pos2D * 0.05 + vec2(uTime * 0.1, 0.0));
-  float lowMidLift = uLowMid * (lowMidNoise * 0.5 + 0.5) * 2.5;
+  float lowMidLift = uLowMid * (lowMidNoise * 0.5 + 0.5) * 2.8;
   float riverFlow = sin(pos2D.x * 0.2 + pos2D.y * 0.2 + snoise(pos2D * 0.1) * 2.0 - uTime * 2.0);
-  float midLift = uMid * max(0.0, riverFlow) * 3.0;
+  float midLift = uMid * max(0.0, riverFlow) * 3.2;
   float highMidRegion = smoothstep(10.0, 45.0, centerDist);
-  float highMidLift = 0.0;
-  if (fract(rnd * 13.3) > 0.8) {
-    highMidLift = uHighMid * highMidRegion * fract(rnd * 7.7) * 2.5;
-  }
+  float highMidPick = snoise(pos2D * 0.14 + vec2(uTime * 0.33, uTime * 0.21));
+  float highMidLift = uHighMid * highMidRegion * smoothstep(0.42, 0.96, highMidPick) * 2.5;
 
   float audioElevation = subLift + bassLift + lowMidLift + midLift + highMidLift;
-  if (rnd > 0.991) audioElevation += uEnergy * 5.0;
+  float spikeField = snoise(pos2D * 0.16 + vec2(uTime * 0.42, -uTime * 0.36));
+  audioElevation += smoothstep(0.78, 0.98, spikeField) * uEnergy * 5.5;
   audioElevation *= globalFalloff;
-  float elevation = idleElevation + audioElevation;
+  float elevation = idleElevation * uIdleMix + audioElevation;
 
   float rippleElevation = 0.0;
   float rippleIntensityNormal = 0.0;
@@ -135,8 +154,8 @@ void main() {
       if (uRippleType[i] > 0.5) {
         curSpeed = 20.0;
         curWidth = 1.0;
-        curFadeDist = 8.0;
-        elevationScale = 1.0;
+        curFadeDist = 9.2;
+        elevationScale = 1.15;
       }
       float waveRadius = timeSince * curSpeed;
       float d = dist - waveRadius;
@@ -197,7 +216,6 @@ float random(vec2 st) {
 void main() {
   bool isTop = vNormal.y > 0.5;
   float distFromTop = 1.0 - vRelativeY;
-  float rnd = random(vInstancePos);
   float centerDist = length(vInstancePos);
   float normElevation = clamp(vElevation / 8.0, 0.0, 1.0);
   vec3 cBase1 = uBaseColor1;
@@ -205,12 +223,16 @@ void main() {
   float warmBlend = smoothstep(0.0, 1.0, uWarmth * 1.5 + (0.5 - centerDist/80.0));
   vec3 zoneCore = mix(uCoolCore, uWarmCore, warmBlend);
   vec3 zoneEdge = mix(uCoolEdge, uWarmEdge, warmBlend);
-  vec3 targetGlow = mix(zoneCore, zoneEdge, fract(rnd * 11.0));
+  vec2 colorCell = floor(vInstancePos * 1.15);
+  float rnd = random(colorCell);
+  float colorWave = sin(vInstancePos.x * 0.06 + vInstancePos.y * 0.045) * 0.5 + 0.5;
+  float colorMix = mix(fract(rnd * 9.0), colorWave, 0.28);
+  vec3 targetGlow = mix(zoneCore, zoneEdge, colorMix);
   float distFade = 1.0 - smoothstep(40.0, 75.0, centerDist);
-  targetGlow = mix(targetGlow, vec3(0.4, 0.8, 1.0), uBrightness * 0.6);
+  targetGlow = mix(targetGlow, vec3(0.4, 0.8, 1.0), uBrightness * 0.54);
   vec3 currentGlow = mix(cBase2, targetGlow, normElevation) * uGlowIntensity * distFade;
   currentGlow = mix(currentGlow, uRippleColor, vRippleAnim.x);
-  currentGlow = mix(currentGlow, vec3(1.0, 1.0, 1.0), vRippleAnim.y * 0.9);
+  currentGlow = mix(currentGlow, vec3(1.0, 1.0, 1.0), vRippleAnim.y * 0.78);
   vec3 bodyColor = mix(cBase1, cBase2, vRelativeY * distFade);
   vec3 finalColor;
 
@@ -218,21 +240,21 @@ void main() {
     float topIntensity = smoothstep(0.0, 0.4, normElevation);
     float twinkleDistFalloff = smoothstep(60.0, 30.0, centerDist);
     float twinkleMultiplier = mix(twinkleDistFalloff, 1.0, smoothstep(0.01, 0.1, normElevation));
-    if (fract(rnd * 31.0) > 0.955 && normElevation < 0.1) {
-      topIntensity += uAir * 1.8 * twinkleMultiplier;
+    if (fract(rnd * 31.0) > 0.962 && normElevation < 0.1) {
+      topIntensity += uAir * 1.35 * twinkleMultiplier;
     }
     finalColor = mix(cBase2, currentGlow, topIntensity);
     float edgeX = smoothstep(0.05, 0.01, vUv.x) + smoothstep(0.95, 0.99, vUv.x);
     float edgeY = smoothstep(0.05, 0.01, vUv.y) + smoothstep(0.95, 0.99, vUv.y);
     float edge = min(edgeX + edgeY, 1.0);
-    finalColor += currentGlow * edge * 0.72 * (topIntensity + 0.3);
+    finalColor += currentGlow * edge * 0.64 * (topIntensity + 0.3);
     float flashChance = smoothstep(0.3, 1.0, uPresence);
-    if (fract(rnd * 53.0) > 0.982 - flashChance * 0.09) {
+    if (fract(rnd * 53.0) > 0.984 - flashChance * 0.07) {
       float flashSync = sin(uTime * 36.0 + rnd * 100.0) * 0.5 + 0.5;
-      finalColor += mix(vec3(1.0), vec3(0.5, 1.0, 1.0), rnd) * flashSync * uPresence * (0.9 + uSharpness * 1.8) * twinkleMultiplier;
+      finalColor += mix(vec3(1.0), vec3(0.5, 1.0, 1.0), rnd) * flashSync * uPresence * (0.48 + uSharpness * 0.95) * twinkleMultiplier;
     }
-    if (edge > 0.5 && fract(rnd * 89.0 + uTime * 1.8) > 0.982) {
-      finalColor += vec3(1.0) * uBrilliance * 2.7 * twinkleMultiplier;
+    if (edge > 0.5 && fract(rnd * 89.0 + uTime * 1.8) > 0.984) {
+      finalColor += vec3(1.0) * uBrilliance * 1.28 * twinkleMultiplier;
     }
   } else {
     float verticalFalloff = mix(1.0, 3.0, uSharpness);
@@ -243,11 +265,21 @@ void main() {
     finalColor += currentGlow * rimGlow;
   }
 
-  finalColor += uRippleColor * vRippleAnim.x * 0.54;
-  finalColor += vec3(1.0, 1.0, 1.0) * vRippleAnim.y * 1.08;
+  finalColor += uRippleColor * vRippleAnim.x * 0.38;
+  finalColor += vec3(1.0, 1.0, 1.0) * vRippleAnim.y * 0.55;
   float aerialFog = smoothstep(30.0, 65.0, vDistance);
   vec3 atmosphericColor = mix(cBase1, cBase2, 0.4);
   finalColor = mix(finalColor, atmosphericColor, aerialFog * 0.5);
+
+  float coarse = random(gl_FragCoord.xy * 1.35 + uTime * 0.22) - 0.5;
+  float fine1 = random(gl_FragCoord.xy * 2.4 + uTime * 0.48) - 0.5;
+  float fine2 = random(gl_FragCoord.xy * 5.2 - uTime * 0.3 + vUv * 175.0) - 0.5;
+  float fine3 = random(vInstancePos * 34.0 + vUv * 195.0 + uTime * 1.8) - 0.5;
+  float fine4 = random(gl_FragCoord.xy * 9.0 + vUv * 240.0 - uTime * 0.16) - 0.5;
+  float fineGrain = coarse * 0.2 + fine1 * 0.3 + fine2 * 0.24 + fine3 * 0.16 + fine4 * 0.1;
+  finalColor *= 1.0 + fineGrain * 0.13;
+  finalColor += vec3(fineGrain) * 0.11;
+
   float alphaFade = 1.0 - smoothstep(55.0, 78.0, vDistance);
   gl_FragColor = vec4(finalColor, alphaFade);
 }
@@ -258,6 +290,8 @@ class TriggerConfig {
     this.action = action;
     this.enabled = true;
     this.mode = 'Auto Beat';
+    this.freqIndex = -1;
+    this.threshold = 0.5;
     this.sensitivity = action === 'Meteor' ? 0.477 : 0.159;
     this.cooldown = action === 'Meteor' ? 227 : 56;
     this.bandStart = action === 'Meteor' ? 159 : 0;
@@ -265,10 +299,18 @@ class TriggerConfig {
     this.pulseStrength = action === 'Meteor' ? 0.53 : 0.212;
     this.currentCooldown = 0;
     this.beatHold = 0;
+    this.lastEvalEnergy = 0;
+    this.lastEvalThresh = 0;
     this.fluxHistory = new Array(40).fill(0);
     this.fluxHistoryIndex = 0;
     this.smoothedFlux = 0;
     this.prevSmoothedFlux = 0;
+  }
+
+  getTriggerRange() {
+    if (this.mode === 'Auto Beat') return [this.bandStart, this.bandEnd];
+    const center = this.freqIndex >= 0 ? this.freqIndex : Math.floor(0.2 * 512);
+    return [Math.max(0, center - 2), Math.min(511, center + 2)];
   }
 }
 
@@ -277,8 +319,11 @@ class SonicAudioAnalyzer {
     this.audioEl = audioEl;
     this.audioCtx = null;
     this.analyser = null;
+    this.inputNode = null;
+    this.outputConnected = false;
     this.sourceReady = false;
-    this.dataArray = new Uint8Array(0);
+    this.dataArray = new Uint8Array(512);
+    this.wallpaperAudioActiveUntil = 0;
     this.prevData = new Array(512).fill(0);
     this.prevBrightness = 0;
     this.visualReleaseUntil = 0;
@@ -287,6 +332,9 @@ class SonicAudioAnalyzer {
     this.pulseTrigger = new TriggerConfig('Pulse');
     this.meteorTrigger = new TriggerConfig('Meteor');
     this.onFreqTrigger = null;
+    this.vizBands = {
+      subBass: 0, bass: 0, lowMid: 0, mid: 0, highMid: 0, energy: 0, beat: 0,
+    };
     this.smoothed = {
       bass: 0, mid: 0, treble: 0, energy: 0,
       subBass: 0, lowMid: 0, highMid: 0, presence: 0, brilliance: 0, air: 0,
@@ -294,8 +342,14 @@ class SonicAudioAnalyzer {
     };
   }
 
+  resetPipeline() {
+    this.inputNode = null;
+    this.outputConnected = false;
+    this.sourceReady = false;
+  }
+
   connect() {
-    if (this.sourceReady) return true;
+    if (this.sourceReady && this.inputNode) return true;
     try {
       if (!this.audioCtx) {
         this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -303,27 +357,44 @@ class SonicAudioAnalyzer {
       if (!this.analyser) {
         this.analyser = this.audioCtx.createAnalyser();
         this.analyser.fftSize = 1024;
-        this.analyser.smoothingTimeConstant = 0.8;
+        this.analyser.smoothingTimeConstant = 0.55;
         this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
       }
-      const source = this.audioCtx.createMediaElementSource(this.audioEl);
-      source.connect(this.analyser);
-      this.analyser.connect(this.audioCtx.destination);
+      if (!this.inputNode) {
+        try {
+          this.inputNode = this.audioCtx.createMediaElementSource(this.audioEl);
+        } catch (error) {
+          const message = String(error?.message || error);
+          if (!message.includes('already connected')) throw error;
+          if (!this.isPlaying) return false;
+          const streamFactory = this.audioEl.captureStream || this.audioEl.mozCaptureStream;
+          if (typeof streamFactory !== 'function') {
+            console.warn('[sonic-viz] 音频元素已被占用，无法创建频谱分析');
+            return false;
+          }
+          const stream = streamFactory.call(this.audioEl);
+          if (!stream) return false;
+          this.inputNode = this.audioCtx.createMediaStreamSource(stream);
+        }
+        this.inputNode.connect(this.analyser);
+      }
+      if (!this.outputConnected) {
+        this.analyser.connect(this.audioCtx.destination);
+        this.outputConnected = true;
+      }
       this.sourceReady = true;
       return true;
     } catch (error) {
-      const message = String(error?.message || error);
-      if (message.includes('already connected')) {
-        this.sourceReady = true;
-        return true;
-      }
       console.warn('[sonic-viz] 音频分析器连接失败:', error);
       return false;
     }
   }
 
   ensureReady() {
-    this.connect();
+    if (!this.connect() && this.isPlaying) {
+      this.resetPipeline();
+      this.connect();
+    }
     this.resume();
   }
 
@@ -351,7 +422,34 @@ class SonicAudioAnalyzer {
   evaluateTrigger(config, fluxScore, delta) {
     if (!config.enabled || !this.isPlaying) return;
     const frameStep = delta * 60;
+    const binCount = this.dataArray.length || 512;
+    const [startBin, endBin] = config.getTriggerRange();
+
+    if (config.mode === 'Advanced') {
+      let eVal = 0;
+      if (config.freqIndex >= 0 && config.freqIndex < binCount) {
+        let sum = 0;
+        let count = 0;
+        for (let k = startBin; k <= endBin; k++) {
+          sum += (this.dataArray[k] || 0) / 255;
+          count += 1;
+        }
+        eVal = count ? sum / count : 0;
+        config.lastEvalThresh = config.threshold;
+        if (config.currentCooldown <= 0 && eVal > config.threshold && this.onFreqTrigger) {
+          this.onFreqTrigger(eVal, 'Advanced', config.action);
+          config.currentCooldown = 60;
+        }
+      }
+      config.lastEvalEnergy = eVal;
+    }
+
     if (config.currentCooldown > 0) config.currentCooldown -= frameStep;
+
+    if (config.mode !== 'Auto Beat') {
+      config.prevSmoothedFlux = config.smoothedFlux;
+      return;
+    }
 
     config.smoothedFlux += (fluxScore - config.smoothedFlux) * 0.4;
     config.fluxHistory[config.fluxHistoryIndex] = config.smoothedFlux;
@@ -383,8 +481,24 @@ class SonicAudioAnalyzer {
     config.prevSmoothedFlux = config.smoothedFlux;
   }
 
+  getRawFrequencyData() {
+    const hasWallpaper = performance.now() < this.wallpaperAudioActiveUntil;
+    if (this.analyser && (this.isPlaying || hasWallpaper)) {
+      this.analyser.getByteFrequencyData(this.dataArray);
+    }
+    return this.dataArray;
+  }
+
+  persistTriggerSettings() {
+    writeTriggerSettingsStorage({
+      Pulse: snapshotTriggerConfig(this.pulseTrigger),
+      Meteor: snapshotTriggerConfig(this.meteorTrigger),
+    });
+  }
+
   getAudioData(delta = 1 / 120) {
-    if (!this.analyser) return this.smoothed;
+    const hasWallpaper = performance.now() < this.wallpaperAudioActiveUntil;
+    if (!this.analyser && !hasWallpaper) return { ...this.smoothed, viz: this.vizBands };
 
     const isVisualReleasing = this.isVisualReleasing;
     const binCount = this.dataArray.length;
@@ -403,7 +517,7 @@ class SonicAudioAnalyzer {
     let fluxPulse = 0;
     let fluxMeteor = 0;
 
-    if (this.isPlaying) {
+    if (this.isPlaying || hasWallpaper) {
       this.analyser.getByteFrequencyData(this.dataArray);
       for (let i = 0; i < binCount; i++) {
         const val = this.dataArray[i] / 255;
@@ -490,7 +604,18 @@ class SonicAudioAnalyzer {
     s.smoothness += (smoothnessVal - s.smoothness) * k;
     s.density += (density - s.density) * k;
     s.spectralCentroid += (spectralCentroid - s.spectralCentroid) * k;
-    return this.smoothed;
+
+    const vk = hasIncomingAudio ? 0.38 : (isVisualReleasing ? 0.12 : 0.18);
+    const v = this.vizBands;
+    v.subBass += (subBass - v.subBass) * vk;
+    v.bass += (bass - v.bass) * vk;
+    v.lowMid += (lowMid - v.lowMid) * vk;
+    v.mid += (mid - v.mid) * vk;
+    v.highMid += (highMid - v.highMid) * vk;
+    v.energy += (energy - v.energy) * vk;
+    v.beat += (Math.min(0.8, fluxPulse * 5) - v.beat) * Math.min(1, vk * 1.1);
+
+    return { ...this.smoothed, viz: this.vizBands };
   }
 }
 
@@ -511,10 +636,46 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
   let vizFrameMs = 1000 / profile.targetFps;
 
   const analyzer = new SonicAudioAnalyzer(audioEl);
-  const theme = { ...NOCTURNAL };
-  Object.keys(theme).forEach((key) => {
-    if (theme[key]?.clone) theme[key] = theme[key].clone();
-  });
+  const storedTriggers = readTriggerSettingsStorage();
+  applyStoredTriggerConfig(analyzer.pulseTrigger, storedTriggers.Pulse);
+  applyStoredTriggerConfig(analyzer.meteorTrigger, storedTriggers.Meteor);
+
+  let customThemes = readCustomThemeStorage();
+  let activeCustomThemeId = readActiveCustomThemeStorage(customThemes);
+  let activeThemeId = readActiveThemeStorage();
+  let themeRotation = readThemeRotationStorage([...BUILT_IN_THEME_IDS, ...customThemes.map((p) => p.id)]);
+  let groundEqSettings = readGroundEqSettingsStorage();
+  let vizBackgroundSettings = readVizBackgroundStorage();
+  let themeRotationTimer = null;
+  let latestVizBgPalette = buildCustomPalette(vizBackgroundSettings);
+
+  const THEME_BLUE_DEFAULT_KEY = 'shiloku-sonic-default-blue-v1';
+  if (typeof window !== 'undefined' && !window.localStorage.getItem(THEME_BLUE_DEFAULT_KEY)) {
+    activeThemeId = 'nocturnal';
+    themeRotation = { enabled: false, intervalSeconds: 10, themeIds: [...BUILT_IN_THEME_IDS] };
+    writeActiveThemeStorage('nocturnal');
+    writeThemeRotationStorage(themeRotation, [...BUILT_IN_THEME_IDS, ...customThemes.map((p) => p.id)]);
+    window.localStorage.setItem(THEME_BLUE_DEFAULT_KEY, '1');
+  }
+
+  const resolveCurrentTheme = () => resolveThemeVisual(
+    THREE,
+    activeThemeId,
+    customThemes,
+    activeCustomThemeId,
+  );
+
+  let targetTheme = resolveCurrentTheme();
+  const themeTargets = {
+    uBaseColor1: targetTheme.uBaseColor1.clone(),
+    uBaseColor2: targetTheme.uBaseColor2.clone(),
+    uCoolCore: targetTheme.uCoolCore.clone(),
+    uCoolEdge: targetTheme.uCoolEdge.clone(),
+    uWarmCore: targetTheme.uWarmCore.clone(),
+    uWarmEdge: targetTheme.uWarmEdge.clone(),
+    uRippleColor: targetTheme.uRippleColor.clone(),
+    uGlowIntensity: targetTheme.uGlowIntensity,
+  };
 
   const GRID = profile.grid;
   const SPACING = 1.05;
@@ -544,11 +705,15 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
   controls.target.set(0, 0, 0);
   controls.enablePan = false;
   controls.autoRotate = true;
-  controls.autoRotateSpeed = 0.5;
+  controls.autoRotateSpeed = targetTheme.uRotationSpeed;
   controls.minDistance = 12;
   controls.maxDistance = 130;
   controls.maxPolarAngle = Math.PI / 2.2;
   controls.enableDamping = false;
+  controls.touches = {
+    ONE: THREE.TOUCH.ROTATE,
+    TWO: THREE.TOUCH.DOLLY_ROTATE,
+  };
   if (profile.mobile) {
     controls.minDistance = 16;
     controls.maxDistance = 95;
@@ -557,14 +722,15 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
   }
 
   const shouldRunVizLoop = () => {
-    return document.body.classList.contains(roomOpenClass) && !document.hidden;
+    return document.body.classList.contains(roomOpenClass)
+      && !document.hidden;
   };
 
   const setVizLoopActive = (active) => {
     renderer.setAnimationLoop(active && shouldRunVizLoop() ? animate : null);
   };
 
-  const fog = new THREE.Fog(`#${theme.uBaseColor1.getHexString()}`, 30, 95);
+  const fog = new THREE.Fog(`#${targetTheme.uBaseColor1.getHexString()}`, 30, 95);
   scene.fog = fog;
   scene.add(new THREE.AmbientLight(0xffffff, 0.5));
   const dirLight = new THREE.DirectionalLight(0xffffff, 1);
@@ -584,20 +750,21 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
       uSmoothness: { value: 0 },
       uDensity: { value: 0 },
       uEnergy: { value: 0 },
+      uIdleMix: { value: 1 },
       uPresence: { value: 0 },
       uBrilliance: { value: 0 },
       uAir: { value: 0 },
       uWarmth: { value: 0 },
       uBrightness: { value: 0 },
       uSharpness: { value: 0 },
-      uBaseColor1: { value: theme.uBaseColor1.clone() },
-      uBaseColor2: { value: theme.uBaseColor2.clone() },
-      uCoolCore: { value: theme.uCoolCore.clone() },
-      uCoolEdge: { value: theme.uCoolEdge.clone() },
-      uWarmCore: { value: theme.uWarmCore.clone() },
-      uWarmEdge: { value: theme.uWarmEdge.clone() },
-      uRippleColor: { value: theme.uRippleColor.clone() },
-      uGlowIntensity: { value: theme.uGlowIntensity },
+      uBaseColor1: { value: targetTheme.uBaseColor1.clone() },
+      uBaseColor2: { value: targetTheme.uBaseColor2.clone() },
+      uCoolCore: { value: targetTheme.uCoolCore.clone() },
+      uCoolEdge: { value: targetTheme.uCoolEdge.clone() },
+      uWarmCore: { value: targetTheme.uWarmCore.clone() },
+      uWarmEdge: { value: targetTheme.uWarmEdge.clone() },
+      uRippleColor: { value: targetTheme.uRippleColor.clone() },
+      uGlowIntensity: { value: targetTheme.uGlowIntensity },
       ...rippleUniforms,
     },
     vertexShader: VERTEX_SHADER,
@@ -701,7 +868,7 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
     const slot = ripples[rippleIndex];
     slot.pos.set(x, z);
     slot.time = clockElapsed;
-    slot.strength = strength * volumeToReact(currentVolumeLevel);
+    slot.strength = strength * volumeToReact(currentVolumeLevel) * VIZ_REACT_GAIN;
     slot.rippleType = isWhite ? RIPPLE_WHITE : RIPPLE_RING;
     slot.isActive = 1;
     pushRippleUniform(rippleIndex);
@@ -734,8 +901,8 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
     m.x = Math.cos(angle) * dist;
     m.z = Math.sin(angle) * dist;
     m.y = 30 + Math.random() * 10;
-    m.speed = 1.0 + Math.random() * 0.5 + strength * 1.5;
-    m.strength = strength;
+    m.speed = (1.0 + Math.random() * 0.5 + strength * 1.5) * (0.85 + VIZ_REACT_GAIN * 0.25);
+    m.strength = strength * VIZ_REACT_GAIN;
     meteorIndex = (meteorIndex + 1) % MAX_METEORS;
   }
 
@@ -763,18 +930,18 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
       },
     ]),
   ) : null;
-  let statsTick = 0;
   let lastVizActive = null;
+
+  const STAT_GAIN = { bass: 48, mid: 72, treble: 88, energy: 68 };
 
   function updateStats(data) {
     if (!statEls) return;
-    statsTick = (statsTick + 1) % 10;
-    if (statsTick !== 0) return;
     Object.entries(statEls).forEach(([key, els]) => {
-      const raw = data[key] ?? 0;
-      const pct = Math.min(100, raw * 100);
+      const raw = Math.max(0, Number(data[key]) || 0);
+      const gain = STAT_GAIN[key] ?? 70;
+      const pct = Math.min(100, raw * gain);
       if (els.value) els.value.textContent = pct.toFixed(1);
-      if (els.bar) els.bar.style.width = `${pct}%`;
+      if (els.bar) els.bar.style.width = `${pct.toFixed(1)}%`;
     });
   }
   let clockElapsed = 0;
@@ -782,6 +949,7 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
   const VOLUME_SCALE_MIN = 0.5;
   const VOLUME_SCALE_MAX = 1.0;
   const VOLUME_REACT_MIN = 0.1;
+  const VIZ_REACT_GAIN = 1.0;
   let targetVolumeLevel = 1;
   let currentVolumeLevel = 1;
 
@@ -802,18 +970,130 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
     });
   }
 
-  let themeTintBlend = 0;
-
-  function tintFromAccent() {
-    const raw = getComputedStyle(musicRoom).getPropertyValue('--music-accent').trim();
-    const m = raw.match(/(\d+)\D+(\d+)\D+(\d+)/);
-    if (!m) return;
-    const accent = new THREE.Color(+m[1] / 255, +m[2] / 255, +m[3] / 255);
-    theme.uWarmCore.copy(accent);
-    theme.uWarmEdge.copy(accent).lerp(new THREE.Color(1, 0.85, 0.4), 0.35);
-    theme.uRippleColor.copy(accent).lerp(new THREE.Color(0.2, 0.9, 1.0), 0.45);
-    themeTintBlend = 1;
+  function applyVizBackground(paletteOverride = null) {
+    const result = applyVizBackgroundSettings(musicRoom, vizBackgroundSettings, paletteOverride);
+    latestVizBgPalette = result.palette;
+    const fogColor = latestVizBgPalette.fog || latestVizBgPalette.deep || latestVizBgPalette.mid;
+    if (fogColor) fog.color.set(fogColor);
+    return latestVizBgPalette;
   }
+
+  async function applyVizBackgroundFromCover(url) {
+    if (vizBackgroundSettings.mode !== VIZ_BG_MODE_FOLLOW_SONG || !url) return null;
+    const palette = await extractPaletteFromCoverUrl(url);
+    return applyVizBackground(palette);
+  }
+
+  function setVizBackgroundSettings(nextSettings) {
+    vizBackgroundSettings = writeVizBackgroundStorage(nextSettings);
+    if (vizBackgroundSettings.mode !== VIZ_BG_MODE_FOLLOW_SONG) {
+      return applyVizBackground();
+    }
+    return latestVizBgPalette;
+  }
+
+  function refreshThemeTargets() {
+    targetTheme = resolveCurrentTheme();
+    themeTargets.uBaseColor1.copy(targetTheme.uBaseColor1);
+    themeTargets.uBaseColor2.copy(targetTheme.uBaseColor2);
+    themeTargets.uCoolCore.copy(targetTheme.uCoolCore);
+    themeTargets.uCoolEdge.copy(targetTheme.uCoolEdge);
+    themeTargets.uWarmCore.copy(targetTheme.uWarmCore);
+    themeTargets.uWarmEdge.copy(targetTheme.uWarmEdge);
+    themeTargets.uRippleColor.copy(targetTheme.uRippleColor);
+    themeTargets.uGlowIntensity = targetTheme.uGlowIntensity;
+    controls.autoRotateSpeed = targetTheme.uRotationSpeed;
+    if (vizBackgroundSettings.mode !== VIZ_BG_MODE_FOLLOW_SONG) {
+      applyVizBackground();
+    } else if (latestVizBgPalette) {
+      fog.color.set(latestVizBgPalette.fog || latestVizBgPalette.deep);
+    } else {
+      fog.color.set(`#${targetTheme.uBaseColor1.getHexString()}`);
+    }
+    if (targetTheme.accentHex) {
+      musicRoom.style.setProperty('--aether-accent', targetTheme.accentHex);
+      musicRoom.style.setProperty('--music-accent', targetTheme.accentHex);
+    }
+    musicRoom.classList.toggle('player-panel-hidden', !targetTheme.uShowPlayerPanel);
+    window.dispatchEvent(new CustomEvent('sonic:theme-changed', {
+      detail: {
+        themeId: activeThemeId,
+        customThemeId: activeCustomThemeId,
+        themeName: targetTheme.name,
+        showPlayerPanel: targetTheme.uShowPlayerPanel,
+        accentHex: targetTheme.accentHex,
+      },
+    }));
+  }
+
+  function applyThemeState(nextThemeId, nextCustomId = activeCustomThemeId) {
+    activeThemeId = nextThemeId;
+    activeCustomThemeId = nextCustomId;
+    writeActiveThemeStorage(activeThemeId);
+    writeActiveCustomThemeStorage(activeCustomThemeId);
+    refreshThemeTargets();
+  }
+
+  function setCustomThemes(nextThemes, nextActiveId = activeCustomThemeId) {
+    customThemes = nextThemes;
+    activeCustomThemeId = nextActiveId;
+    writeCustomThemeStorage(customThemes);
+    writeActiveCustomThemeStorage(activeCustomThemeId);
+    refreshThemeTargets();
+    restartThemeRotation();
+  }
+
+  function setThemeRotation(nextRotation) {
+    themeRotation = nextRotation;
+    writeThemeRotationStorage(themeRotation, [...BUILT_IN_THEME_IDS, ...customThemes.map((p) => p.id)]);
+    restartThemeRotation();
+  }
+
+  function setGroundEqSettings(nextSettings) {
+    groundEqSettings = nextSettings;
+    writeGroundEqSettingsStorage(groundEqSettings);
+  }
+
+  function restartThemeRotation() {
+    if (themeRotationTimer) {
+      clearInterval(themeRotationTimer);
+      themeRotationTimer = null;
+    }
+    if (!themeRotation.enabled || themeRotation.themeIds.length < 2) return;
+    themeRotationTimer = window.setInterval(() => {
+      const currentThemeKey = activeThemeId === CUSTOM_THEME_ID ? activeCustomThemeId : activeThemeId;
+      const currentIndex = themeRotation.themeIds.indexOf(currentThemeKey);
+      const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % themeRotation.themeIds.length : 0;
+      const nextId = themeRotation.themeIds[nextIndex];
+      if (BUILT_IN_THEME_IDS.includes(nextId)) applyThemeState(nextId, activeCustomThemeId);
+      else applyThemeState(CUSTOM_THEME_ID, nextId);
+    }, themeRotation.intervalSeconds * 1000);
+  }
+
+  function cycleTheme() {
+    const next = cycleThemeId(activeThemeId, activeCustomThemeId, customThemes);
+    applyThemeState(next.themeId, next.customId);
+  }
+
+  function reloadSonicSettingsFromStorage() {
+    customThemes = readCustomThemeStorage();
+    activeCustomThemeId = readActiveCustomThemeStorage(customThemes);
+    activeThemeId = readActiveThemeStorage();
+    themeRotation = readThemeRotationStorage([...BUILT_IN_THEME_IDS, ...customThemes.map((p) => p.id)]);
+    groundEqSettings = readGroundEqSettingsStorage();
+    vizBackgroundSettings = readVizBackgroundStorage();
+    latestVizBgPalette = buildCustomPalette(vizBackgroundSettings);
+    const storedTriggers = readTriggerSettingsStorage();
+    applyStoredTriggerConfig(analyzer.pulseTrigger, storedTriggers.Pulse);
+    applyStoredTriggerConfig(analyzer.meteorTrigger, storedTriggers.Meteor);
+    refreshThemeTargets();
+    applyVizBackground();
+    restartThemeRotation();
+  }
+
+  refreshThemeTargets();
+  applyVizBackground();
+  restartThemeRotation();
 
   function resize() {
     const w = container.clientWidth || window.innerWidth;
@@ -864,7 +1144,7 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
 
     const data = analyzer.getAudioData(delta);
     vizGroup.scale.setScalar(volScale);
-    controls.autoRotateSpeed = 0.5;
+    controls.autoRotateSpeed = targetTheme.uRotationSpeed;
 
     const playing = analyzer.isPlaying;
 
@@ -877,15 +1157,16 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
 
     const lerpSpeed = 3.0 * delta;
     const mat = material.uniforms;
-    if (themeTintBlend > 0.001) {
-      mat.uWarmCore.value.lerp(theme.uWarmCore, lerpSpeed);
-      mat.uWarmEdge.value.lerp(theme.uWarmEdge, lerpSpeed);
-      mat.uRippleColor.value.lerp(theme.uRippleColor, lerpSpeed);
-      themeTintBlend = Math.max(0, themeTintBlend - delta * 2.5);
-    }
+    mat.uBaseColor1.value.lerp(themeTargets.uBaseColor1, lerpSpeed);
+    mat.uBaseColor2.value.lerp(themeTargets.uBaseColor2, lerpSpeed);
+    mat.uCoolCore.value.lerp(themeTargets.uCoolCore, lerpSpeed);
+    mat.uCoolEdge.value.lerp(themeTargets.uCoolEdge, lerpSpeed);
+    mat.uWarmCore.value.lerp(themeTargets.uWarmCore, lerpSpeed);
+    mat.uWarmEdge.value.lerp(themeTargets.uWarmEdge, lerpSpeed);
+    mat.uRippleColor.value.lerp(themeTargets.uRippleColor, lerpSpeed);
     const glowTarget = Math.max(
-      0.55 * theme.uGlowIntensity,
-      (playing || releasing) ? theme.uGlowIntensity * volReact : theme.uGlowIntensity * 0.42 * volReact,
+      0.4 * themeTargets.uGlowIntensity,
+      (playing || releasing) ? themeTargets.uGlowIntensity * volReact * 0.72 : themeTargets.uGlowIntensity * 0.34 * volReact,
     );
     const glowLerp = (playing || releasing) ? lerpSpeed : Math.min(1, 1.1 * delta);
     mat.uGlowIntensity.value = THREE.MathUtils.lerp(mat.uGlowIntensity.value, glowTarget, glowLerp);
@@ -902,20 +1183,40 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
       }
     };
 
-    setAudioUniform('uSubBass', data.subBass * volReact);
-    setAudioUniform('uBass', data.bass * volReact);
-    setAudioUniform('uLowMid', data.lowMid * volReact);
-    setAudioUniform('uMid', data.mid * volReact);
-    setAudioUniform('uEnergy', data.energy * volReact);
-    setAudioUniform('uHighMid', data.highMid * volReact);
+    const viz = data.viz || data;
+    const react = volReact * VIZ_REACT_GAIN;
+    const eqCurve = groundEqSettings.curve;
+    const eqSubBass = applyGroundEqValue(viz.subBass * react, eqCurve, 0.00);
+    const eqBass = applyGroundEqValue(viz.bass * react, eqCurve, 0.12);
+    const eqLowMid = applyGroundEqValue(viz.lowMid * react, eqCurve, 0.28);
+    const eqMid = applyGroundEqValue(viz.mid * react, eqCurve, 0.42);
+    const eqHighMid = applyGroundEqValue(viz.highMid * react, eqCurve, 0.58);
+    const eqPresence = applyGroundEqValue(data.presence * volReact, eqCurve, 0.72);
+    const eqBrilliance = applyGroundEqValue(data.brilliance * volReact, eqCurve, 0.86);
+    const eqAir = applyGroundEqValue(data.air * volReact, eqCurve, 1.00);
+    const eqAverage = eqCurve.reduce((sum, value) => sum + value, 0) / Math.max(1, eqCurve.length);
+    const eqEnergy = applyGroundEqValue(Math.max(viz.energy, viz.beat * 0.6) * react, eqCurve, eqAverage / 100);
+    const eqDenom = Math.max(0.001, eqSubBass + eqBass + eqLowMid + eqMid + eqPresence + eqBrilliance + eqAir);
+
+    setAudioUniform('uSubBass', eqSubBass);
+    setAudioUniform('uBass', eqBass);
+    setAudioUniform('uLowMid', eqLowMid);
+    setAudioUniform('uMid', eqMid);
+    setAudioUniform('uEnergy', eqEnergy);
+    setAudioUniform('uHighMid', eqHighMid);
     setAudioUniform('uSmoothness', data.smoothness);
     setAudioUniform('uDensity', data.density * volReact);
-    setAudioUniform('uPresence', data.presence * volReact);
-    setAudioUniform('uBrilliance', data.brilliance * volReact);
-    setAudioUniform('uAir', data.air * volReact);
-    setAudioUniform('uWarmth', data.warmth * volReact);
-    setAudioUniform('uBrightness', data.brightness * volReact);
+    setAudioUniform('uPresence', eqPresence);
+    setAudioUniform('uBrilliance', eqBrilliance);
+    setAudioUniform('uAir', eqAir);
+    setAudioUniform('uWarmth', Math.max(0, Math.min(1, (eqSubBass + eqBass + eqLowMid + eqMid) / eqDenom)));
+    setAudioUniform('uBrightness', Math.max(0, Math.min(1, (eqPresence + eqBrilliance + eqAir) / eqDenom)));
     setAudioUniform('uSharpness', data.sharpness * volReact);
+    mat.uIdleMix.value = THREE.MathUtils.lerp(
+      mat.uIdleMix.value,
+      playing ? 0.38 : 1.0,
+      playing ? lerpSpeed * 1.4 : Math.min(1, 1.1 * delta),
+    );
     syncRippleUniforms(clockElapsed);
     updateStats(data);
 
@@ -932,7 +1233,7 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
         m.y -= m.speed * 60 * delta;
         if (m.y <= 0) {
           m.active = false;
-          addRipple(m.x, m.z, Math.min(m.strength * 1.06, 1.27), true);
+          addRipple(m.x, m.z, Math.min(m.strength * 1.22, 1.46), true);
           for (let j = 0; j < 10; j++) spawnParticle(m.x, 0.5, m.z, m.speed * 1.5);
         }
         dummyPosition.set(m.x, Math.max(0, m.y), m.z);
@@ -973,14 +1274,12 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
   }
 
   resize();
-  tintFromAccent();
   ensureAudio();
   setVizLoopActive(document.body.classList.contains(roomOpenClass));
 
   const onAudioStart = () => {
     analyzer.clearVisualRelease();
     analyzer.ensureReady();
-    tintFromAccent();
   };
   const onAudioPause = () => {
     analyzer.beginVisualRelease();
@@ -1001,11 +1300,41 @@ export function initSonicTopographyViz({ container, audioEl, musicRoom, roomOpen
       ensureAudio();
     }
   }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
-  new MutationObserver(() => tintFromAccent()).observe(musicRoom, { attributes: true, attributeFilter: ['style'] });
+
+  window.addEventListener('shiloku:nowplaying', (event) => {
+    const cover = event.detail?.song?.cover;
+    if (cover) void applyVizBackgroundFromCover(cover);
+  });
 
   window.__shilokuViz = {
+    analyzer,
     testRipple: () => addRipple(0, 0, 2.5),
     ensureAudio,
+    getRawFrequencyData: () => analyzer.getRawFrequencyData(),
+    getGroundEqSettings: () => ({ ...groundEqSettings, curve: [...groundEqSettings.curve] }),
+    setGroundEqSettings,
+    getThemeState: () => ({
+      activeThemeId,
+      activeCustomThemeId,
+      customThemes: customThemes.map((p) => ({ ...p })),
+      themeRotation: { ...themeRotation, themeIds: [...themeRotation.themeIds] },
+      resolvedTheme: {
+        name: targetTheme.name,
+        accentHex: targetTheme.accentHex,
+        showPlayerPanel: targetTheme.uShowPlayerPanel,
+        rotationSpeed: targetTheme.uRotationSpeed,
+      },
+    }),
+    applyThemeState,
+    setCustomThemes,
+    setThemeRotation,
+    cycleTheme,
+    reloadSonicSettingsFromStorage,
+    persistTriggerSettings: () => analyzer.persistTriggerSettings(),
+    refreshThemeAccent: () => refreshThemeTargets(),
+    getVizBackgroundSettings: () => ({ ...vizBackgroundSettings }),
+    setVizBackgroundSettings,
+    applyVizBackgroundFromCover,
   };
 
   return { analyzer, renderer, resize };

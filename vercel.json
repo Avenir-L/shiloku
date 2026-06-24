@@ -83,11 +83,11 @@
         },
         {
           "key": "Access-Control-Allow-Methods",
-          "value": "GET, OPTIONS"
+          "value": "GET, POST, PUT, OPTIONS"
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Range"
+          "value": "Content-Type, Range, X-Netease-Cookie"
         }
       ]
     }

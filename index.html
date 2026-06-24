@@ -12,9 +12,9 @@
     <link rel="icon" href="favicon.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Serif+JP:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css">
-    <link rel="stylesheet" href="aether-music.css">
+    <link rel="stylesheet" href="aether-music.css?v=20260624y">
     <link rel="stylesheet" href="site-extensions.css">
-    <script type="module" src="scripts/site-extensions.js"></script>
+    <script type="module" src="scripts/site-extensions.js?v=20260624m"></script>
     <script type="importmap">
     {
         "imports": {
@@ -1173,7 +1173,8 @@ html {
 
 /* ================== 音乐室 3.0 炫酷升级版 ================== */
 #music-room {
-    --music-accent: #fb7185;
+    --music-accent: #33d1ff;
+    --aether-accent: #33d1ff;
     position: fixed;
     inset: 0;
     z-index: 900;
@@ -1717,7 +1718,7 @@ body.music-room-open {
     transition: transform 0.45s cubic-bezier(0.25, 0.8, 0.25, 1);
     display: flex;
     flex-direction: column;
-    padding: 80px 24px 32px;
+    padding: 80px 20px 28px;
     box-shadow: 8px 0 40px rgba(0,0,0,0.5);
 }
 
@@ -1737,7 +1738,7 @@ body.music-room-open {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     padding-bottom: 12px;
     border-bottom: 1px solid rgba(255,255,255,0.1);
 }
@@ -3348,22 +3349,7 @@ body.music-room-open {
     <div id="music-viz-host" aria-hidden="true"></div>
 
     <div class="playlist-backdrop" id="playlist-backdrop"></div>
-    <aside class="playlist-drawer" id="playlist-drawer">
-        <div class="playlist-drawer-top">
-            <div class="playlist-drawer-header">PLAYLIST</div>
-            <button type="button" class="playlist-manage-btn" id="playlist-category-manage" data-i18n="playlistManageCategories">管理分类</button>
-        </div>
-        <div class="playlist-category-bar" id="playlist-category-bar" role="tablist" aria-label="歌单分类"></div>
-        <div class="playlist-category-panel hidden" id="playlist-category-panel" aria-hidden="true">
-            <div class="playlist-category-panel-head">
-                <span data-i18n="playlistManageCategories">管理分类</span>
-                <button type="button" class="playlist-category-panel-close" id="playlist-category-panel-close" aria-label="关闭">×</button>
-            </div>
-            <ul class="playlist-category-list" id="playlist-category-list"></ul>
-            <button type="button" class="playlist-category-add-btn" id="playlist-category-add" data-i18n="playlistAddCategory">新建</button>
-        </div>
-        <ul id="playlist"></ul>
-    </aside>
+    <aside class="playlist-drawer" id="playlist-drawer"></aside>
 
     <aside class="netease-drawer" id="netease-drawer">
         <div class="netease-drawer-header">NETEASE CLOUD</div>
@@ -3386,6 +3372,8 @@ body.music-room-open {
         <p class="netease-tip" data-i18n="neteaseTip">点击歌曲播放；点右侧 + 加入临时播放列表（关闭页面后清空，不会进本地列表）。</p>
     </aside>
 
+    <aside class="sonic-settings-drawer" id="sonic-settings-drawer"></aside>
+
     <div class="aether-ui">
         <div class="aether-brand">SHILOKU.</div>
 
@@ -3393,14 +3381,16 @@ body.music-room-open {
             <aside class="aether-sidebar">
                 <div class="aether-sidebar-top">
                     <button type="button" class="aether-nav-btn is-active" id="viz-nav-btn">Visualizer</button>
+                    <button type="button" class="aether-nav-btn" id="sonic-settings-toggle-btn">Settings</button>
                     <button type="button" class="aether-nav-btn" id="netease-search-toggle-btn">Search</button>
-                    <button type="button" class="aether-nav-btn" id="playlist-toggle-btn">Playlist</button>
+                    <button type="button" class="aether-nav-btn" id="playlist-toggle-btn">Playlists</button>
                 </div>
                 <div class="aether-sidebar-bottom">
-                    <button type="button" class="aether-nav-btn aether-nav-btn-action" id="share-song-btn" data-i18n-title="shareSong" title="复制分享链接" aria-label="复制分享链接">Share</button>
+                    <button type="button" class="aether-nav-btn aether-nav-btn-action" id="sonic-fullscreen-btn">Fullscreen</button>
+                    <button type="button" class="aether-nav-btn aether-nav-btn-action" id="share-song-btn" data-i18n-title="shareSong" title="Copy share link" aria-label="Copy share link">Share</button>
                     <div class="theme-picker-wrap aether-sidebar-theme" id="theme-picker-wrap">
                         <button type="button" class="theme-picker-toggle" id="theme-picker-toggle" aria-expanded="false" aria-controls="theme-picker">
-                            <span data-i18n="themeLabel">主题</span>
+                            <span>Theme</span>
                         </button>
                         <div id="theme-picker" class="theme-picker-panel" role="group" aria-label="主题配色"></div>
                     </div>
@@ -3421,6 +3411,7 @@ body.music-room-open {
             <div class="aether-player-head">
                 <h2 id="song-title">等待播放...</h2>
                 <p id="song-artist">LOCAL AUDIO</p>
+                <button type="button" class="aether-theme-cycle-btn" id="sonic-theme-cycle-btn" title="Cycle visual theme" aria-label="Cycle visual theme">Theme</button>
             </div>
             <div class="aether-transport">
                 <div class="aether-progress-row">
@@ -3440,22 +3431,25 @@ body.music-room-open {
                             <svg class="aether-icon aether-icon-loop-one" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7a8 8 0 0 1 13.5-2.8"/><path d="M17 5h2v2"/><path d="M12 10v4"/><path d="M17 17a8 8 0 0 1-13.5 2.8"/><path d="M7 19H5v-2"/></svg>
                         </button>
                         <button type="button" id="prev-btn" class="aether-ctrl" title="上一首" aria-label="上一首">
-                            <svg class="aether-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6v12"/><path d="M17 6v12"/><path d="M9 8v8l6-4z"/></svg>
+                            <svg class="aether-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6v12"/><path d="M17 6v12"/><path d="M15 8v8l-6-4z"/></svg>
                         </button>
                         <button type="button" id="main-play-btn" class="aether-ctrl aether-ctrl-main" title="播放" aria-label="播放">
                             <svg class="aether-icon aether-icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6v12l10-6z"/></svg>
                             <svg class="aether-icon aether-icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7v10"/><path d="M15 7v10"/></svg>
                         </button>
                         <button type="button" id="next-btn" class="aether-ctrl" title="下一首" aria-label="下一首">
-                            <svg class="aether-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6v12"/><path d="M17 6v12"/><path d="M15 8v8l-6-4z"/></svg>
+                            <svg class="aether-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6v12"/><path d="M17 6v12"/><path d="M9 8v8l6-4z"/></svg>
                         </button>
                         <button type="button" id="shuffle-btn" class="aether-ctrl" title="随机播放" aria-label="随机播放">
                             <svg class="aether-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h4l3 3"/><path d="M20 7h-4l-3 3"/><path d="M4 17h3l4-4"/><path d="M20 17h-3l-4-4"/><path d="M14 7l2-2M10 17l-2 2"/></svg>
                         </button>
                     </div>
-                    <div class="aether-volume">
-                        <svg class="aether-icon aether-icon-volume" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10v4h3l4 3V7L8 10z"/><path d="M16 9a4 4 0 0 1 0 6"/><path d="M18 7a7 7 0 0 1 0 10"/></svg>
-                        <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1">
+                    <div class="aether-controls-sliders">
+                        <div class="aether-volume">
+                            <svg class="aether-icon aether-icon-volume" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10v4h3l4 3V7L8 10z"/><path d="M16 9a4 4 0 0 1 0 6"/><path d="M18 7a7 7 0 0 1 0 10"/></svg>
+                            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" aria-label="音量">
+                            <span class="aether-volume-value" id="volume-value">100%</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3468,7 +3462,7 @@ body.music-room-open {
             <div class="aether-stat"><label>Energy</label><output id="stat-energy">0.0</output><div class="aether-stat-bar"><span id="stat-energy-bar"></span></div></div>
         </div>
 
-        <div class="aether-hint">拖动旋转 · 节拍自带波纹</div>
+        <div class="aether-hint">Drag to rotate · Beats create ripples</div>
     </div>
 
     <img src="avatar.jpg" id="album-cover" alt="" hidden>
@@ -3704,6 +3698,7 @@ function restorePlaylistFromStorage() {
         if (typeof saved.volume === 'number' && saved.volume >= 0 && saved.volume <= 1) {
             const vs = document.getElementById('volume-slider');
             if (vs) vs.value = saved.volume;
+            updateVolumeLabel();
         }
     }
 
@@ -3760,6 +3755,7 @@ const neteaseSearchBtn = document.getElementById('netease-search-btn');
 const neteaseSearchStatus = document.getElementById('netease-search-status');
 const neteaseResultsEl = document.getElementById('netease-results');
 const neteaseDrawer = document.getElementById('netease-drawer');
+const sonicSettingsDrawer = document.getElementById('sonic-settings-drawer');
 const neteaseSearchToggleBtn = document.getElementById('netease-search-toggle-btn');
 const neteasePaginationEl = document.getElementById('netease-pagination');
 const neteasePrevBtn = document.getElementById('netease-prev-btn');
@@ -3781,7 +3777,7 @@ if (audio) {
 const coverImg = document.getElementById('album-cover');
 const songTitle = document.getElementById('song-title');
 const songArtist = document.getElementById('song-artist');
-const playlistEl = document.getElementById('playlist');
+const playlistEl = null;
 const mainPlayBtn = document.getElementById('main-play-btn');
 const lyricsList = document.getElementById('lyrics-list');
 const lyricsScrollEl = document.getElementById('lyrics-scroll');
@@ -3877,8 +3873,10 @@ function applySiteAccent(r, g, b) {
     root.style.setProperty('--site-accent', `rgb(${r},${g},${b})`);
     root.style.setProperty('--site-accent-glow', `rgba(${r},${g},${b},0.45)`);
     root.style.setProperty('--site-accent-soft', `rgba(${r},${g},${b},0.18)`);
-    document.getElementById('music-room')?.style.setProperty('--music-accent', `rgb(${r},${g},${b})`);
-    document.getElementById('music-room')?.style.setProperty('--aether-accent', `rgb(${r},${g},${b})`);
+    if (!window.__shilokuViz) {
+        document.getElementById('music-room')?.style.setProperty('--music-accent', `rgb(${r},${g},${b})`);
+        document.getElementById('music-room')?.style.setProperty('--aether-accent', `rgb(${r},${g},${b})`);
+    }
 }
 window.applySiteAccent = applySiteAccent;
 
@@ -4055,8 +4053,6 @@ async function initPlayer() {
     updatePlayModeUI();
     setMainPlayState(isPlaying);
     await loadSong(currentSongIndex);
-    renderPlaylistCategoryBar();
-    renderPlaylist();
     renderNeteaseQueue();
     notifyNowPlaying();
     audio.addEventListener('ended', onTrackEnded);
@@ -4066,13 +4062,11 @@ async function initPlayer() {
     window.addEventListener('music-room:open', () => {
         ensureLyricScrollSynced();
         refreshLyricPanel();
+        window.shilokuI18n?.applyI18nDom?.();
     });
     window.addEventListener('shiloku:langchange', () => {
-        renderPlaylistCategoryBar();
-        renderPlaylistCategoryPanel();
-        renderPlaylist();
+        window.shilokuI18n?.applyI18nDom?.();
     });
-    setupPlaylistCategoryUI();
     let lyricAnchorResizeTimer = null;
     window.addEventListener('resize', () => {
         if (!document.body.classList.contains('music-room-open') || !lyricItemsCache.length) return;
@@ -4450,7 +4444,6 @@ async function playNeteaseSong(song) {
         if (neteaseSearchStatus) neteaseSearchStatus.textContent = '这首歌暂时播不了，换一首试试';
     }
 }
-
 function setupNeteaseSearch() {
     neteaseSearchBtn?.addEventListener('click', () => searchNetease(0));
     neteaseSearchInput?.addEventListener('keydown', (event) => {
@@ -4473,16 +4466,41 @@ function setupNeteaseSearch() {
 function syncSidebarNavState() {
     const neteaseOpen = neteaseDrawer?.classList.contains('show');
     const playlistOpen = playlistDrawer?.classList.contains('show');
-    document.getElementById('viz-nav-btn')?.classList.toggle('is-active', !neteaseOpen && !playlistOpen);
+    const settingsOpen = sonicSettingsDrawer?.classList.contains('show');
+    document.getElementById('viz-nav-btn')?.classList.toggle('is-active', !neteaseOpen && !playlistOpen && !settingsOpen);
+    document.getElementById('sonic-settings-toggle-btn')?.classList.toggle('is-active', Boolean(settingsOpen));
     document.getElementById('netease-search-toggle-btn')?.classList.toggle('is-active', neteaseOpen);
     document.getElementById('playlist-toggle-btn')?.classList.toggle('is-active', playlistOpen);
+    syncMusicPanelBackdrop();
 }
+
+function syncMusicPanelBackdrop() {
+    const show = playlistDrawer?.classList.contains('show')
+        || neteaseDrawer?.classList.contains('show')
+        || sonicSettingsDrawer?.classList.contains('show');
+    playlistBackdrop?.classList.toggle('show', show);
+}
+window.syncMusicPanelBackdrop = syncMusicPanelBackdrop;
+
+function toggleSonicSettingsDrawer(open) {
+    const show = open ?? !sonicSettingsDrawer?.classList.contains('show');
+    sonicSettingsDrawer?.classList.toggle('show', show);
+    if (show) {
+        togglePlaylist(false);
+        toggleNeteaseDrawer(false);
+        window.__sonicSettingsRender?.();
+    }
+    syncSidebarNavState();
+}
+window.toggleSonicSettingsPanel = toggleSonicSettingsDrawer;
+window.syncSidebarNavState = syncSidebarNavState;
 
 function toggleNeteaseDrawer(open) {
     const show = open ?? !neteaseDrawer?.classList.contains('show');
     neteaseDrawer?.classList.toggle('show', show);
     if (show) {
         playlistDrawer?.classList.remove('show');
+        window.toggleSonicSettingsPanel?.(false);
         neteaseSearchInput?.focus();
         if (neteaseSearchStatus && !neteaseResults.length) {
             neteaseSearchStatus.textContent = '输入歌名后搜索，结果与网易云一致';
@@ -4490,7 +4508,7 @@ function toggleNeteaseDrawer(open) {
         checkNeteaseApi();
     }
     syncSidebarNavState();
-    playlistBackdrop?.classList.toggle('show', show || playlistDrawer?.classList.contains('show'));
+    syncMusicPanelBackdrop();
 }
 
 async function resolveSongAudioSrc(song) {
@@ -4601,6 +4619,8 @@ async function loadSongByEntry(song, { deferLyrics = false, resetAudio = true } 
         crossfadeCover(coverUrl);
         crossfadeBg();
         applyCoverAccent(coverUrl);
+        void window.__shilokuViz?.applyVizBackgroundFromCover?.(coverUrl);
+        window.__shilokuViz?.refreshThemeAccent?.();
     }
 
     lyricsList.innerHTML = '<li class="lyric-placeholder"><span class="lyric-dot"></span><div class="lyric-body"><div class="lyric-text">正在启动歌词引擎...</div></div></li>';
@@ -4613,7 +4633,7 @@ async function loadSongByEntry(song, { deferLyrics = false, resetAudio = true } 
     updatePlaylistHighlight();
 
     if (deferLyrics) {
-        void loadSongLyrics(song);
+        if (!song.skipLyricsLoad) void loadSongLyrics(song);
         return;
     }
 
@@ -5258,7 +5278,8 @@ async function togglePlay() {
     } else {
         stopVolumeFade();
         applyVolumeFromSlider(volumeSlider.value);
-        audio.play();
+        await audio.play();
+        window.__shilokuViz?.ensureAudio?.();
         setMainPlayState(true);
         markMusicPlaying();
         window.shilokuStartListen?.();
@@ -5288,6 +5309,7 @@ async function playEntry(song, { pushHistory = false } = {}) {
         }
         try {
             await audio.play();
+            window.__shilokuViz?.ensureAudio?.();
         } catch (error) {
             console.warn('播放失败', error);
             isPlaying = false;
@@ -5323,6 +5345,7 @@ async function playLocalAt(index, pushHistory = false) {
     await playEntry(songs[index], { pushHistory: false });
     updatePlaylistHighlight();
     renderNeteaseQueue();
+    window.__refreshPlaylistsDrawer?.();
 }
 
 async function playNeteaseAt(index, pushHistory = false) {
@@ -5347,6 +5370,10 @@ async function playNeteasePreview(song) {
     renderNeteaseResults();
     renderNeteaseQueue();
 }
+
+window.__shilokuPlayNeteaseCloudSong = async (song) => {
+    await playNeteaseSong(song);
+};
 
 async function playSongAt(index, pushHistory = false) {
     await playLocalAt(index, pushHistory);
@@ -5703,6 +5730,7 @@ function renderPlaylist() {
 }
 
 function updatePlaylistHighlight() {
+    if (!playlistEl) return;
     const listItems = playlistEl.getElementsByTagName('li');
     for (let i = 0; i < listItems.length; i++) {
         const index = Number(listItems[i].dataset.index);
@@ -5740,9 +5768,11 @@ function togglePlaylist(open) {
     playlistDrawer?.classList.toggle('show', show);
     if (show) {
         neteaseDrawer?.classList.remove('show');
+        toggleSonicSettingsDrawer(false);
+        window.__loadNeteasePlaylists?.();
     }
     syncSidebarNavState();
-    playlistBackdrop?.classList.toggle('show', show || neteaseDrawer?.classList.contains('show'));
+    syncMusicPanelBackdrop();
 }
 
 // ======= 音量条与列表弹窗控制 =======
@@ -5750,7 +5780,15 @@ const VOLUME_UI_MAX = 1;
 const VOLUME_OUTPUT_MAX = 0.5;
 const PAUSE_FADE_MS = 600;
 const volumeSlider = document.getElementById('volume-slider');
+const volumeValue = document.getElementById('volume-value');
 let volumeFadeRafId = null;
+
+function updateVolumeLabel() {
+    const value = Number(volumeSlider?.value) || 0;
+    if (volumeValue) volumeValue.textContent = `${Math.round(value * 100)}%`;
+}
+
+updateVolumeLabel();
 
 function getTargetOutputVolume() {
     const clamped = Math.min(VOLUME_UI_MAX, Math.max(0, Number(volumeSlider?.value) || 0));
@@ -5806,6 +5844,7 @@ function applyVolumeFromSlider(uiValue) {
 applyVolumeFromSlider(volumeSlider.value);
 
 volumeSlider.addEventListener('input', (e) => {
+    updateVolumeLabel();
     applyVolumeFromSlider(e.target.value);
     persistPlaylistState();
 });
@@ -5819,18 +5858,36 @@ document.getElementById('viz-nav-btn')?.addEventListener('click', (e) => {
     e.stopPropagation();
     togglePlaylist(false);
     toggleNeteaseDrawer(false);
+    window.toggleSonicSettingsPanel?.(false);
+});
+
+document.getElementById('sonic-settings-toggle-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleSonicSettingsDrawer();
+});
+
+document.getElementById('sonic-theme-cycle-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    window.__shilokuViz?.cycleTheme?.();
 });
 
 playlistBackdrop?.addEventListener('click', () => {
     togglePlaylist(false);
     toggleNeteaseDrawer(false);
+    toggleSonicSettingsDrawer(false);
 });
 
 window.addEventListener('DOMContentLoaded', initPlayer);
 </script>
 
 <script type="module">
-import { initSonicTopographyViz } from './scripts/sonic-topography-viz.js?v=20260620f';
+import { initSonicTopographyViz } from './scripts/sonic-topography-viz.js?v=20260624z';
+import { initSonicSettingsPanel } from './scripts/sonic-settings-panel.js?v=20260624u';
+import { initSonicMusicExtras } from './scripts/sonic-music-extras.js?v=20260624n';
+import { checkNeteaseCookie, initNeteaseCookieAutoSync, syncNeteaseCookie } from './scripts/sonic-netease-api.js?v=20260624u';
+import { initSonicNeteasePlaylists } from './scripts/sonic-netease-playlists.js?v=20260624y';
+
+window.checkNeteaseCookie = checkNeteaseCookie;
 
 try {
     initSonicTopographyViz({
@@ -5846,8 +5903,39 @@ try {
             energy: { value: 'stat-energy', bar: 'stat-energy-bar' },
         },
     });
+    initSonicSettingsPanel({
+        mount: document.getElementById('sonic-settings-drawer'),
+        onClosePanels: () => {
+            togglePlaylist(false);
+            toggleNeteaseDrawer(false);
+        },
+        syncNeteaseCookie,
+    });
+    initSonicNeteasePlaylists({
+        drawer: document.getElementById('playlist-drawer'),
+        onPlaySong: (song) => window.__shilokuPlayNeteaseCloudSong?.(song),
+        getLocalSongs: () => songs
+            .map((song, index) => ({ song, index }))
+            .filter(({ song }) => isLocalPlaylistSong(song)),
+        onPlayLocalSong: async (index) => {
+            playHistory = [];
+            togglePlaylist(false);
+            await playLocalAt(index, false);
+            if (!isPlaying) await togglePlay();
+        },
+        getPlaybackState: () => ({
+            source: playbackSource === 'local' ? 'local' : playbackSource,
+            index: playbackSource === 'local' ? currentSongIndex : -1,
+        }),
+    });
+    initSonicMusicExtras({
+        musicRoom: document.getElementById('music-room'),
+        brandBtn: document.querySelector('.aether-brand'),
+        sidebarRail: document.querySelector('.aether-sidebar-rail'),
+    });
+    initNeteaseCookieAutoSync();
 } catch (error) {
-    console.error('[sonic-viz] 3D 视效启动失败:', error);
+    console.error('[music-viz] 3D 视效启动失败:', error);
 }
 </script>
 

@@ -60,6 +60,22 @@ $script:LastNeteaseWindowSongKey = $null
 $script:LastNeteaseWindowSongSince = [datetime]::MinValue
 $script:LastNeteaseWindowPlayConfirmedAt = [datetime]::MinValue
 $script:MusicExeNames = @('cloudmusic', 'CloudMusic', 'NeteaseCloudMusic', 'QQMusic', 'QQMusicLite', 'Spotify')
+$script:CachedMediaManager = $null
+$script:SteamExeGameCache = @{}
+$script:SteamExeGameCacheBuiltAt = [datetime]::MinValue
+$script:StatusLoopCounter = 0
+
+function Reset-StatusProbeCache {
+    $script:CachedMediaManager = $null
+}
+
+function Invoke-StatusMaintenanceIfDue {
+    $script:StatusLoopCounter += 1
+    if ($script:StatusLoopCounter % 120 -ne 0) { return }
+    Reset-StatusProbeCache
+    [System.GC]::Collect()
+    [System.GC]::WaitForPendingFinalizers()
+}
 
 function Initialize-ForegroundApi {
     if ($script:ForegroundApiReady) { return $true }
@@ -78,7 +94,13 @@ public class ShilokuForeground {
 "@
         $script:ForegroundApiReady = $true
         return $true
-    } catch { return $false }
+    } catch {
+        if ($_.Exception.Message -match 'already exists|已添加') {
+            $script:ForegroundApiReady = $true
+            return $true
+        }
+        return $false
+    }
 }
 
 function Get-ForegroundProcessName {
@@ -109,7 +131,7 @@ function Get-ForegroundWindowTitle {
 function Get-IdleSeconds {
     if (-not (Initialize-ForegroundApi)) { return 0 }
     try {
-        $info = New-Object ShilokuForeground+LASTINPUTINFO
+        $info = New-Object LASTINPUTINFO
         $info.cbSize = [uint32][System.Runtime.InteropServices.Marshal]::SizeOf($info)
         if (-not [ShilokuForeground]::GetLastInputInfo([ref]$info)) { return 0 }
         $idleMs = [Environment]::TickCount - [int]$info.dwTime
@@ -191,11 +213,13 @@ function Get-AllMusicAppPatterns {
 }
 
 function Get-MediaManager {
+    if ($null -ne $script:CachedMediaManager) { return $script:CachedMediaManager }
     if (-not (Initialize-MediaControls)) { return $null }
     try {
-        return Await-WinRTTask `
+        $script:CachedMediaManager = Await-WinRTTask `
             ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) `
             ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
+        return $script:CachedMediaManager
     } catch { return $null }
 }
 
@@ -777,6 +801,44 @@ function Test-ProcessTreeHasSteam {
     } catch { return $false }
 }
 
+function Get-SteamExeGameMap {
+    $now = Get-Date
+    if ($script:SteamExeGameCache.Count -gt 0 -and
+        (($now - $script:SteamExeGameCacheBuiltAt).TotalMinutes) -lt 10) {
+        return $script:SteamExeGameCache
+    }
+
+    $map = @{}
+    $steamPath = Get-SteamInstallPath
+    if (-not $steamPath) {
+        $script:SteamExeGameCache = $map
+        $script:SteamExeGameCacheBuiltAt = $now
+        return $map
+    }
+
+    foreach ($lib in (Get-SteamLibraryPaths -SteamPath $steamPath)) {
+        $manifestDir = Join-Path $lib 'steamapps'
+        if (-not (Test-Path $manifestDir)) { continue }
+        foreach ($manifest in Get-ChildItem $manifestDir -Filter 'appmanifest_*.acf' -ErrorAction SilentlyContinue) {
+            try {
+                $text = Get-Content $manifest.FullName -Raw -Encoding UTF8
+                if ($text -notmatch '"name"\s+"([^"]+)"') { continue }
+                $gameName = $Matches[1]
+                foreach ($m in [regex]::Matches($text, '"name"\s+"([^"]+\.exe)"')) {
+                    $exeName = [System.IO.Path]::GetFileNameWithoutExtension($m.Groups[1].Value)
+                    if ($exeName -and -not $map.ContainsKey($exeName)) {
+                        $map[$exeName] = $gameName
+                    }
+                }
+            } catch {}
+        }
+    }
+
+    $script:SteamExeGameCache = $map
+    $script:SteamExeGameCacheBuiltAt = $now
+    return $map
+}
+
 function Get-SteamGameFromForeground {
     param([string]$SteamPath, [string[]]$LibraryPaths)
     $fg = Get-ForegroundProcessName
@@ -789,23 +851,8 @@ function Get-SteamGameFromForeground {
         if (-not (Test-ProcessTreeHasSteam -ProcessId $proc.Id)) { return $null }
     } catch { return $null }
 
-    foreach ($lib in $LibraryPaths) {
-        $manifestDir = Join-Path $lib 'steamapps'
-        if (-not (Test-Path $manifestDir)) { continue }
-        foreach ($manifest in Get-ChildItem $manifestDir -Filter 'appmanifest_*.acf' -ErrorAction SilentlyContinue) {
-            try {
-                $text = Get-Content $manifest.FullName -Raw -Encoding UTF8
-                if ($text -notmatch '"name"\s+"([^"]+)"') { continue }
-                $gameName = $Matches[1]
-                $exeHit = $false
-                foreach ($m in [regex]::Matches($text, '"name"\s+"([^"]+\.exe)"')) {
-                    $exeName = [System.IO.Path]::GetFileNameWithoutExtension($m.Groups[1].Value)
-                    if ($exeName -ieq $fg) { $exeHit = $true; break }
-                }
-                if ($exeHit) { return $gameName }
-            } catch {}
-        }
-    }
+    $gameMap = Get-SteamExeGameMap
+    if ($gameMap.ContainsKey($fg)) { return $gameMap[$fg] }
     return $null
 }
 
@@ -1133,81 +1180,86 @@ function Invoke-GitStep {
 }
 
 function Update-StatusFile {
-    $status = Get-StatusPayload
-    $text = [string]$status.text
+    Reset-StatusProbeCache
+    try {
+        $status = Get-StatusPayload
+        $text = [string]$status.text
 
-    $prevFingerprint = $null
-    if (Test-Path $statusFile) {
-        try {
-            $prev = Get-Content $statusFile -Raw -Encoding UTF8 | ConvertFrom-Json
-            $prevFingerprint = Get-StatusFingerprint @{
-                text      = [string]$prev.text
-                mode      = [string]$prev.mode
-                primary   = [string]$prev.primary
-                secondary = [string]$prev.secondary
-                lines     = @($prev.lines)
+        $prevFingerprint = $null
+        if (Test-Path $statusFile) {
+            try {
+                $prev = Get-Content $statusFile -Raw -Encoding UTF8 | ConvertFrom-Json
+                $prevFingerprint = Get-StatusFingerprint @{
+                    text      = [string]$prev.text
+                    mode      = [string]$prev.mode
+                    primary   = [string]$prev.primary
+                    secondary = [string]$prev.secondary
+                    lines     = @($prev.lines)
+                }
+            } catch {}
+        }
+
+        $fingerprint = Get-StatusFingerprint $status
+        $textChanged = ($prevFingerprint -ne $fingerprint)
+
+        $payload = @{
+            text              = $text
+            updatedAt         = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+            mode              = $status.mode
+            primary           = $status.primary
+            secondary         = $status.secondary
+            lines             = $status.lines
+            displayMode       = $status.displayMode
+            carouselSeconds   = $status.carouselSeconds
+        }
+        $payloadJson = $payload | ConvertTo-Json -Compress -Depth 4
+
+        if ($textChanged) {
+            $script:PendingRemotePayloadJson = $payloadJson
+            [System.IO.File]::WriteAllText($statusFile, $payloadJson, [System.Text.UTF8Encoding]::new($false))
+            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $text"
+        } elseif (-not $script:PendingRemotePayloadJson) {
+            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (unchanged) $text"
+        }
+
+        if (-not $Post) {
+            if ($Push -and $textChanged) {
+                Write-Host '  (warning: -Push uses Git and may trigger Vercel; use -Post instead)'
+                if (Push-StatusToGit -PayloadJson $payloadJson) {
+                    $script:LastPushTime = Get-Date
+                    Register-RemotePostAttempt
+                }
             }
-        } catch {}
-    }
+            return
+        }
 
-    $fingerprint = Get-StatusFingerprint $status
-    $textChanged = ($prevFingerprint -ne $fingerprint)
+        $hasPending = [bool]$script:PendingRemotePayloadJson
+        $shouldPost = Test-ShouldPostRemote -TextChanged $textChanged -HasPending $hasPending
 
-    $payload = @{
-        text              = $text
-        updatedAt         = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-        mode              = $status.mode
-        primary           = $status.primary
-        secondary         = $status.secondary
-        lines             = $status.lines
-        displayMode       = $status.displayMode
-        carouselSeconds   = $status.carouselSeconds
-    }
-    $payloadJson = $payload | ConvertTo-Json -Compress -Depth 4
+        if (-not $shouldPost) {
+            if ($hasPending -and -not (Test-RemotePostMinGapMet)) {
+                Write-Host '  (post queued, waiting min interval)'
+            } elseif ($hasPending -and -not (Test-RemotePostBudget)) {
+                Write-Host '  (post queued, hourly budget reached)'
+            }
+            return
+        }
 
-    if ($textChanged) {
-        $script:PendingRemotePayloadJson = $payloadJson
-        [System.IO.File]::WriteAllText($statusFile, $payloadJson, [System.Text.UTF8Encoding]::new($false))
-        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $text"
-    } elseif (-not $script:PendingRemotePayloadJson) {
-        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (unchanged) $text"
-    }
+        $postJson = if ($script:PendingRemotePayloadJson) { $script:PendingRemotePayloadJson } else { $payloadJson }
+        $postReason = if ($script:PendingRemotePayloadJson) { 'change' } else { 'heartbeat' }
 
-    if (-not $Post) {
-        if ($Push -and $textChanged) {
-            Write-Host '  (warning: -Push uses Git and may trigger Vercel; use -Post instead)'
-            if (Push-StatusToGit -PayloadJson $payloadJson) {
-                $script:LastPushTime = Get-Date
-                Register-RemotePostAttempt
+        if (Send-StatusRemote -PayloadJson $postJson) {
+            $script:LastPushTime = Get-Date
+            $script:PendingRemotePayloadJson = $null
+            Register-RemotePostAttempt
+            if ($postReason -eq 'heartbeat') {
+                Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (heartbeat posted) $text"
+            } else {
+                Write-Host '  posted (change)'
             }
         }
-        return
-    }
-
-    $hasPending = [bool]$script:PendingRemotePayloadJson
-    $shouldPost = Test-ShouldPostRemote -TextChanged $textChanged -HasPending $hasPending
-
-    if (-not $shouldPost) {
-        if ($hasPending -and -not (Test-RemotePostMinGapMet)) {
-            Write-Host '  (post queued, waiting min interval)'
-        } elseif ($hasPending -and -not (Test-RemotePostBudget)) {
-            Write-Host '  (post queued, hourly budget reached)'
-        }
-        return
-    }
-
-    $postJson = if ($script:PendingRemotePayloadJson) { $script:PendingRemotePayloadJson } else { $payloadJson }
-    $postReason = if ($script:PendingRemotePayloadJson) { 'change' } else { 'heartbeat' }
-
-    if (Send-StatusRemote -PayloadJson $postJson) {
-        $script:LastPushTime = Get-Date
-        $script:PendingRemotePayloadJson = $null
-        Register-RemotePostAttempt
-        if ($postReason -eq 'heartbeat') {
-            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (heartbeat posted) $text"
-        } else {
-            Write-Host '  posted (change)'
-        }
+    } finally {
+        Reset-StatusProbeCache
     }
 }
 
@@ -1351,5 +1403,6 @@ if ($Loop) {
         Start-Sleep -Seconds $IntervalSeconds
         Sync-NeteaseCookieIfDue
         Update-StatusFile
+        Invoke-StatusMaintenanceIfDue
     }
 }
