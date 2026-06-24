@@ -5448,20 +5448,32 @@ async function togglePlay() {
     }
 
     if (isPlaying) {
-        await pauseWithFade();
+        stopVolumeFade();
+        audio.pause();
+        applyVolumeFromSlider(volumeSlider?.value);
+        isPlaying = false;
         setMainPlayState(false);
         markMusicPaused();
         window.shilokuStopListen?.();
-    } else {
-        stopVolumeFade();
-        applyVolumeFromSlider(volumeSlider.value);
-        await audio.play();
-        window.__shilokuViz?.ensureAudio?.();
-        setMainPlayState(true);
-        markMusicPlaying();
-        window.shilokuStartListen?.();
+        window.shilokuRefreshListenStats?.();
+        return;
     }
-    isPlaying = !isPlaying;
+
+    stopVolumeFade();
+    window.__shilokuViz?.ensureAudio?.();
+    applyVolumeFromSlider(volumeSlider?.value);
+    try {
+        await audio.play();
+    } catch (error) {
+        console.warn('播放失败', error);
+        isPlaying = false;
+        setMainPlayState(false);
+        return;
+    }
+    isPlaying = true;
+    setMainPlayState(true);
+    markMusicPlaying();
+    window.shilokuStartListen?.();
     window.shilokuRefreshListenStats?.();
 }
 
@@ -5484,9 +5496,9 @@ async function playEntry(song, { pushHistory = false } = {}) {
             return;
         }
         applyVolumeFromSlider(volumeSlider.value);
+        window.__shilokuViz?.ensureAudio?.();
         try {
             await audio.play();
-            window.__shilokuViz?.ensureAudio?.();
         } catch (error) {
             console.warn('播放失败', error);
             isPlaying = false;
@@ -5573,7 +5585,12 @@ async function onTrackEnded() {
         audio.currentTime = 0;
         stopVolumeFade();
         applyVolumeFromSlider(volumeSlider.value);
-        await audio.play();
+        window.__shilokuViz?.ensureAudio?.();
+        try {
+            await audio.play();
+        } catch (error) {
+            console.warn('循环播放失败', error);
+        }
         return;
     }
     if (playbackSource === 'preview') {
@@ -5994,11 +6011,17 @@ function stopVolumeFade() {
 function fadeAudioVolume({ from, to, durationMs, onComplete }) {
     stopVolumeFade();
     const startAt = performance.now();
+    const hijacked = Boolean(window.__shilokuViz?.isOutputHijacked?.());
     const step = (now) => {
         const progress = Math.min(1, (now - startAt) / durationMs);
         const eased = 1 - Math.pow(1 - progress, 2);
-        audio.volume = from + (to - from) * eased;
-        window.__shilokuViz?.setOutputVolume?.(audio.volume);
+        const current = from + (to - from) * eased;
+        if (hijacked) {
+            window.__shilokuViz?.setOutputVolume?.(current);
+        } else {
+            audio.volume = current;
+            window.__shilokuViz?.setOutputVolume?.(current);
+        }
         if (progress < 1) {
             volumeFadeRafId = requestAnimationFrame(step);
             return;
@@ -6082,7 +6105,7 @@ window.addEventListener('DOMContentLoaded', initPlayer);
 </script>
 
 <script type="module">
-import { initSonicTopographyViz } from './scripts/sonic-topography-viz.js?v=20260625vol5';
+import { initSonicTopographyViz } from './scripts/sonic-topography-viz.js?v=20260625play1';
 import { initSonicSettingsPanel } from './scripts/sonic-settings-panel.js?v=20260624u';
 import { initSonicMusicExtras } from './scripts/sonic-music-extras.js?v=20260624n';
 import { checkNeteaseCookie, initNeteaseCookieAutoSync, syncNeteaseCookie } from './scripts/sonic-netease-api.js?v=20260624u';
