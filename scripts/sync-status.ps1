@@ -925,7 +925,10 @@ function Get-ForegroundProcessStatus {
 $script:LastPushTime = [datetime]::MinValue
 $script:RemotePostBlockedUntil = [datetime]::MinValue
 $script:PendingRemotePayloadJson = $null
+$script:PendingRemoteSince = [datetime]::MinValue
 $script:RemotePostTimestamps = @()
+$script:LastUnchangedLogAt = [datetime]::MinValue
+$script:LastQueueNoticeAt = @{}
 
 function Get-ConfigInt {
     param([string]$Key, [int]$Default, [int]$Minimum = 1)
@@ -965,6 +968,36 @@ function Get-RemoteRateLimitCooldownSeconds {
     return Get-ConfigInt -Key 'remoteRateLimitCooldownSeconds' -Default 300 -Minimum 60
 }
 
+function Get-RemoteDebounceSeconds {
+    return Get-ConfigInt -Key 'remoteDebounceSeconds' -Default 10 -Minimum 0
+}
+
+function Get-QueueNoticeIntervalSeconds {
+    return Get-ConfigInt -Key 'queueNoticeIntervalSeconds' -Default 600 -Minimum 60
+}
+
+function Get-LogUnchangedIntervalSeconds {
+    return Get-ConfigInt -Key 'logUnchangedIntervalSeconds' -Default 600 -Minimum 0
+}
+
+function Write-QueueNoticeOnce {
+    param([string]$Reason, [string]$Message)
+    $interval = Get-QueueNoticeIntervalSeconds
+    if (-not $script:LastQueueNoticeAt.ContainsKey($Reason)) {
+        $script:LastQueueNoticeAt[$Reason] = [datetime]::MinValue
+    }
+    if (((Get-Date) - $script:LastQueueNoticeAt[$Reason]).TotalSeconds -lt $interval) { return }
+    $script:LastQueueNoticeAt[$Reason] = Get-Date
+    Write-Host "  $Message"
+}
+
+function Test-RemoteDebounceMet {
+    if ($script:PendingRemoteSince -eq [datetime]::MinValue) { return $true }
+    $debounce = Get-RemoteDebounceSeconds
+    if ($debounce -le 0) { return $true }
+    return ((Get-Date) - $script:PendingRemoteSince).TotalSeconds -ge $debounce
+}
+
 function Register-RemotePostAttempt {
     $cutoff = (Get-Date).AddHours(-1)
     $script:RemotePostTimestamps = @($script:RemotePostTimestamps | Where-Object { $_ -ge $cutoff })
@@ -990,6 +1023,7 @@ function Test-ShouldPostRemote {
     )
 
     if ($HasPending) {
+        if (-not (Test-RemoteDebounceMet)) { return $false }
         if (-not (Test-RemotePostAllowed)) { return $true }
         if (-not (Test-RemotePostBudget)) { return $false }
         return (Test-RemotePostMinGapMet)
@@ -1216,10 +1250,18 @@ function Update-StatusFile {
 
         if ($textChanged) {
             $script:PendingRemotePayloadJson = $payloadJson
+            $script:PendingRemoteSince = Get-Date
             [System.IO.File]::WriteAllText($statusFile, $payloadJson, [System.Text.UTF8Encoding]::new($false))
             Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $text"
         } elseif (-not $script:PendingRemotePayloadJson) {
-            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (unchanged) $text"
+            $unchangedInterval = Get-LogUnchangedIntervalSeconds
+            if ($unchangedInterval -gt 0) {
+                if ($script:LastUnchangedLogAt -eq [datetime]::MinValue -or
+                    ((Get-Date) - $script:LastUnchangedLogAt).TotalSeconds -ge $unchangedInterval) {
+                    Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (unchanged) $text"
+                    $script:LastUnchangedLogAt = Get-Date
+                }
+            }
         }
 
         if (-not $Post) {
@@ -1237,10 +1279,13 @@ function Update-StatusFile {
         $shouldPost = Test-ShouldPostRemote -TextChanged $textChanged -HasPending $hasPending
 
         if (-not $shouldPost) {
+            if ($hasPending -and -not (Test-RemoteDebounceMet)) {
+                return
+            }
             if ($hasPending -and -not (Test-RemotePostMinGapMet)) {
-                Write-Host '  (post queued, waiting min interval)'
+                Write-QueueNoticeOnce -Reason 'min_interval' -Message '(post queued, waiting min interval)'
             } elseif ($hasPending -and -not (Test-RemotePostBudget)) {
-                Write-Host '  (post queued, hourly budget reached)'
+                Write-QueueNoticeOnce -Reason 'hourly_budget' -Message '(post queued, hourly budget reached)'
             }
             return
         }
@@ -1251,6 +1296,7 @@ function Update-StatusFile {
         if (Send-StatusRemote -PayloadJson $postJson) {
             $script:LastPushTime = Get-Date
             $script:PendingRemotePayloadJson = $null
+            $script:PendingRemoteSince = [datetime]::MinValue
             Register-RemotePostAttempt
             if ($postReason -eq 'heartbeat') {
                 Write-Host "[$(Get-Date -Format 'HH:mm:ss')] (heartbeat posted) $text"
@@ -1384,6 +1430,13 @@ function Sync-NeteaseCookieIfDue {
         Write-Host "  [netease-cookie] sync failed: $_"
     }
     $script:LastNeteaseCookieSync = Get-Date
+}
+
+if ($config.syncIntervalSeconds) {
+    $configuredInterval = [int]$config.syncIntervalSeconds
+    if ($configuredInterval -ge 5 -and -not $PSBoundParameters.ContainsKey('IntervalSeconds')) {
+        $IntervalSeconds = $configuredInterval
+    }
 }
 
 if ($Loop) {
