@@ -8,4 +8,8 @@ scripts/.netease-cookie-push-state.json
 scripts/__pycache__/
 .scratch/
 
+# 太阳系演示（不再维护，禁止入库）
+solar-system.html
+textures/planets/
+
 .vercel
