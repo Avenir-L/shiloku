@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css">
     <link rel="stylesheet" href="aether-music.css?v=20260624ab">
     <link rel="stylesheet" href="site-extensions.css">
-    <script type="module" src="scripts/site-extensions.js?v=20260624m"></script>
+    <script type="module" src="scripts/site-extensions.js?v=20260625fix1"></script>
     <script type="importmap">
     {
         "imports": {
@@ -1844,170 +1844,6 @@ body.music-room-open {
     border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
-.playlist-manage-btn {
-    padding: 5px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.78);
-    font-size: 11px;
-    cursor: pointer;
-    font-family: inherit;
-}
-
-.playlist-manage-btn:hover {
-    border-color: rgba(255, 255, 255, 0.32);
-    color: #fff;
-}
-
-#playlist {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    overflow-y: auto;
-    flex: 1;
-}
-
-#playlist::-webkit-scrollbar { width: 4px; }
-#playlist::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
-
-#playlist li {
-    padding: 14px 12px;
-    cursor: default;
-    border-radius: 12px;
-    transition: all 0.3s;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    color: rgba(255,255,255,0.7);
-    margin-bottom: 4px;
-}
-
-#playlist .playlist-item-main {
-    flex: 1;
-    min-width: 0;
-    cursor: pointer;
-}
-
-#playlist .playlist-item-title {
-    display: block;
-    font-weight: 600;
-    color: rgba(255,255,255,0.88);
-}
-
-#playlist .playlist-item-artist {
-    display: block;
-    margin-top: 2px;
-    font-size: 12px;
-    opacity: 0.55;
-}
-
-#playlist .playlist-item-meta {
-    flex-shrink: 0;
-}
-
-#playlist .playlist-category-picker {
-    position: relative;
-    flex-shrink: 0;
-}
-
-#playlist .playlist-category-picker-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    max-width: 120px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.16);
-    background: rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.82);
-    font-size: 11px;
-    font-family: inherit;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-#playlist .playlist-category-picker-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 88px;
-}
-
-#playlist .playlist-category-picker-chevron {
-    font-size: 10px;
-    opacity: 0.55;
-    flex-shrink: 0;
-}
-
-#playlist .playlist-category-picker-btn:hover,
-#playlist .playlist-category-picker.is-open .playlist-category-picker-btn {
-    border-color: var(--music-accent, rgba(251, 113, 133, 0.5));
-    background: rgba(255,255,255,0.1);
-    color: #fff;
-}
-
-#playlist .playlist-category-picker-menu {
-    position: fixed;
-    z-index: 120;
-    min-width: 128px;
-    max-width: 200px;
-    max-height: min(240px, 42vh);
-    overflow-y: auto;
-    padding: 6px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: rgba(14, 14, 20, 0.96);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 12px 32px rgba(0,0,0,0.45);
-}
-
-#playlist .playlist-category-picker-menu[hidden] {
-    display: none !important;
-}
-
-#playlist .playlist-category-picker-option {
-    display: block;
-    width: 100%;
-    padding: 8px 10px;
-    border: none;
-    border-radius: 8px;
-    background: transparent;
-    color: rgba(255,255,255,0.78);
-    font-size: 11px;
-    font-family: inherit;
-    text-align: left;
-    cursor: pointer;
-}
-
-#playlist .playlist-category-picker-option:hover {
-    background: rgba(255,255,255,0.08);
-    color: #fff;
-}
-
-#playlist .playlist-category-picker-option.is-active {
-    background: var(--site-accent-soft, rgba(251, 113, 133, 0.22));
-    color: #fff;
-    font-weight: 600;
-}
-
-#playlist .playlist-category-picker-menu::-webkit-scrollbar { width: 4px; }
-#playlist .playlist-category-picker-menu::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.2);
-    border-radius: 2px;
-}
-
-#playlist li:hover { background: rgba(255,255,255,0.08); }
-#playlist li.active {
-    color: #fff;
-    font-weight: 700;
-    background: rgba(255,255,255,0.12);
-    border-left: 3px solid var(--music-accent);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-}
-
 .netease-drawer {
     position: fixed;
     top: 0;
@@ -2476,7 +2312,7 @@ body.music-room-open {
     }
     #send-btn:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
     #send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none;}
-    /* 底部敬请期待文字 - 全局绝对居中 */
+    /* 底部页脚文字 - 全局绝对居中 */
 .footer-notice {
         position: fixed !important; /* 强制锁定，谁也别想移动它 */
         bottom: 20px !important;    /* 强制固定在离底部 20px 的位置 */
@@ -3623,6 +3459,29 @@ body.music-room-open {
         chatPanel.classList.add('hidden');
     });
 
+    function escapeHtml(text) {
+        return String(text ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function appendChatBubble(container, className, content, options = {}) {
+        const div = document.createElement('div');
+        div.className = className;
+        if (options.id) div.id = options.id;
+        if (options.style) div.style.cssText = options.style;
+        if (options.allowLineBreaks) {
+            div.innerHTML = escapeHtml(content).replace(/\n/g, '<br>');
+        } else {
+            div.textContent = content;
+        }
+        container.appendChild(div);
+        return div;
+    }
+
     // 2. 发送消息的核心逻辑
     async function sendMessage() {
         const inputField = document.getElementById('chat-input');
@@ -3631,17 +3490,18 @@ body.music-room-open {
         const message = inputField.value.trim();
         if (!message) return;
 
-        // 在屏幕上打印你的话
-        historyBox.innerHTML += `<div class="message user-message">${message}</div>`;
+        appendChatBubble(historyBox, 'message user-message', message);
         inputField.value = '';
         inputField.disabled = true;
         sendBtn.disabled = true;
         sendBtn.innerText = '...';
 
-        // 生成一个正在思考的占位符
         const loadingId = 'loading-' + Date.now();
         const thinkingText = window.shilokuI18n?.t?.('aiThinking') || '✨ DeepSeek 正在深度思考...';
-        historyBox.innerHTML += `<div id="${loadingId}" class="message ai-message" style="opacity: 0.6;">${thinkingText}</div>`;
+        appendChatBubble(historyBox, 'message ai-message', thinkingText, {
+            id: loadingId,
+            style: 'opacity: 0.6;',
+        });
         historyBox.scrollTop = historyBox.scrollHeight;
 
         try {
@@ -3661,23 +3521,22 @@ body.music-room-open {
             
             const data = await response.json();
             
-            // 移除思考占位符
-            document.getElementById(loadingId).remove();
+            document.getElementById(loadingId)?.remove();
             
-            // 打印 AI 的正式回答
-            if(data.reply) {
-                // 将换行符转换为 <br> 以保留 AI 排版格式
-                const formattedReply = data.reply.replace(/\n/g, '<br>');
-                historyBox.innerHTML += `<div class="message ai-message">${formattedReply}</div>`;
+            if (data.reply) {
+                appendChatBubble(historyBox, 'message ai-message', data.reply, { allowLineBreaks: true });
             } else {
-                historyBox.innerHTML += `<div class="message ai-message" style="color: #ff8e8e;">⚠️ ${data.error}</div>`;
+                appendChatBubble(historyBox, 'message ai-message', `⚠️ ${data.error || '未知错误'}`, {
+                    style: 'color: #ff8e8e;',
+                });
             }
         } catch(e) {
-            document.getElementById(loadingId).remove();
-            historyBox.innerHTML += `<div class="message ai-message" style="color: #ff8e8e;">⚠️ 网络连接异常，请重试。</div>`;
+            document.getElementById(loadingId)?.remove();
+            appendChatBubble(historyBox, 'message ai-message', '⚠️ 网络连接异常，请重试。', {
+                style: 'color: #ff8e8e;',
+            });
         }
 
-        // 恢复输入框状态
         inputField.disabled = false;
         sendBtn.disabled = false;
         sendBtn.innerText = window.shilokuI18n?.t?.('aiSend') || '发送';
@@ -3746,8 +3605,6 @@ const LOCAL_SONGS = [
         lrc: "more_than_words.lrc"
     },
 ];
-
-let playlistCategoryFilter = 'all';
 
 let songs = [...LOCAL_SONGS];
 let neteaseQueue = [];
@@ -3918,7 +3775,6 @@ if (audio) {
 const coverImg = document.getElementById('album-cover');
 const songTitle = document.getElementById('song-title');
 const songArtist = document.getElementById('song-artist');
-const playlistEl = null;
 const mainPlayBtn = document.getElementById('main-play-btn');
 const lyricsList = document.getElementById('lyrics-list');
 const lyricsScrollEl = document.getElementById('lyrics-scroll');
@@ -4301,7 +4157,7 @@ function removeNeteaseFromQueue(index) {
     }
     renderNeteaseQueue();
     renderNeteaseResults();
-    updatePlaylistHighlight();
+    updateNeteaseHighlight();
 }
 
 function neteaseFeeLabel(fee) {
@@ -4395,18 +4251,49 @@ function renderNeteaseResults() {
         const checking = song.playable == null;
         li.classList.toggle('unplayable', unplayable);
         li.classList.toggle('playable-checking', checking);
-        li.innerHTML = `
-            <div class="result-body">
-                <div class="result-name">${song.name}${feeLabel ? `<span class="result-fee">${feeLabel}</span>` : ''}${unplayable ? '<span class="result-fee">暂不可播</span>' : ''}</div>
-                <div class="result-meta">${song.artist || '未知歌手'}${song.album ? ` · ${song.album}` : ''}</div>
-            </div>
-            <button type="button" class="result-add-btn${inList ? ' in-list' : ''}" title="${inList ? '已在临时列表' : '加入临时列表'}" aria-label="${inList ? '已在临时列表' : '加入临时列表'}">+</button>
-        `;
-        li.querySelector('.result-body').addEventListener('click', () => playNeteaseSong(song));
-        li.querySelector('.result-add-btn').addEventListener('click', (event) => {
+
+        const body = document.createElement('div');
+        body.className = 'result-body';
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'result-name';
+        nameEl.textContent = song.name || '';
+        if (feeLabel) {
+            const fee = document.createElement('span');
+            fee.className = 'result-fee';
+            fee.textContent = feeLabel;
+            nameEl.appendChild(fee);
+        }
+        if (unplayable) {
+            const tag = document.createElement('span');
+            tag.className = 'result-fee';
+            tag.textContent = '暂不可播';
+            nameEl.appendChild(tag);
+        }
+
+        const metaEl = document.createElement('div');
+        metaEl.className = 'result-meta';
+        metaEl.textContent = `${song.artist || '未知歌手'}${song.album ? ` · ${song.album}` : ''}`;
+
+        body.appendChild(nameEl);
+        body.appendChild(metaEl);
+
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = `result-add-btn${inList ? ' in-list' : ''}`;
+        const addLabel = inList ? '已在临时列表' : '加入临时列表';
+        addBtn.title = addLabel;
+        addBtn.setAttribute('aria-label', addLabel);
+        addBtn.textContent = '+';
+
+        body.addEventListener('click', () => playNeteaseSong(song));
+        addBtn.addEventListener('click', (event) => {
             event.stopPropagation();
             addNeteaseToQueue(song);
         });
+
+        li.appendChild(body);
+        li.appendChild(addBtn);
         neteaseResultsEl.appendChild(li);
     });
     updateNeteaseHighlight();
@@ -4441,21 +4328,39 @@ function renderNeteaseQueue() {
     neteaseQueue.forEach((song, index) => {
         const li = document.createElement('li');
         li.dataset.index = String(index);
-        li.innerHTML = `
-            <div class="queue-item-main">
-                <span class="queue-item-title">${song.title}</span>
-                <span class="queue-item-artist">${song.artist}</span>
-            </div>
-            <button type="button" class="queue-remove-btn" title="移出临时列表" aria-label="移出临时列表">×</button>
-        `;
-        li.querySelector('.queue-item-main')?.addEventListener('click', async () => {
+
+        const main = document.createElement('div');
+        main.className = 'queue-item-main';
+
+        const titleEl = document.createElement('span');
+        titleEl.className = 'queue-item-title';
+        titleEl.textContent = song.title || '';
+
+        const artistEl = document.createElement('span');
+        artistEl.className = 'queue-item-artist';
+        artistEl.textContent = song.artist || '';
+
+        main.appendChild(titleEl);
+        main.appendChild(artistEl);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'queue-remove-btn';
+        removeBtn.title = '移出临时列表';
+        removeBtn.setAttribute('aria-label', '移出临时列表');
+        removeBtn.textContent = '×';
+
+        main.addEventListener('click', async () => {
             await playNeteaseAt(index, false);
             if (!isPlaying) await togglePlay();
         });
-        li.querySelector('.queue-remove-btn')?.addEventListener('click', (event) => {
+        removeBtn.addEventListener('click', (event) => {
             event.stopPropagation();
             removeNeteaseFromQueue(index);
         });
+
+        li.appendChild(main);
+        li.appendChild(removeBtn);
         neteaseQueueEl.appendChild(li);
     });
     updateNeteaseHighlight();
@@ -4819,7 +4724,7 @@ async function loadSongByEntry(song, { deferLyrics = false, resetAudio = true } 
     lyricAnchorCenters = [];
     lyricScrollY = 0;
     resetLyricScrollTransform();
-    updatePlaylistHighlight();
+    updateNeteaseHighlight();
 
     if (deferLyrics) {
         if (!song.skipLyricsLoad) void loadSongLyrics(song);
@@ -5546,7 +5451,7 @@ async function playLocalAt(index, pushHistory = false) {
     currentSongIndex = index;
     lastLocalIndex = index;
     await playEntry(songs[index], { pushHistory: false });
-    updatePlaylistHighlight();
+    updateNeteaseHighlight();
     renderNeteaseQueue();
     window.__refreshPlaylistsDrawer?.();
 }
@@ -5664,309 +5569,7 @@ async function prevSong() {
     }
 }
 
-function getPlaylistCategoriesApi() {
-    return window.shilokuPlaylistCategories;
-}
-
-function getSongCategoryId(song) {
-    return getPlaylistCategoriesApi()?.getSongCategoryId?.(song) || 'uncategorized';
-}
-
-function getSongCategoryLabel(song) {
-    const t = window.shilokuI18n?.t || ((key) => key);
-    const catId = getSongCategoryId(song);
-    if (catId === 'uncategorized') return t('playlistUncategorized');
-    return getPlaylistCategoriesApi()?.getCategoryName?.(catId) || t('playlistUncategorized');
-}
-
-function songMatchesCategoryFilter(song) {
-    if (playlistCategoryFilter === 'all') return true;
-    const catId = getSongCategoryId(song);
-    if (playlistCategoryFilter === 'uncategorized') return catId === 'uncategorized';
-    return catId === playlistCategoryFilter;
-}
-
-function promptCategoryName(defaultValue = '') {
-    const t = window.shilokuI18n?.t || ((key) => key);
-    const name = window.prompt(t('playlistCategoryNamePrompt'), defaultValue);
-    if (name === null) return null;
-    const trimmed = name.trim();
-    if (!trimmed) {
-        window.alert(t('playlistCategoryInvalid'));
-        return null;
-    }
-    return trimmed;
-}
-
-function renderPlaylistCategoryPanel() {
-    const panel = document.getElementById('playlist-category-panel');
-    const list = document.getElementById('playlist-category-list');
-    const api = getPlaylistCategoriesApi();
-    if (!panel || !list || !api) return;
-
-    const t = window.shilokuI18n?.t || ((key) => key);
-    const categories = api.listCategories();
-
-    list.innerHTML = categories.map((cat) => `
-        <li class="playlist-category-list-item" data-id="${cat.id}">
-            <span class="playlist-category-list-name">${cat.name}</span>
-            <div class="playlist-category-list-actions">
-                <button type="button" class="playlist-category-action" data-action="rename" data-id="${cat.id}">${t('playlistRenameCategory')}</button>
-                <button type="button" class="playlist-category-action danger" data-action="delete" data-id="${cat.id}">${t('playlistDeleteCategory')}</button>
-            </div>
-        </li>
-    `).join('');
-
-    list.querySelectorAll('.playlist-category-action').forEach((btn) => {
-        btn.addEventListener('click', (event) => {
-            event.stopPropagation();
-            const id = btn.dataset.id;
-            const action = btn.dataset.action;
-            if (!id || !action) return;
-
-            if (action === 'rename') {
-                const current = api.getCategoryName(id) || '';
-                const nextName = promptCategoryName(current);
-                if (!nextName) return;
-                if (!api.renameCategory(id, nextName)) {
-                    window.alert(t('playlistCategoryExists'));
-                    return;
-                }
-            }
-
-            if (action === 'delete') {
-                if (!window.confirm(t('playlistDeleteCategoryConfirm'))) return;
-                api.deleteCategory(id);
-                if (playlistCategoryFilter === id) playlistCategoryFilter = 'all';
-            }
-
-            renderPlaylistCategoryBar();
-            renderPlaylistCategoryPanel();
-            renderPlaylist();
-        });
-    });
-}
-
-function setupPlaylistCategoryUI() {
-    document.getElementById('playlist-category-manage')?.addEventListener('click', () => {
-        const panel = document.getElementById('playlist-category-panel');
-        if (!panel) return;
-        const isHidden = panel.classList.contains('hidden');
-        if (isHidden) {
-            panel.classList.remove('hidden');
-            panel.setAttribute('aria-hidden', 'false');
-            renderPlaylistCategoryPanel();
-        } else {
-            panel.classList.add('hidden');
-            panel.setAttribute('aria-hidden', 'true');
-        }
-    });
-
-    document.getElementById('playlist-category-panel-close')?.addEventListener('click', () => {
-        const panel = document.getElementById('playlist-category-panel');
-        panel?.classList.add('hidden');
-        panel?.setAttribute('aria-hidden', 'true');
-    });
-
-    document.getElementById('playlist-category-add')?.addEventListener('click', () => {
-        const api = getPlaylistCategoriesApi();
-        const t = window.shilokuI18n?.t || ((key) => key);
-        if (!api) return;
-        const name = promptCategoryName('');
-        if (!name) return;
-        const id = api.addCategory(name);
-        if (!id) {
-            window.alert(t('playlistCategoryExists'));
-            return;
-        }
-        playlistCategoryFilter = id;
-        renderPlaylistCategoryBar();
-        renderPlaylistCategoryPanel();
-        renderPlaylist();
-    });
-}
-
-function renderPlaylistCategoryBar() {
-    const bar = document.getElementById('playlist-category-bar');
-    const api = getPlaylistCategoriesApi();
-    if (!bar || !api) return;
-
-    const t = window.shilokuI18n?.t || ((key) => key);
-    const tabs = api.getFilterTabs(t);
-
-    bar.innerHTML = tabs.map((cat) =>
-        `<button type="button" class="playlist-category-btn${playlistCategoryFilter === cat.id ? ' is-active' : ''}" data-category="${cat.id}" role="tab" aria-selected="${playlistCategoryFilter === cat.id ? 'true' : 'false'}">${cat.name}</button>`,
-    ).join('') + `<button type="button" class="playlist-category-btn playlist-category-btn-add" id="playlist-category-quick-add" title="${t('playlistAddCategory')}">+</button>`;
-
-    bar.querySelectorAll('.playlist-category-btn[data-category]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            playlistCategoryFilter = btn.dataset.category || 'all';
-            renderPlaylistCategoryBar();
-            renderPlaylist();
-        });
-    });
-
-    bar.querySelector('#playlist-category-quick-add')?.addEventListener('click', () => {
-        document.getElementById('playlist-category-add')?.click();
-    });
-}
-
-function closeAllCategoryPickers() {
-    document.querySelectorAll('.playlist-category-picker.is-open').forEach((picker) => {
-        picker.classList.remove('is-open');
-        const menu = picker.querySelector('.playlist-category-picker-menu');
-        const btn = picker.querySelector('.playlist-category-picker-btn');
-        if (menu) {
-            menu.hidden = true;
-            menu.style.top = '';
-            menu.style.left = '';
-            menu.style.right = '';
-        }
-        btn?.setAttribute('aria-expanded', 'false');
-    });
-}
-
-function positionCategoryPickerMenu(picker) {
-    const btn = picker.querySelector('.playlist-category-picker-btn');
-    const menu = picker.querySelector('.playlist-category-picker-menu');
-    if (!btn || !menu) return;
-
-    menu.hidden = false;
-    menu.style.visibility = 'hidden';
-    menu.style.display = 'block';
-
-    const btnRect = btn.getBoundingClientRect();
-    const menuRect = menu.getBoundingClientRect();
-    menu.style.visibility = '';
-
-    let top = btnRect.bottom + 6;
-    if (top + menuRect.height > window.innerHeight - 8) {
-        top = Math.max(8, btnRect.top - menuRect.height - 6);
-    }
-
-    let left = btnRect.right - menuRect.width;
-    if (left < 8) left = 8;
-    if (left + menuRect.width > window.innerWidth - 8) {
-        left = window.innerWidth - menuRect.width - 8;
-    }
-
-    menu.style.top = `${top}px`;
-    menu.style.left = `${left}px`;
-}
-
-function getCategoryLabel(categoryId, api, t) {
-    if (categoryId === 'uncategorized') return t('playlistUncategorized');
-    return api.getCategoryName(categoryId) || t('playlistUncategorized');
-}
-
-function buildSongCategoryPicker(song, index) {
-    const api = getPlaylistCategoriesApi();
-    const t = window.shilokuI18n?.t || ((key) => key);
-    if (!api) return '';
-
-    const current = getSongCategoryId(song);
-    const currentLabel = getCategoryLabel(current, api, t);
-    const options = [
-        { id: 'uncategorized', label: t('playlistUncategorized') },
-        ...api.listCategories().map((cat) => ({ id: cat.id, label: cat.name })),
-    ];
-
-    const optionsHtml = options.map((opt) =>
-        `<button type="button" class="playlist-category-picker-option${current === opt.id ? ' is-active' : ''}" data-value="${opt.id}">${opt.label}</button>`,
-    ).join('');
-
-    return `<div class="playlist-category-picker" data-index="${index}">
-        <button type="button" class="playlist-category-picker-btn" aria-haspopup="listbox" aria-expanded="false">
-            <span class="playlist-category-picker-label">${currentLabel}</span>
-            <span class="playlist-category-picker-chevron" aria-hidden="true">▾</span>
-        </button>
-        <div class="playlist-category-picker-menu" role="listbox" hidden>${optionsHtml}</div>
-    </div>`;
-}
-
-function renderPlaylist() {
-    if (!playlistEl) return;
-    playlistEl.innerHTML = '';
-
-    const filtered = songs
-        .map((song, index) => ({ song, index }))
-        .filter(({ song }) => isLocalPlaylistSong(song) && songMatchesCategoryFilter(song));
-
-    if (!filtered.length) {
-        const empty = document.createElement('li');
-        empty.className = 'playlist-empty-hint';
-        empty.textContent = window.shilokuI18n?.t?.('playlistEmptyCategory') || '这个分类里还没有歌';
-        playlistEl.appendChild(empty);
-        return;
-    }
-
-    filtered.forEach(({ song, index }) => {
-        const li = document.createElement('li');
-        li.dataset.index = String(index);
-        li.innerHTML = `
-            <div class="playlist-item-main">
-                <span class="playlist-item-title">${song.title}</span>
-                <span class="playlist-item-artist">${song.artist}</span>
-            </div>
-            <div class="playlist-item-meta">${buildSongCategoryPicker(song, index)}</div>
-        `;
-
-        li.querySelector('.playlist-item-main')?.addEventListener('click', async () => {
-            playHistory = [];
-            togglePlaylist(false);
-            await playLocalAt(index, false);
-            if (!isPlaying) await togglePlay();
-        });
-
-        const picker = li.querySelector('.playlist-category-picker');
-        const pickerBtn = picker?.querySelector('.playlist-category-picker-btn');
-        const pickerMenu = picker?.querySelector('.playlist-category-picker-menu');
-
-        pickerBtn?.addEventListener('click', (event) => {
-            event.stopPropagation();
-            const isOpen = picker.classList.contains('is-open');
-            closeAllCategoryPickers();
-            if (!isOpen) {
-                picker.classList.add('is-open');
-                pickerBtn.setAttribute('aria-expanded', 'true');
-                positionCategoryPickerMenu(picker);
-            }
-        });
-
-        pickerMenu?.querySelectorAll('.playlist-category-picker-option').forEach((optBtn) => {
-            optBtn.addEventListener('click', (event) => {
-                event.stopPropagation();
-                getPlaylistCategoriesApi()?.setSongCategory?.(song, optBtn.dataset.value);
-                closeAllCategoryPickers();
-                renderPlaylistCategoryBar();
-                renderPlaylist();
-            });
-        });
-
-        playlistEl.appendChild(li);
-    });
-    updatePlaylistHighlight();
-}
-
-function updatePlaylistHighlight() {
-    if (!playlistEl) return;
-    const listItems = playlistEl.getElementsByTagName('li');
-    for (let i = 0; i < listItems.length; i++) {
-        const index = Number(listItems[i].dataset.index);
-        listItems[i].classList.toggle(
-            'active',
-            playbackSource === 'local' && Number.isInteger(index) && index === currentSongIndex,
-        );
-    }
-    updateNeteaseHighlight();
-}
 mainPlayBtn.addEventListener('click', togglePlay);
-
-document.addEventListener('click', (event) => {
-    if (!event.target.closest('.playlist-category-picker')) {
-        closeAllCategoryPickers();
-    }
-});
 
 document.addEventListener('keydown', (event) => {
     if (event.code !== 'Space' && event.key !== ' ') return;
@@ -5983,7 +5586,6 @@ document.getElementById('next-btn').addEventListener('click', nextSong);
 document.getElementById('prev-btn').addEventListener('click', prevSong);
 function togglePlaylist(open) {
     const show = open ?? !playlistDrawer?.classList.contains('show');
-    if (!show) closeAllCategoryPickers();
     playlistDrawer?.classList.toggle('show', show);
     if (show) {
         neteaseDrawer?.classList.remove('show');

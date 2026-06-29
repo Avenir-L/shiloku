@@ -417,6 +417,10 @@ function extractListeningFromPresence(presence) {
 }
 
 function getAiNowPlaying() {
+    const local = window.__shilokuCurrentSong?.();
+    if (local?.title) {
+        return { title: local.title, artist: local.artist || '' };
+    }
     return window.__shilokuRemoteListening || null;
 }
 
@@ -465,6 +469,7 @@ function setupAiMusicHooks() {
     });
 
     window.addEventListener('shiloku:langchange', () => updateAiNowPlayingChip());
+    window.addEventListener('shiloku:nowplaying', () => updateAiNowPlayingChip());
     updateAiNowPlayingChip();
 }
 
