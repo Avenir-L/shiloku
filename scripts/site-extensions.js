@@ -13,7 +13,7 @@ import {
 } from './listening-stats.js';
 import {
     setupGallery,
-} from './gallery.js?v=20260624g';
+} from './gallery.js?v=20260628g';
 import {
     getSongKey,
     listCategories,

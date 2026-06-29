@@ -14,8 +14,15 @@ export const STRINGS = {
         aboutMore: '了解更多',
         galleryOpen: '查看画作',
         galleryTitle: '我的画作',
+        galleryEyebrow: '绘画集',
         galleryClose: '关闭',
         galleryEmpty: '暂无作品',
+        galleryEmptyFilter: '这一分类下还没有作品',
+        galleryCount: '共 {n} 件作品',
+        galleryCountFiltered: '显示 {visible} / {total} 件',
+        galleryFilterAll: '全部',
+        galleryFilterDone: '成品',
+        galleryFilterDraft: '草稿',
         galleryDraft: '草稿',
         galleryLoading: '加载中…',
         contact: 'Contact',
@@ -168,8 +175,15 @@ export const STRINGS = {
         aboutMore: 'Learn more',
         galleryOpen: 'Artwork',
         galleryTitle: 'My artwork',
+        galleryEyebrow: 'Portfolio',
         galleryClose: 'Close',
         galleryEmpty: 'No artwork yet',
+        galleryEmptyFilter: 'Nothing in this filter yet',
+        galleryCount: '{n} pieces',
+        galleryCountFiltered: 'Showing {visible} of {total}',
+        galleryFilterAll: 'All',
+        galleryFilterDone: 'Finished',
+        galleryFilterDraft: 'Drafts',
         galleryDraft: 'Draft',
         galleryLoading: 'Loading…',
         contact: 'Contact',
@@ -322,8 +336,15 @@ export const STRINGS = {
         aboutMore: 'もっと見る',
         galleryOpen: '作品を見る',
         galleryTitle: '作品集',
+        galleryEyebrow: 'Portfolio',
         galleryClose: '閉じる',
         galleryEmpty: '作品がありません',
+        galleryEmptyFilter: 'このカテゴリには作品がありません',
+        galleryCount: '全 {n} 点',
+        galleryCountFiltered: '{visible} / {total} 点を表示',
+        galleryFilterAll: 'すべて',
+        galleryFilterDone: '完成',
+        galleryFilterDraft: '下書き',
         galleryDraft: '下書き',
         galleryLoading: '読み込み中…',
         contact: 'Contact',
@@ -475,9 +496,15 @@ export function getLang() {
     return currentLang;
 }
 
-export function t(key) {
+export function t(key, vars) {
     const pack = STRINGS[currentLang] || STRINGS.zh;
-    return pack[key] ?? STRINGS.zh[key] ?? key;
+    let text = pack[key] ?? STRINGS.zh[key] ?? key;
+    if (vars && typeof text === 'string') {
+        Object.entries(vars).forEach(([name, value]) => {
+            text = text.replaceAll(`{${name}}`, String(value));
+        });
+    }
+    return text;
 }
 
 export function detectLang() {

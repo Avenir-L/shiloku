@@ -2690,8 +2690,21 @@ body.music-room-open {
     <div id="gallery-modal" class="gallery-modal hidden" aria-hidden="true">
         <div class="gallery-modal-panel" role="dialog" aria-labelledby="gallery-modal-title">
             <div class="gallery-modal-header">
-                <h3 id="gallery-modal-title" class="gradient-text-flow" data-i18n="galleryTitle">我的画作</h3>
-                <button type="button" class="gallery-close hover-target" id="gallery-close" data-i18n="galleryClose" aria-label="关闭">×</button>
+                <div class="gallery-modal-heading">
+                    <p class="gallery-modal-eyebrow" data-i18n="galleryEyebrow">绘画集</p>
+                    <h3 id="gallery-modal-title" class="gradient-text-flow" data-i18n="galleryTitle">我的画作</h3>
+                    <p class="gallery-modal-meta" id="gallery-count" aria-live="polite"></p>
+                </div>
+                <button type="button" class="gallery-close hover-target" id="gallery-close" data-i18n-title="galleryClose" aria-label="关闭">
+                    <span class="gallery-close-icon" aria-hidden="true"></span>
+                </button>
+            </div>
+            <div class="gallery-toolbar" id="gallery-toolbar" hidden>
+                <div class="gallery-filters" role="tablist" aria-label="作品筛选">
+                    <button type="button" class="gallery-filter is-active hover-target" data-filter="all" data-i18n="galleryFilterAll">全部</button>
+                    <button type="button" class="gallery-filter hover-target" data-filter="done" data-i18n="galleryFilterDone">成品</button>
+                    <button type="button" class="gallery-filter hover-target" data-filter="draft" data-i18n="galleryFilterDraft">草稿</button>
+                </div>
             </div>
             <div id="gallery-grid" class="gallery-grid"></div>
         </div>
