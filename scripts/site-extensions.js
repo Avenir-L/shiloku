@@ -4,7 +4,7 @@
 import {
     initI18n, setLang, getLang, t, LANGS, LANG_LABELS,
     getGreetingForHour, formatDateLine, applyI18nDom,
-} from './i18n.js?v=20260624m';
+} from './i18n.js?v=20260701bio';
 import {
     setupListeningStatsUI,
     refreshListenStatsUI,
