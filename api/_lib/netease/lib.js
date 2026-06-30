@@ -56,6 +56,17 @@ const playableUrlCacheTtl = 1000 * 60 * 30;
 const searchCacheTtl = 1000 * 60 * 15;
 const PLAYABLE_BATCH_SIZE = 6;
 const PLAYABLE_MAX_IDS = 30;
+const NETEASE_FETCH_TIMEOUT_MS = 12000;
+
+async function fetchNeteaseWithTimeout(url, options = {}, timeoutMs = NETEASE_FETCH_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timer);
+    }
+}
 
 export function applyCors(req, res) {
     const origin = req.headers.origin || '';
@@ -163,13 +174,13 @@ async function fetchNeteaseSearchResult(keywords, offset, fetchLimit) {
         return null;
     };
 
-    const getResult = await tryParse(await fetch(
+    const getResult = await tryParse(await fetchNeteaseWithTimeout(
         `https://music.163.com/api/search/get?${params}`,
         { headers },
     ).catch(() => null));
     if (getResult?.songs?.length) return getResult;
 
-    const postResult = await tryParse(await fetch('https://music.163.com/api/search/get/web', {
+    const postResult = await tryParse(await fetchNeteaseWithTimeout('https://music.163.com/api/search/get/web', {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params,

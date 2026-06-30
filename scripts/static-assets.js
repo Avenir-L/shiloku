@@ -1,17 +1,23 @@
 (function (global) {
     const CDN_BASE = 'https://cdn.jsdelivr.net/gh/Avenir-L/shiloku@main';
+    const CDN_VERSION = '20260701b';
     const CDN_FILES = new Set([
         'avatar.jpg',
         'bg.jpg',
         'watermark.mp4',
         'watermark-mobile.mp4',
     ]);
+    const CDN_MEDIA = /\.(mp3|jpe?g|png|lrc)$/i;
     const isLocal = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 
     global.shilokuAssetUrl = function assetUrl(file) {
         if (!file || isLocal) return file;
         const name = String(file).replace(/^\//, '');
-        return CDN_FILES.has(name) ? `${CDN_BASE}/${name}` : file;
+        if (/^https?:\/\//i.test(name)) return file;
+        if (CDN_FILES.has(name) || CDN_MEDIA.test(name)) {
+            return `${CDN_BASE}/${name}?v=${CDN_VERSION}`;
+        }
+        return file;
     };
 
     global.shilokuApplyStaticAssets = function applyStaticAssets() {

@@ -1,5 +1,31 @@
 import { fetchNeteaseCloud } from './sonic-netease-api.js';
 
+const CACHE_PREFIX = 'shiloku:netease:';
+const CACHE_TTL_MS = 30 * 60 * 1000;
+
+function readNeteaseCache(key) {
+  try {
+    const raw = sessionStorage.getItem(`${CACHE_PREFIX}${key}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.ts || Date.now() - parsed.ts > CACHE_TTL_MS) {
+      sessionStorage.removeItem(`${CACHE_PREFIX}${key}`);
+      return null;
+    }
+    return parsed.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function writeNeteaseCache(key, data) {
+  try {
+    sessionStorage.setItem(`${CACHE_PREFIX}${key}`, JSON.stringify({ ts: Date.now(), data }));
+  } catch {
+    /* 存储满了就跳过 */
+  }
+}
+
 /** 只展示这些网易云歌单，顺序固定 */
 const ALLOWED_PLAYLIST_NAMES = [
   '独属于我的时光印记',
@@ -309,12 +335,21 @@ export function initSonicNeteasePlaylists({
     updateCloudTrackStatus(filtered.length, cloudSongs.length);
   }
 
-  async function loadPlaylists() {
+  async function loadPlaylists({ silent = false } = {}) {
+    const cachedAll = readNeteaseCache('playlists');
+    if (cachedAll?.length && !playlists.length) {
+      playlists = filterAllowedPlaylists(cachedAll);
+      renderPlaylists();
+      renderCloudSongs();
+      if (!silent) setNeteaseStatus('Select a playlist');
+    }
+
     if (loading) return;
     loading = true;
-    setNeteaseStatus('Loading playlists…');
+    if (!cachedAll?.length && !silent) setNeteaseStatus('Loading playlists…');
     try {
       const data = await fetchNeteaseCloud('/api/netease/playlists');
+      writeNeteaseCache('playlists', data.playlists || []);
       playlists = filterAllowedPlaylists(data.playlists || []);
       activePlaylistId = null;
       cloudSongs = [];
@@ -327,39 +362,66 @@ export function initSonicNeteasePlaylists({
       }
       setNeteaseStatus('Select a playlist');
     } catch (error) {
-      playlists = [];
-      cloudSongs = [];
-      clearCloudSearch();
-      renderPlaylists();
-      renderCloudSongs();
-      setNeteaseStatus(
-        error.status === 401
-          ? 'Cookie expired. Open Settings and save your NetEase cookie again.'
-          : error.status === 404
-            ? 'NetEase API is unavailable on this deployment.'
-            : 'Failed to load playlists.',
-      );
+      if (!playlists.length) {
+        playlists = [];
+        cloudSongs = [];
+        clearCloudSearch();
+        renderPlaylists();
+        renderCloudSongs();
+        setNeteaseStatus(
+          error.status === 401
+            ? 'Cookie expired. Open Settings and save your NetEase cookie again.'
+            : error.status === 404
+              ? 'NetEase API is unavailable on this deployment.'
+              : 'Failed to load playlists.',
+        );
+      } else if (!silent) {
+        setNeteaseStatus('Select a playlist');
+      }
     } finally {
       loading = false;
     }
   }
 
   async function loadPlaylistSongs(playlist) {
+    const cacheKey = `playlist:${playlist.id}`;
+    const cachedSongs = readNeteaseCache(cacheKey);
+    if (cachedSongs?.length) {
+      cloudSongs = cachedSongs;
+      activePlaylistId = playlist.id;
+      clearCloudSearch();
+      renderPlaylists();
+      renderCloudSongs();
+    }
+
     loading = true;
-    clearCloudSearch();
-    setNeteaseStatus(`Loading “${playlist.name}”…`);
+    if (!cachedSongs?.length) {
+      clearCloudSearch();
+      setNeteaseStatus(`Loading “${playlist.name}”…`);
+    }
     try {
       const data = await fetchNeteaseCloud(
         `/api/netease/playlist?id=${encodeURIComponent(playlist.id)}&limit=100`,
       );
       cloudSongs = data.songs || [];
+      writeNeteaseCache(cacheKey, cloudSongs);
+      activePlaylistId = playlist.id;
       renderPlaylists();
       renderCloudSongs();
     } catch {
-      setNeteaseStatus('Failed to load playlist tracks');
+      if (!cachedSongs?.length) setNeteaseStatus('Failed to load playlist tracks');
     } finally {
       loading = false;
     }
+  }
+
+  async function prefetchNeteasePlaylists() {
+    const cachedAll = readNeteaseCache('playlists');
+    if (cachedAll?.length && !playlists.length) {
+      playlists = filterAllowedPlaylists(cachedAll);
+    }
+    if (playlists.length || loading) return;
+    await loadPlaylists({ silent: true });
   }
 
   async function syncToPlaylist(playlistId, { songs } = {}) {
@@ -389,6 +451,7 @@ export function initSonicNeteasePlaylists({
     if (sourceTab === 'netease') loadPlaylists();
     else renderLocalSongs();
   };
+  window.__prefetchNeteasePlaylists = prefetchNeteasePlaylists;
   window.__refreshPlaylistsDrawer = refresh;
   window.__syncNeteasePlaylistDrawer = syncToPlaylist;
 

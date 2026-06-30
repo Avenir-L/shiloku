@@ -15,7 +15,7 @@
     <link rel="preload" href="https://cdn.jsdelivr.net/gh/Avenir-L/shiloku@main/bg.jpg" as="image">
     <link rel="stylesheet" href="fonts/site-fonts.css?v=20260701a">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css">
-    <script src="scripts/static-assets.js?v=20260701a"></script>
+    <script src="scripts/static-assets.js?v=20260701b"></script>
     <link rel="stylesheet" href="aether-music.css?v=20260624ab">
     <link rel="stylesheet" href="site-extensions.css">
     <script type="module" src="scripts/site-extensions.js?v=20260625fix1"></script>
@@ -3447,7 +3447,7 @@ body.music-room-open {
     </div>
 
     <img src="avatar.jpg" data-shiloku-asset="avatar.jpg" id="album-cover" alt="" hidden>
-    <audio id="bg-audio" preload="auto" crossorigin="anonymous" disablepictureinpicture disableremoteplayback controlslist="nofullscreen nodownload noremoteplayback noplaybackrate" tabindex="-1" aria-hidden="true"></audio>
+    <audio id="bg-audio" preload="metadata" crossorigin="anonymous" disablepictureinpicture disableremoteplayback controlslist="nofullscreen nodownload noremoteplayback noplaybackrate" tabindex="-1" aria-hidden="true"></audio>
 </section>
 <script>
     // 1. 控制面板打开与关闭
@@ -3631,6 +3631,10 @@ let neteaseSearchTotal = 0;
 let neteaseHasMore = false;
 let neteaseSearchKeywords = '';
 const NETEASE_PAGE_SIZE = 30;
+
+function isLocalPreviewHost() {
+    return /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+}
 
 const NETEASE_QUEUE_KEY = 'shiloku-netease-queue-v1';
 
@@ -3925,7 +3929,7 @@ function updateProgressUI() {
 
 async function fetchAndParseLRC(lrcUrl) {
     try {
-        const response = await fetch(lrcUrl);
+        const response = await fetch(window.shilokuAssetUrl?.(lrcUrl) || lrcUrl);
         if (!response.ok) throw new Error('未找到歌词文件');
         const lrcText = await response.text();
         return parseLRCText(lrcText);
@@ -4049,19 +4053,55 @@ function parseLRCText(text, transText = '') {
     return result.sort((a, b) => a.time - b.time);
 }
 
+async function loadSong(index, options = {}) {
+    playbackSource = 'local';
+    neteasePreviewSong = null;
+    currentSongIndex = index;
+    lastLocalIndex = index;
+    await loadSongByEntry(songs[index], options);
+}
+
+function primePlayerShell() {
+    const song = songs[currentSongIndex];
+    if (!song || !songTitle || !songArtist) return;
+    songTitle.innerText = song.title;
+    songArtist.innerText = song.isNeteaseOnly
+        ? `${song.artist} · NETEASE`
+        : `${song.artist} · LOCAL`;
+}
+
 async function initPlayer() {
     restorePlaylistFromStorage();
     applyVolumeFromSlider(document.getElementById('volume-slider')?.value ?? 1);
     updatePlayModeUI();
     setMainPlayState(isPlaying);
-    await loadSong(currentSongIndex);
-    renderNeteaseQueue();
-    notifyNowPlaying();
+    primePlayerShell();
+
+    let mediaBooted = false;
+    async function bootMusicRoomMedia() {
+        if (mediaBooted) return;
+        mediaBooted = true;
+        await loadSong(currentSongIndex, { deferLyrics: true });
+        renderNeteaseQueue();
+        notifyNowPlaying();
+        if (isPlaying) {
+            const loaded = await applySongAudioSrc(getCurrentSong());
+            if (loaded) {
+                applyVolumeFromSlider(volumeSlider?.value);
+                window.__shilokuViz?.ensureAudio?.();
+                try { await audio.play(); } catch { /* 自动播放可能被浏览器拦截 */ }
+            }
+        }
+    }
+    window.__shilokuBootMusicRoomMedia = bootMusicRoomMedia;
+
     audio.addEventListener('ended', onTrackEnded);
     setupNeteaseSearch();
     startLyricScrollLoop();
     setupLyricScrub();
     window.addEventListener('music-room:open', () => {
+        void bootMusicRoomMedia();
+        window.__prefetchNeteasePlaylists?.();
         ensureLyricScrollSynced();
         refreshLyricPanel();
         window.shilokuI18n?.applyI18nDom?.();
@@ -4079,6 +4119,7 @@ async function initPlayer() {
     window.__shilokuHandleDeepLink?.({
         openMusicRoom: () => window.__shilokuOpenMusicRoom?.(),
         playNeteaseById: async (id) => {
+            await window.__shilokuBootMusicRoomMedia?.();
             const queueIndex = findNeteaseQueueIndex(id);
             if (queueIndex >= 0) {
                 await playNeteaseAt(queueIndex, false);
@@ -4093,6 +4134,7 @@ async function initPlayer() {
             } catch { /* 深链失败时仅打开音乐室 */ }
         },
         playLocalAt: async (index) => {
+            await window.__shilokuBootMusicRoomMedia?.();
             if (index >= 0 && index < LOCAL_SONGS.length) {
                 await playLocalAt(index, false);
                 if (!isPlaying) await togglePlay();
@@ -4398,7 +4440,8 @@ async function searchNetease(offset = 0) {
     renderNeteaseResults();
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    const timeoutMs = isLocalPreviewHost() ? 45000 : 25000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
         const response = await fetch(
@@ -4436,11 +4479,15 @@ async function searchNetease(offset = 0) {
     } catch (error) {
         if (!neteaseSearchStatus) return;
         if (error.name === 'AbortError') {
-            neteaseSearchStatus.textContent = '搜索超时了。请确认只运行了 start-local-preview.bat，不要同时开别的8765端口服务。';
+            neteaseSearchStatus.textContent = isLocalPreviewHost()
+                ? '搜索超时了。请确认只运行了 start-local-preview.bat，不要同时开别的8765端口服务。'
+                : '搜索超时了，服务器连网易云较慢。请稍后再试，或换更短的关键词。';
             return;
         }
         if (error.message === 'preview-server' || error.message === 'bad-response') {
-            neteaseSearchStatus.textContent = '搜索接口没接上。请关掉其他8765端口的程序，只运行 scripts/start-local-preview.bat 再刷新页面。';
+            neteaseSearchStatus.textContent = isLocalPreviewHost()
+                ? '搜索接口没接上。请关掉其他8765端口的程序，只运行 scripts/start-local-preview.bat 再刷新页面。'
+                : '搜索接口暂时不可用。请刷新页面后再试，或在设置里重新登录网易云。';
             return;
         }
         if (error.message && error.message !== 'api-error') {
@@ -4462,7 +4509,7 @@ async function checkNeteaseApi() {
         if (!data?.ok) throw new Error('ping-fail');
         return true;
     } catch {
-        const isLocal = /localhost|127\.0\.0\.1/.test(window.location.hostname);
+        const isLocal = isLocalPreviewHost();
         neteaseSearchStatus.textContent = isLocal
             ? '搜索接口未就绪。请运行 scripts/start-local-preview.bat 启动本地预览。'
             : '网易云接口暂时不可用，请稍后再试，或在设置里重新登录网易云。';
@@ -4611,7 +4658,7 @@ function toggleNeteaseDrawer(open) {
 
 async function resolveSongAudioSrc(song) {
     if (song.src && !song.isNeteaseOnly) {
-        return song.src;
+        return window.shilokuAssetUrl?.(song.src) || song.src;
     }
     if (song.neteaseId) {
         // 走同源代理，否则跨域直链会让 Web Audio 频谱全为 0
@@ -4713,7 +4760,9 @@ async function loadSongByEntry(song, { deferLyrics = false, resetAudio = true } 
         ? `${song.artist} · NETEASE`
         : `${song.artist} · LOCAL`;
 
-    const coverUrl = song.cover || (song.isNeteaseOnly ? (window.shilokuAssetUrl?.('avatar.jpg') || 'avatar.jpg') : song.cover);
+    const coverUrl = song.cover
+        ? (window.shilokuAssetUrl?.(song.cover) || song.cover)
+        : (song.isNeteaseOnly ? (window.shilokuAssetUrl?.('avatar.jpg') || 'avatar.jpg') : '');
     if (coverUrl) {
         crossfadeCover(coverUrl);
         crossfadeBg();
@@ -4737,14 +4786,6 @@ async function loadSongByEntry(song, { deferLyrics = false, resetAudio = true } 
     }
 
     await loadSongLyrics(song);
-}
-
-async function loadSong(index, options = {}) {
-    playbackSource = 'local';
-    neteasePreviewSong = null;
-    currentSongIndex = index;
-    lastLocalIndex = index;
-    await loadSongByEntry(songs[index], options);
 }
 
 function renderLyrics() {
@@ -5729,7 +5770,7 @@ import { initSonicTopographyViz } from './scripts/sonic-topography-viz.js?v=2026
 import { initSonicSettingsPanel } from './scripts/sonic-settings-panel.js?v=20260624u';
 import { initSonicMusicExtras } from './scripts/sonic-music-extras.js?v=20260624n';
 import { checkNeteaseCookie, initNeteaseCookieAutoSync, syncNeteaseCookie } from './scripts/sonic-netease-api.js?v=20260624u';
-import { initSonicNeteasePlaylists } from './scripts/sonic-netease-playlists.js?v=20260624ac';
+import { initSonicNeteasePlaylists } from './scripts/sonic-netease-playlists.js?v=20260701c';
 
 window.checkNeteaseCookie = checkNeteaseCookie;
 
