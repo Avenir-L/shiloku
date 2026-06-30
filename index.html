@@ -8,10 +8,14 @@
     <meta name="description" content="栀落余殁 (Shiloku) 的个人主页 — 绘画、音乐、游戏与二次元。">
     <meta property="og:title" content="Shiloku - 个人主页">
     <meta property="og:description" content="欢迎来访我的个人空间">
-    <meta property="og:image" content="https://shiloku.vercel.app/avatar.jpg">
+    <meta property="og:image" content="https://cdn.jsdelivr.net/gh/Avenir-L/shiloku@main/avatar.jpg">
     <link rel="icon" href="favicon.png" type="image/png">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Serif+JP:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/gh/Avenir-L/shiloku@main/avatar.jpg" as="image">
+    <link rel="preload" href="https://cdn.jsdelivr.net/gh/Avenir-L/shiloku@main/bg.jpg" as="image">
+    <link rel="stylesheet" href="fonts/site-fonts.css?v=20260701a">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css">
+    <script src="scripts/static-assets.js?v=20260701a"></script>
     <link rel="stylesheet" href="aether-music.css?v=20260624ab">
     <link rel="stylesheet" href="site-extensions.css">
     <script type="module" src="scripts/site-extensions.js?v=20260625fix1"></script>
@@ -1383,7 +1387,7 @@ body.music-room-open {
     position: absolute;
     inset: -20%;
     z-index: 2;
-    background-image: url('bg.jpg');
+    background-image: var(--shiloku-bg-url, url('bg.jpg'));
     background-size: cover;
     background-position: center;
     filter: blur(28px) saturate(1.1);
@@ -2434,7 +2438,7 @@ body.music-room-open {
             <div class="top-area animate-item delay-1">
                 <div class="avatar-wrap" id="avatar-wrap">
                     <div class="avatar-placeholder" aria-hidden="true"></div>
-                    <img src="avatar.jpg" alt="Avatar" class="avatar" id="site-avatar">
+                    <img src="avatar.jpg" data-shiloku-asset="avatar.jpg" alt="Avatar" class="avatar" id="site-avatar">
                 </div>
                 <div class="name-box">
                     <h1 class="name gradient-text-flow" id="name-text">栀落余殁</h1>
@@ -2637,7 +2641,8 @@ body.music-room-open {
                 return;
             }
 
-            const videoSrc = isCoarseMobile ? 'watermark-mobile.mp4' : 'watermark.mp4';
+            const videoSrc = window.shilokuAssetUrl?.(isCoarseMobile ? 'watermark-mobile.mp4' : 'watermark.mp4')
+                || (isCoarseMobile ? 'watermark-mobile.mp4' : 'watermark.mp4');
             video.src = videoSrc;
             video.load();
 
@@ -2668,8 +2673,8 @@ body.music-room-open {
         })();
 
         (function preloadSiteAssets() {
-            const BG_URL = 'bg.jpg';
-            const AVATAR_URL = 'avatar.jpg';
+            const BG_URL = window.shilokuAssetUrl?.('bg.jpg') || 'bg.jpg';
+            const AVATAR_URL = window.shilokuAssetUrl?.('avatar.jpg') || 'avatar.jpg';
             const bgEl = document.getElementById('bg-image');
             const bgImg = new Image();
             bgImg.onload = () => {
@@ -3441,7 +3446,7 @@ body.music-room-open {
         <div class="aether-hint">Drag to rotate · Beats create ripples</div>
     </div>
 
-    <img src="avatar.jpg" id="album-cover" alt="" hidden>
+    <img src="avatar.jpg" data-shiloku-asset="avatar.jpg" id="album-cover" alt="" hidden>
     <audio id="bg-audio" preload="auto" crossorigin="anonymous" disablepictureinpicture disableremoteplayback controlslist="nofullscreen nodownload noremoteplayback noplaybackrate" tabindex="-1" aria-hidden="true"></audio>
 </section>
 <script>
@@ -4708,7 +4713,7 @@ async function loadSongByEntry(song, { deferLyrics = false, resetAudio = true } 
         ? `${song.artist} · NETEASE`
         : `${song.artist} · LOCAL`;
 
-    const coverUrl = song.cover || (song.isNeteaseOnly ? 'avatar.jpg' : song.cover);
+    const coverUrl = song.cover || (song.isNeteaseOnly ? (window.shilokuAssetUrl?.('avatar.jpg') || 'avatar.jpg') : song.cover);
     if (coverUrl) {
         crossfadeCover(coverUrl);
         crossfadeBg();

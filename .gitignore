@@ -7,6 +7,12 @@ scripts/.vercel-token
 scripts/.netease-cookie-push-state.json
 scripts/__pycache__/
 .scratch/
+*.bak
+_compress_test/
+avatar.[0-9]*.jpg
+avatar.opt.jpg
+avatar.webp
+bg.opt.jpg
 
 # 太阳系演示（不再维护，禁止入库）
 solar-system.html

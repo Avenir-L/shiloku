@@ -1,0 +1,64 @@
+/* Noto Serif — jsDelivr / Fontsource（国内访问比 Google Fonts 更稳） */
+@font-face {
+    font-family: 'Noto Serif SC';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 400;
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.2.5/files/noto-serif-sc-chinese-simplified-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Serif SC';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 600;
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.2.5/files/noto-serif-sc-chinese-simplified-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Serif SC';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 700;
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.2.5/files/noto-serif-sc-chinese-simplified-700-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Serif SC';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 900;
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.2.5/files/noto-serif-sc-chinese-simplified-900-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Serif JP';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 400;
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-jp@5.2.5/files/noto-serif-jp-japanese-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Serif JP';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 600;
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-jp@5.2.5/files/noto-serif-jp-japanese-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Serif JP';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 700;
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-jp@5.2.5/files/noto-serif-jp-japanese-700-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Serif JP';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 900;
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-jp@5.2.5/files/noto-serif-jp-japanese-900-normal.woff2') format('woff2');
+}
