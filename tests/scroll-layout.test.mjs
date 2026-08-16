@@ -27,6 +27,7 @@ assert.match(html, /#profile-page-content \.bio-title\.hover-copy \{[\s\S]*displ
 assert.match(html, /#page-two-footer \{[\s\S]*top: clamp\(8px, 1\.5vh, 16px\);/, 'second-page footer is not lowered');
 assert.match(html, /#profile-page-content \.bio-actions \{ gap: clamp\(20px, 3vw, 36px\); \}/, 'profile action buttons are still too close');
 assert.doesNotMatch(html, /ctx\.shadowBlur = this\.glow;/, 'background particles still create blurred white halos');
+assert.match(html, /#particle-canvas \{ display: none !important; \}/, 'particle canvas can still overlay the heading');
 
 const pageOne = html.indexOf('id="profile-page-content"');
 const pageTwo = html.indexOf('id="time-page-content"');
