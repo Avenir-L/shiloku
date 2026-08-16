@@ -170,8 +170,6 @@ export function refreshListenStatsUI() {
         if (netease.totalPlayCount != null) {
             parts.push(`${t('listenNeteaseTotal')} ${netease.totalPlayCount.toLocaleString()} ${t('listenNeteaseTracks')}`);
         }
-    } else if (netease && netease.available === false) {
-        parts.push(t('listenNeteaseUnavailable'));
     }
 
     extraEl.textContent = parts.join(' · ');

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const listeningStats = readFileSync(new URL('../scripts/listening-stats.js', import.meta.url), 'utf8');
 
 assert.match(html, /class="page-scroll-shell"/, 'page scroll shell is missing');
 assert.match(html, /class="scroll-page intro-page"/, 'first scroll page is missing');
@@ -35,6 +36,7 @@ assert.match(html, /body\.page-two-active #bg-image::before/, 'second-page backg
 assert.match(html, /page-two-active/, 'scroll observer does not toggle the background fade state');
 assert.match(html, /transition: opacity 2s cubic-bezier\(\.22, 1, \.36, 1\);/, 'background transition is still too fast for the two different character positions');
 assert.match(html, /assets\/page-two-final\.jpg/, 'the requested second-page background is not configured');
+assert.doesNotMatch(listeningStats, /parts\.push\(t\('listenNeteaseUnavailable'\)\)/, 'cookie diagnostic text is still rendered on the public homepage');
 
 const pageOne = html.indexOf('id="profile-page-content"');
 const pageTwo = html.indexOf('id="time-page-content"');
