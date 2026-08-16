@@ -26,6 +26,7 @@ assert.match(html, /\.cursor-ring \{ display: none !important; \}/, 'custom curs
 assert.match(html, /#profile-page-content \.bio-title\.hover-copy \{[\s\S]*display: inline-flex;/, 'profile heading is not compact');
 assert.match(html, /#page-two-footer \{[\s\S]*top: clamp\(8px, 1\.5vh, 16px\);/, 'second-page footer is not lowered');
 assert.match(html, /#profile-page-content \.bio-actions \{ gap: clamp\(20px, 3vw, 36px\); \}/, 'profile action buttons are still too close');
+assert.doesNotMatch(html, /ctx\.shadowBlur = this\.glow;/, 'background particles still create blurred white halos');
 
 const pageOne = html.indexOf('id="profile-page-content"');
 const pageTwo = html.indexOf('id="time-page-content"');
