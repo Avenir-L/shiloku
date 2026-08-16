@@ -2406,6 +2406,190 @@ body.music-room-open {
     }
     .status-dot { animation: none; }
 }
+        /* Scroll-preview layout: two full-height home pages, with global tools fixed to the viewport. */
+        html,
+        body {
+            height: auto;
+            min-height: 100%;
+            overflow-x: hidden;
+            overflow-y: auto;
+            scroll-snap-type: y proximity;
+        }
+
+        body.splash-active,
+        body.music-room-open {
+            overflow: hidden;
+        }
+
+        .layout-container {
+            display: block;
+            width: 100%;
+            height: auto;
+            padding: 0;
+            position: relative;
+            z-index: 10;
+        }
+
+        .page-scroll-shell { width: 100%; }
+
+        .scroll-page {
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding: clamp(72px, 10vh, 128px) clamp(24px, 8vw, 148px) clamp(120px, 14vh, 176px);
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            display: flex;
+            position: relative;
+        }
+
+        .intro-page { align-items: center; justify-content: center; }
+        .page-content { position: relative; z-index: 3; }
+
+        #profile-page-content {
+            width: min(720px, 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: clamp(26px, 5vh, 56px);
+        }
+
+        #profile-page-content .left-column,
+        #profile-page-content .top-area,
+        #profile-page-content .mid-area {
+            width: 100%; height: auto; align-items: center; text-align: center;
+        }
+
+        #profile-page-content .top-area {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .avatar-centered {
+            align-self: center;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #profile-page-content .name-box { margin-bottom: 0; }
+        #profile-page-content .divider { margin-left: auto; margin-right: auto; }
+        #profile-page-content .bio { max-width: min(640px, 100%); text-align: center; }
+        #profile-page-content .bio-actions { justify-content: center; margin-left: auto; margin-right: auto; }
+
+        .profile-listen-stats {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .profile-listen-stats .listen-stats-inline {
+            justify-content: center;
+        }
+
+        .time-page { align-items: center; flex-direction: column; justify-content: space-between; gap: 0; }
+        #time-page-content { width: min(1100px, 100%); text-align: center; margin-top: clamp(24px, 6vh, 72px); }
+
+        #time-page-content .right-column,
+        #time-page-content .mid-area,
+        #time-page-content .right-top-stats {
+            width: 100%; height: auto; align-items: center; text-align: center;
+        }
+
+        #time-page-content .mid-area { gap: clamp(28px, 5vh, 56px); }
+
+        #time-page-content .mid-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #time-page-content .daily-quote-wrap {
+            width: 100%;
+            margin-top: 10px;
+            margin-bottom: 22px;
+            text-align: center;
+        }
+
+        #time-page-content .right-top-stats { margin-bottom: clamp(24px, 5vh, 56px); }
+        #time-page-content .listen-stats-inline,
+        #time-page-content .time-display-wrap { justify-content: center; }
+        #time-page-content .time-display { text-align: center; font-size: clamp(58px, 8vw, 124px); margin-top: clamp(16px, 3vh, 34px); }
+
+        #page-two-footer {
+            width: min(1320px, 100%);
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 44px;
+        }
+
+        #page-two-footer .bottom-area { display: flex; flex-direction: column; gap: 18px; }
+        #page-two-footer .contact-footer { align-items: flex-start; text-align: left; }
+        #page-two-footer .links-footer { align-items: flex-end; text-align: right; }
+        #page-two-footer .tag-group { margin-bottom: 0; }
+
+        .hover-copy { position: relative; cursor: default; }
+
+        /* Keep the Chinese name and English subtitle as two deliberate lines. */
+        .name.hover-copy,
+        .subtitle.hover-copy,
+        .bio-title.hover-copy,
+        #bio-p1.hover-copy,
+        #bio-p2.hover-copy,
+        .time-greeting.hover-copy,
+        .daily-quote-label.hover-copy,
+        .daily-quote.hover-copy,
+        .time-header.hover-copy,
+        .time-date.hover-copy { display: block; }
+
+        .subtitle.hover-copy {
+            display: block;
+            margin-top: 8px;
+        }
+
+        .hover-char {
+            display: inline-block;
+            position: relative;
+            transform-origin: center bottom;
+            transition: transform .18s ease, color .18s ease, filter .18s ease, text-shadow .18s ease;
+        }
+
+        .hover-char:hover {
+            z-index: 2;
+            color: #fff;
+            transform: translateY(-2px) scale(1.18);
+            filter: brightness(1.18);
+            text-shadow: 0 0 14px rgba(255, 229, 237, .62);
+        }
+
+        html { scroll-behavior: smooth; }
+
+        .scroll-page .page-content,
+        .scroll-page #page-two-footer {
+            opacity: .22;
+            transform: translateY(42px) scale(.985);
+            transition: opacity .72s cubic-bezier(.22, 1, .36, 1), transform .72s cubic-bezier(.22, 1, .36, 1);
+        }
+
+        .scroll-page.page-is-visible .page-content,
+        .scroll-page.page-is-visible #page-two-footer {
+            opacity: 1;
+            transform: none;
+        }
+
+        @media (max-width: 768px) {
+            .scroll-page { padding: max(84px, env(safe-area-inset-top)) 24px max(148px, calc(env(safe-area-inset-bottom) + 128px)); }
+            #profile-page-content { gap: 28px; }
+            #page-two-footer { flex-direction: column; align-items: center; gap: 32px; }
+            #page-two-footer .contact-footer,
+            #page-two-footer .links-footer { align-items: center; text-align: center; }
+            #page-two-footer .link-group,
+            #page-two-footer .tag-group { justify-content: center; }
+            #time-page-content .time-display { font-size: clamp(48px, 14vw, 88px); }
+        }
     </style>
 </head>
 <body>
@@ -2433,18 +2617,20 @@ body.music-room-open {
     <div class="cursor-ring"></div>
 
     <div class="layout-container">
-        
-        <div class="column left-column">
+        <main class="page-scroll-shell" aria-label="首页内容">
+            <section class="scroll-page intro-page" aria-labelledby="name-text">
+                <div class="page-content" id="profile-page-content">
+                    <div class="column left-column">
             <div class="top-area animate-item delay-1">
-                <div class="avatar-wrap" id="avatar-wrap">
+                <div class="avatar-wrap avatar-centered" id="avatar-wrap">
                     <div class="avatar-placeholder" aria-hidden="true"></div>
                     <img src="avatar.jpg" data-shiloku-asset="avatar.jpg" alt="Avatar" class="avatar" id="site-avatar">
                 </div>
                 <div class="name-box">
-                    <h1 class="name gradient-text-flow" id="name-text">栀落余殁</h1>
-                    <p class="subtitle">Shiloku</p>
+                    <h1 class="name gradient-text-flow hover-copy" id="name-text">栀落余殁</h1>
+                    <p class="subtitle hover-copy">Shiloku</p>
                     <div class="divider"></div>
-                    <div class="status-pill" id="status-pill">
+                    <div class="status-pill hover-copy" id="status-pill">
                         <span class="status-dot" aria-hidden="true"></span>
                         <div class="status-body" id="status-body">
                             <span class="status-primary" id="status-primary" data-i18n="statusDefault">在线摸鱼中</span>
@@ -2454,11 +2640,22 @@ body.music-room-open {
                 </div>
             </div>
 
+            <div class="profile-listen-stats animate-item delay-2">
+                <div class="listen-stats-wrap" id="listen-stats-wrap">
+                    <div class="listen-stats-inline">
+                        <span class="listen-stats-label hover-copy" data-i18n="listenStatsLabel">听歌统计</span>
+                        <span class="listen-stats-chip hover-copy"><span data-i18n="listenToday">今日</span> <strong id="listen-today">0 分钟</strong></span>
+                        <span class="listen-stats-chip hover-copy"><span data-i18n="listenMonth">本月</span> <strong id="listen-month">0 分钟</strong></span>
+                    </div>
+                    <div class="listen-stats-extra" id="listen-stats-extra" hidden></div>
+                </div>
+            </div>
+
             <div class="mid-area bio animate-item delay-2">
-                <h2 class="bio-title gradient-text-flow" data-i18n="bioTitle">个人简介</h2>
+                <h2 class="bio-title gradient-text-flow hover-copy" data-i18n="bioTitle">个人简介</h2>
                 <div>
-                    <p id="bio-p1" data-i18n="bioP1">栀落余殁（Shiloku）— 作品集、音乐室、访客留言。</p>
-                    <p id="bio-p2" data-i18n="bioP2">收录插画与歌单，开放留言；欢迎浏览与我联系。</p>
+                    <p class="hover-copy" id="bio-p1" data-i18n="bioP1">栀落余殁（Shiloku）— 作品集、音乐室、访客留言。</p>
+                    <p class="hover-copy" id="bio-p2" data-i18n="bioP2">收录插画与歌单，开放留言；欢迎浏览与我联系。</p>
                 </div>
                 <div class="bio-actions animate-item delay-3">
                     <button type="button" class="about-more-btn hover-target" id="about-more-btn" data-i18n="aboutMore">了解更多</button>
@@ -2466,55 +2663,52 @@ body.music-room-open {
                 </div>
             </div>
 
-            <div class="bottom-area animate-item delay-4">
-                <div class="tag-group">
-                    <button type="button" class="tag tag-clickable hover-target" id="gallery-tag-btn">绘画</button>
-                    <span class="tag">初音未来</span>
-                    <span class="tag">Minecraft</span>
-                    <span class="tag">地平线</span>
-                    <span class="tag">杀戮尖塔</span>
-                    <span class="tag">Galgame</span>
-                </div>
-                <div class="section-title" data-i18n="contact">Contact</div>
-                <a href="mailto:520avenir@gmail.com" class="email-text hover-target">✉️ 520avenir@gmail.com</a>
-            </div>
-        </div>
-
-        <div class="column right-column">
-            <div class="top-area right-top-stats">
-                <div class="listen-stats-wrap" id="listen-stats-wrap">
-                    <div class="listen-stats-inline">
-                        <span class="listen-stats-label" data-i18n="listenStatsLabel">听歌统计</span>
-                        <span class="listen-stats-chip"><span data-i18n="listenToday">今日</span> <strong id="listen-today">0 分钟</strong></span>
-                        <span class="listen-stats-chip"><span data-i18n="listenMonth">本月</span> <strong id="listen-month">0 分钟</strong></span>
                     </div>
-                    <div class="listen-stats-extra" id="listen-stats-extra" hidden></div>
                 </div>
-            </div>
+            </section>
 
+            <section class="scroll-page time-page" aria-label="北京时间和联系信息">
+                <div class="page-content" id="time-page-content">
+                    <div class="column right-column">
             <div class="mid-area animate-item delay-2">
-                <div class="time-greeting" id="time-greeting">夜深了</div>
+                <div class="time-greeting hover-copy" id="time-greeting">夜深了</div>
                 <div class="daily-quote-wrap">
-                    <div class="daily-quote-label" data-i18n="dailyQuoteLabel">今日一句</div>
-                    <div class="daily-quote" id="daily-quote"></div>
+                    <div class="daily-quote-label hover-copy" data-i18n="dailyQuoteLabel">今日一句</div>
+                    <div class="daily-quote hover-copy" id="daily-quote"></div>
                 </div>
-                <div class="time-header" data-i18n="timeHeader">北京时间 / BEIJING TIME</div>
-                <div class="time-date" id="time-date">----年--月--日 · ---</div>
+                <div class="time-header hover-copy" data-i18n="timeHeader">北京时间 / BEIJING TIME</div>
+                <div class="time-date hover-copy" id="time-date">----年--月--日 · ---</div>
                 <div class="time-display-wrap">
                     <div class="time-display" id="big-time">00:00:00</div>
                 </div>
             </div>
 
-            <div class="bottom-area animate-item delay-4">
-                <div class="section-title" data-i18n="otherPages">Other Pages</div>
-                <div class="link-group">
-                    <a href="https://space.bilibili.com/479198505?spm_id_from=333.788.0.0" target="_blank" rel="noopener noreferrer" class="btn hover-target" data-i18n="btnBilibili">B站主页</a>
-                    <a href="https://steamcommunity.com/profiles/76561199236026651/" target="_blank" rel="noopener noreferrer" class="btn hover-target" data-i18n="btnSteam">Steam 主页</a>
-                    <a href="https://user.qzone.qq.com/2780932701/main" target="_blank" rel="noopener noreferrer" class="btn hover-target" data-i18n="btnQzone">个人动态</a>
+                    </div>
                 </div>
-            </div>
-        </div>
-
+                <div id="page-two-footer" class="animate-item delay-4">
+                    <div class="bottom-area contact-footer">
+                        <div class="tag-group">
+                            <button type="button" class="tag tag-clickable hover-target" id="gallery-tag-btn">绘画</button>
+                            <span class="tag">初音未来</span>
+                            <span class="tag">Minecraft</span>
+                            <span class="tag">地平线</span>
+                            <span class="tag">杀戮尖塔</span>
+                            <span class="tag">Galgame</span>
+                        </div>
+                        <div class="section-title" data-i18n="contact">Contact</div>
+                        <a href="mailto:520avenir@gmail.com" class="email-text hover-target">✉️ 520avenir@gmail.com</a>
+                    </div>
+                    <div class="bottom-area links-footer">
+                        <div class="section-title" data-i18n="otherPages">Other Pages</div>
+                        <div class="link-group">
+                            <a href="https://space.bilibili.com/479198505?spm_id_from=333.788.0.0" target="_blank" rel="noopener noreferrer" class="btn hover-target" data-i18n="btnBilibili">B站主页</a>
+                            <a href="https://steamcommunity.com/profiles/76561199236026651/" target="_blank" rel="noopener noreferrer" class="btn hover-target" data-i18n="btnSteam">Steam 主页</a>
+                            <a href="https://user.qzone.qq.com/2780932701/main" target="_blank" rel="noopener noreferrer" class="btn hover-target" data-i18n="btnQzone">个人动态</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
     </div>
 
     <div id="about-modal" class="about-modal hidden" aria-hidden="true">
@@ -5774,6 +5968,79 @@ playlistBackdrop?.addEventListener('click', () => {
 });
 
 window.addEventListener('DOMContentLoaded', initPlayer);
+</script>
+
+<script>
+function initCharacterHoverCopy() {
+    document.querySelectorAll('.hover-copy').forEach((element) => {
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, {
+            acceptNode(node) {
+                if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+                if (node.parentElement?.closest('.hover-char, .char-span')) return NodeFilter.FILTER_REJECT;
+                return NodeFilter.FILTER_ACCEPT;
+            }
+        });
+        const textNodes = [];
+        while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+        textNodes.forEach((node) => {
+            const fragment = document.createDocumentFragment();
+            Array.from(node.nodeValue).forEach((character) => {
+                if (/\s/.test(character)) {
+                    fragment.append(character);
+                    return;
+                }
+                const characterSpan = document.createElement('span');
+                characterSpan.className = 'hover-char';
+                characterSpan.textContent = character;
+                fragment.append(characterSpan);
+            });
+            node.replaceWith(fragment);
+        });
+    });
+}
+
+function initScrollPageTransitions() {
+    const pages = document.querySelectorAll('.scroll-page');
+    const pageObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            entry.target.classList.toggle('page-is-visible', entry.isIntersecting && entry.intersectionRatio >= .42);
+        });
+    }, { threshold: [.15, .42, .7] });
+    pages.forEach((page) => pageObserver.observe(page));
+}
+
+const WHEEL_PAGE_DURATION = 700;
+
+function initWheelPageNavigation() {
+    const pages = [...document.querySelectorAll('.scroll-page')];
+    let isTurningPage = false;
+
+    window.addEventListener('wheel', (event) => {
+        const isOverlayInteraction = event.target.closest('#guestbook-panel, #ai-chat-panel, #music-room, #playlist-drawer, #netease-drawer, #sonic-settings-drawer');
+        if (isTurningPage || isOverlayInteraction || Math.abs(event.deltaY) < 8) return;
+
+        const currentIndex = pages.reduce((closestIndex, page, index) =>
+            Math.abs(page.offsetTop - window.scrollY) < Math.abs(pages[closestIndex].offsetTop - window.scrollY)
+                ? index
+                : closestIndex, 0);
+        const nextIndex = Math.max(0, Math.min(pages.length - 1, currentIndex + Math.sign(event.deltaY)));
+        if (nextIndex === currentIndex) return;
+
+        event.preventDefault();
+        isTurningPage = true;
+        const targetTop = pages[nextIndex].offsetTop;
+        window.scrollTo({ top: targetTop, behavior: 'smooth' });
+        window.setTimeout(() => { isTurningPage = false; }, WHEEL_PAGE_DURATION);
+    }, { passive: false });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    initCharacterHoverCopy();
+    initScrollPageTransitions();
+    initWheelPageNavigation();
+    window.addEventListener('shiloku:languagechange', () => requestAnimationFrame(initCharacterHoverCopy));
+});
 </script>
 
 <script type="module">
