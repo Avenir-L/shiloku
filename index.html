@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta http-equiv="Permissions-Policy" content="picture-in-picture=(), autoplay=(self)">
+    <script>
+        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+        window.addEventListener('pageshow', () => window.scrollTo(0, 0));
+    </script>
     <title>Shiloku - 个人主页</title>
     <meta name="description" content="栀落余殁（Shiloku）的个人网站 — 作品集、音乐室、访客留言。">
     <meta property="og:title" content="Shiloku - 个人主页">
@@ -2442,7 +2446,10 @@ body.music-room-open {
             position: relative;
         }
 
-        .intro-page { align-items: center; justify-content: center; }
+        .intro-page {
+            align-items: center;
+            justify-content: center;
+        }
         .page-content { position: relative; z-index: 3; }
 
         #profile-page-content {
@@ -2487,7 +2494,12 @@ body.music-room-open {
             justify-content: center;
         }
 
-        .time-page { align-items: center; flex-direction: column; justify-content: space-between; gap: 0; }
+        .time-page {
+            align-items: center;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 0;
+        }
         #time-page-content { width: min(1100px, 100%); text-align: center; margin-top: clamp(24px, 6vh, 72px); }
 
         #time-page-content .right-column,
@@ -2524,6 +2536,7 @@ body.music-room-open {
             justify-content: space-between;
             align-items: flex-end;
             gap: 44px;
+            z-index: 3;
         }
 
         #page-two-footer .bottom-area { display: flex; flex-direction: column; gap: 18px; }
@@ -2569,6 +2582,27 @@ body.music-room-open {
         .cursor-ring { display: none !important; }
         #particle-canvas { display: none !important; }
 
+        /* Both page illustrations live in one fixed layer so they can crossfade without a seam. */
+        #bg-image {
+            background-image: url('assets/page-two-final.jpg') !important;
+        }
+
+        #bg-image::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: url('assets/page-one-moon.png') center / cover no-repeat;
+            opacity: 1;
+            transition: opacity 2s cubic-bezier(.22, 1, .36, 1);
+        }
+
+        body.page-two-active #bg-image::before { opacity: 0; }
+
+        /* Keep the music room on the new visual system instead of the legacy bg.jpg asset. */
+        #music-room .music-blur-bg {
+            background-image: url('assets/page-two-final.jpg') !important;
+        }
+
         /* A justified bio container must not spread a short character-level heading. */
         #profile-page-content .bio-title.hover-copy {
             display: inline-flex;
@@ -2582,7 +2616,7 @@ body.music-room-open {
 
         #page-two-footer {
             position: relative;
-            top: clamp(8px, 1.5vh, 16px);
+            top: clamp(20px, 2.5vh, 28px);
         }
 
         html { scroll-behavior: smooth; }
@@ -6024,7 +6058,11 @@ function initScrollPageTransitions() {
     const pages = document.querySelectorAll('.scroll-page');
     const pageObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
-            entry.target.classList.toggle('page-is-visible', entry.isIntersecting && entry.intersectionRatio >= .42);
+            const isVisiblePage = entry.isIntersecting && entry.intersectionRatio >= .42;
+            entry.target.classList.toggle('page-is-visible', isVisiblePage);
+            if (entry.target.classList.contains('time-page')) {
+                document.body.classList.toggle('page-two-active', isVisiblePage);
+            }
         });
     }, { threshold: [.15, .42, .7] });
     pages.forEach((page) => pageObserver.observe(page));

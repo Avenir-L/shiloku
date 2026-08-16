@@ -21,13 +21,20 @@ assert.match(html, /function initWheelPageNavigation\(\)/, 'wheel page navigatio
 assert.match(html, /passive: false/, 'wheel handler must be able to prevent native free scrolling');
 assert.match(html, /WHEEL_PAGE_DURATION = 700/, 'damped page duration is missing');
 assert.match(html, /scrollTo\(\{ top: targetTop, behavior: 'smooth' \}\)/, 'wheel navigation does not use smooth page movement');
+assert.match(html, /history\.scrollRestoration = 'manual'/, 'browser scroll restoration can reopen the site on page two');
+assert.match(html, /window\.scrollTo\(0, 0\)/, 'the site does not reset to page one on opening');
 assert.match(html, /#time-page-content \.mid-area \{[\s\S]*gap: clamp\(28px, 5vh, 56px\)/, 'second-page vertical spacing is not enlarged');
 assert.match(html, /\.cursor-ring \{ display: none !important; \}/, 'custom cursor ring is still visible');
 assert.match(html, /#profile-page-content \.bio-title\.hover-copy \{[\s\S]*display: inline-flex;/, 'profile heading is not compact');
-assert.match(html, /#page-two-footer \{[\s\S]*top: clamp\(8px, 1\.5vh, 16px\);/, 'second-page footer is not lowered');
+assert.match(html, /#page-two-footer \{[\s\S]*top: clamp\(20px, 2\.5vh, 28px\);/, 'second-page footer is not lowered enough');
 assert.match(html, /#profile-page-content \.bio-actions \{ gap: clamp\(20px, 3vw, 36px\); \}/, 'profile action buttons are still too close');
 assert.doesNotMatch(html, /ctx\.shadowBlur = this\.glow;/, 'background particles still create blurred white halos');
 assert.match(html, /#particle-canvas \{ display: none !important; \}/, 'particle canvas can still overlay the heading');
+assert.match(html, /#bg-image::before/, 'background crossfade layer is missing');
+assert.match(html, /body\.page-two-active #bg-image::before/, 'second-page background fade state is missing');
+assert.match(html, /page-two-active/, 'scroll observer does not toggle the background fade state');
+assert.match(html, /transition: opacity 2s cubic-bezier\(\.22, 1, \.36, 1\);/, 'background transition is still too fast for the two different character positions');
+assert.match(html, /assets\/page-two-final\.jpg/, 'the requested second-page background is not configured');
 
 const pageOne = html.indexOf('id="profile-page-content"');
 const pageTwo = html.indexOf('id="time-page-content"');
