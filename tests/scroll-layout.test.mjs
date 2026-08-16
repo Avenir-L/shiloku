@@ -22,6 +22,10 @@ assert.match(html, /passive: false/, 'wheel handler must be able to prevent nati
 assert.match(html, /WHEEL_PAGE_DURATION = 700/, 'damped page duration is missing');
 assert.match(html, /scrollTo\(\{ top: targetTop, behavior: 'smooth' \}\)/, 'wheel navigation does not use smooth page movement');
 assert.match(html, /#time-page-content \.mid-area \{[\s\S]*gap: clamp\(28px, 5vh, 56px\)/, 'second-page vertical spacing is not enlarged');
+assert.match(html, /\.cursor-ring \{ display: none !important; \}/, 'custom cursor ring is still visible');
+assert.match(html, /#profile-page-content \.bio-title\.hover-copy \{[\s\S]*display: inline-flex;/, 'profile heading is not compact');
+assert.match(html, /#page-two-footer \{[\s\S]*top: clamp\(8px, 1\.5vh, 16px\);/, 'second-page footer is not lowered');
+assert.match(html, /#profile-page-content \.bio-actions \{ gap: clamp\(20px, 3vw, 36px\); \}/, 'profile action buttons are still too close');
 
 const pageOne = html.indexOf('id="profile-page-content"');
 const pageTwo = html.indexOf('id="time-page-content"');

@@ -2565,6 +2565,25 @@ body.music-room-open {
             text-shadow: 0 0 14px rgba(255, 229, 237, .62);
         }
 
+        /* Restore the system cursor and prevent decorative effects from covering text. */
+        .cursor-ring { display: none !important; }
+
+        /* A justified bio container must not spread a short character-level heading. */
+        #profile-page-content .bio-title.hover-copy {
+            display: inline-flex;
+            width: fit-content;
+            justify-content: center;
+            text-align: center;
+            letter-spacing: 4px;
+        }
+
+        #profile-page-content .bio-actions { gap: clamp(20px, 3vw, 36px); }
+
+        #page-two-footer {
+            position: relative;
+            top: clamp(8px, 1.5vh, 16px);
+        }
+
         html { scroll-behavior: smooth; }
 
         .scroll-page .page-content,
@@ -3284,7 +3303,7 @@ body.music-room-open {
         wrapCharacters('bio-p1');
         wrapCharacters('bio-p2');
 
-        const noCustomCursor = window.matchMedia('(max-width: 768px), (hover: none) and (pointer: coarse)').matches;
+        const noCustomCursor = true;
 
         // 3. 光环鼠标与轨迹（纯触屏设备不显示）
         const cursorRing = document.querySelector('.cursor-ring');
