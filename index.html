@@ -16,7 +16,7 @@
     <link rel="icon" href="favicon.png" type="image/png">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preload" href="https://cdn.jsdelivr.net/gh/Avenir-L/shiloku@main/avatar.jpg" as="image">
-    <link rel="preload" href="https://cdn.jsdelivr.net/gh/Avenir-L/shiloku@main/bg.jpg" as="image">
+    <link rel="preload" href="assets/home-glass-20260930.jpg" as="image" fetchpriority="high">
     <link rel="stylesheet" href="fonts/site-fonts.css?v=20260701a">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css">
     <script src="scripts/static-assets.js?v=20260701b"></script>
@@ -2645,8 +2645,50 @@ body.music-room-open {
             #time-page-content .time-display { font-size: clamp(48px, 14vw, 88px); }
         }
     </style>
+    <link rel="stylesheet" href="assets/home-glass.css?v=20260930a">
+    <script defer src="scripts/home-glass.js?v=20260930a"></script>
 </head>
-<body>
+<body class="home-glass intro-done">
+<main id="shiloku-home">
+<article class="sh-site" aria-label="Shiloku 个人主页">
+    <section class="sh-hero" id="sh-home-top" aria-label="个人介绍">
+      <div class="sh-art" aria-hidden="true"><img src="assets/home-glass-20260930.jpg" alt="" width="1672" height="941" class="sh-fallback"><div class="sh-scrim"></div></div>
+      <header class="sh-header">
+        <a class="sh-brand" href="#sh-home-top" aria-label="Shiloku 首页"><span class="sh-monogram">S.</span><span>SHILOKU</span></a>
+        <nav class="sh-nav" aria-label="主导航"><a href="#sh-social">联系我</a><a href="#music-room" data-open-music>音乐室 <span class="sh-arrow" aria-hidden="true">↗</span></a></nav>
+      </header>
+      <div class="sh-intro">
+        <div class="sh-identity">
+          <img class="sh-avatar" src="avatar.jpg" width="64" height="64" alt="栀落余殁的头像">
+          <div><p class="sh-eyebrow">A LITTLE WORLD OF MINE</p><p class="sh-greeting" data-home-copy="greeting">很高兴，在这里遇见你。</p></div>
+        </div>
+        <h1 class="sh-name" aria-label="栀落余殁"><span class="sh-letters" aria-hidden="true">栀落余殁</span></h1>
+        <p class="sh-roman"><span>Shiloku</span><span class="sh-roman-rule" aria-hidden="true"></span></p>
+        <div class="sh-bio" data-home-copy="bio"><p><span>这里收录插画与歌单，</span></p><p><span>还有一些想与你分享的日常。</span></p></div>
+        <nav class="sh-social" id="sh-social" aria-label="社交联系">
+          <a href="mailto:520avenir@gmail.com">Email <span class="sh-arrow" aria-hidden="true">↗</span></a>
+          <a href="https://space.bilibili.com/479198505" target="_blank" rel="noopener noreferrer">B站 <span class="sh-arrow" aria-hidden="true">↗</span></a>
+          <a href="https://steamcommunity.com/profiles/76561199236026651/" target="_blank" rel="noopener noreferrer">Steam <span class="sh-arrow" aria-hidden="true">↗</span></a>
+          <a href="https://user.qzone.qq.com/2780932701/main" target="_blank" rel="noopener noreferrer">个人动态 <span class="sh-arrow" aria-hidden="true">↗</span></a>
+        </nav>
+      </div>
+      <div class="sh-hero-foot"><a href="#sh-interests"><span class="sh-down"><span aria-hidden="true">↓</span></span>再认识我一点</a><span class="sh-small-note">ART · MUSIC · EVERYDAY</span></div>
+    </section>
+    <section class="sh-interests" id="sh-interests" aria-label="兴趣">
+      <p class="sh-section-label">SOME THINGS I LOVE</p>
+      <p class="sh-interest-list"><span>绘画</span><span>初音未来</span><span>Minecraft</span><span>地平线</span><span>杀戮尖塔</span><span>Galgame</span></p>
+    </section>
+    <section class="sh-music" id="sh-music" aria-labelledby="sh-music-title">
+      <div class="sh-music-heading" data-home-copy="music"><p class="sh-section-label">ROOM FOR SOUND</p><h2 id="sh-music-title">留一点时间，<br>给喜欢的声音。</h2></div>
+      <div class="sh-room-entry">
+        <div class="sh-record" aria-hidden="true"><div class="sh-vinyl"></div><img src="listen.jpg" width="100" height="100" alt="" class="sh-cover"></div>
+        <div class="sh-room-copy"><span class="sh-room-name">Aether<span class="sh-room-dot">.</span></span><p>音乐室 / 我的歌单</p><a href="#music-room" data-open-music class="sh-room-link">进入音乐室 <span class="sh-arrow" aria-hidden="true">↗</span></a></div>
+      </div>
+    </section>
+    <div class="sh-extra-links"><button type="button" id="gallery-open-btn" data-i18n="galleryOpen">查看画作</button><button type="button" id="about-more-btn" data-i18n="aboutMore">了解更多</button><button type="button" data-home-action="guestbook-toggle" data-i18n="guestbookToggle">留言</button></div><footer class="sh-footer"><p>栀落余殁 <span>/ Shiloku</span></p><a href="mailto:520avenir@gmail.com">Say hello. <span class="sh-arrow" aria-hidden="true">↗</span></a></footer>
+  </article>
+</main>
+
     <div class="bg-layer" aria-hidden="true">
         <div class="bg-placeholder"></div>
         <div class="bg-image" id="bg-image"></div>
@@ -2670,7 +2712,7 @@ body.music-room-open {
 
     <div class="cursor-ring"></div>
 
-    <div class="layout-container">
+    <div class="layout-container" hidden inert aria-hidden="true">
         <main class="page-scroll-shell" aria-label="首页内容">
             <section class="scroll-page intro-page" aria-labelledby="name-text">
                 <div class="page-content" id="profile-page-content">
@@ -2712,8 +2754,8 @@ body.music-room-open {
                     <p class="hover-copy" id="bio-p2" data-i18n="bioP2">收录插画与歌单，开放留言；欢迎浏览与我联系。</p>
                 </div>
                 <div class="bio-actions animate-item delay-3">
-                    <button type="button" class="about-more-btn hover-target" id="about-more-btn" data-i18n="aboutMore">了解更多</button>
-                    <button type="button" class="about-more-btn hover-target" id="gallery-open-btn" data-i18n="galleryOpen">查看画作</button>
+                    <button type="button" class="about-more-btn hover-target" id="legacy-about-more-btn" data-i18n="aboutMore">了解更多</button>
+                    <button type="button" class="about-more-btn hover-target" id="legacy-gallery-open-btn" data-i18n="galleryOpen">查看画作</button>
                 </div>
             </div>
 
@@ -2831,6 +2873,7 @@ body.music-room-open {
 
     <script>
         (function initIntroSplash() {
+            if (document.body.classList.contains('home-glass')) { document.getElementById('intro-splash')?.remove(); return; }
             const splash = document.getElementById('intro-splash');
             const video = document.getElementById('splash-video');
 
@@ -2921,6 +2964,7 @@ body.music-room-open {
         })();
 
         (function preloadSiteAssets() {
+            if (document.body.classList.contains('home-glass')) return;
             const BG_URL = window.shilokuAssetUrl?.('bg.jpg') || 'bg.jpg';
             const AVATAR_URL = window.shilokuAssetUrl?.('avatar.jpg') || 'avatar.jpg';
             const bgEl = document.getElementById('bg-image');
@@ -3534,6 +3578,7 @@ body.music-room-open {
         }
 
         function ensureParticleLoop() {
+            if (document.body.classList.contains('home-glass')) return;
             if (!particleLoopId && !document.body.classList.contains('in-music-room')) {
                 particleLoopId = requestAnimationFrame(animateParticles);
             }
@@ -6055,6 +6100,7 @@ function initCharacterHoverCopy() {
 }
 
 function initScrollPageTransitions() {
+    if (document.body.classList.contains('home-glass')) return;
     const pages = document.querySelectorAll('.scroll-page');
     const pageObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
@@ -6071,6 +6117,7 @@ function initScrollPageTransitions() {
 const WHEEL_PAGE_DURATION = 700;
 
 function initWheelPageNavigation() {
+    if (document.body.classList.contains('home-glass')) return;
     const pages = [...document.querySelectorAll('.scroll-page')];
     let isTurningPage = false;
 
