@@ -139,3 +139,7 @@ body.home-glass .corner-tools{position:relative!important;left:auto;right:auto;b
 @media(max-width:720px){#shiloku-home .sh-hero{min-height:692px;padding:0 30px}#shiloku-home .sh-intro{padding-top:77px}#shiloku-home .sh-name{font-size:clamp(42px,8.5vw,66px)}#shiloku-home .sh-interests,#shiloku-home .sh-music,#shiloku-home .sh-footer,#shiloku-home .sh-extra-links{margin-left:30px;margin-right:30px}}
 @media(max-width:430px){#shiloku-home .sh-hero{padding:0 24px}#shiloku-home .sh-name{font-size:clamp(42px,11.4vw,48px)}#shiloku-home .sh-interests,#shiloku-home .sh-music,#shiloku-home .sh-footer,#shiloku-home .sh-extra-links{margin-left:24px;margin-right:24px}#shiloku-home .sh-extra-links{gap:22px}#shiloku-home .sh-extra-links button{min-height:44px}}
 @media(prefers-reduced-motion:reduce){#shiloku-home .sh-extra-links button:hover{transform:none}}
+
+body.home-glass.splash-active{overflow:hidden!important;height:100dvh}
+body.home-glass:not(.intro-done) #shiloku-home{visibility:hidden}
+body.home-glass.splash-active .corner-tools{visibility:hidden}

@@ -186,7 +186,8 @@ SOFTWARE.
     target.querySelector('a')?.focus({ preventScroll: true });
   }));
   sync();
-  requestAnimationFrame(play);
+  if (document.body.classList.contains('intro-done')) requestAnimationFrame(play);
+  else document.addEventListener('shiloku:intro-done', () => requestAnimationFrame(play), { once: true });
 })();
 
 (() => {

@@ -2645,10 +2645,10 @@ body.music-room-open {
             #time-page-content .time-display { font-size: clamp(48px, 14vw, 88px); }
         }
     </style>
-    <link rel="stylesheet" href="assets/home-glass.css?v=20260930a">
-    <script defer src="scripts/home-glass.js?v=20260930a"></script>
+    <link rel="stylesheet" href="assets/home-glass.css?v=20260930b">
+    <script defer src="scripts/home-glass.js?v=20260930b"></script>
 </head>
-<body class="home-glass intro-done">
+<body class="home-glass">
 <main id="shiloku-home">
 <article class="sh-site" aria-label="Shiloku 个人主页">
     <section class="sh-hero" id="sh-home-top" aria-label="个人介绍">
@@ -2873,7 +2873,10 @@ body.music-room-open {
 
     <script>
         (function initIntroSplash() {
-            if (document.body.classList.contains('home-glass')) { document.getElementById('intro-splash')?.remove(); return; }
+            const seenKey = 'shiloku:intro-seen:v1';
+            let seen = false;
+            try { seen = localStorage.getItem(seenKey) === '1'; } catch (_) {}
+
             const splash = document.getElementById('intro-splash');
             const video = document.getElementById('splash-video');
 
@@ -2885,7 +2888,7 @@ body.music-room-open {
             const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             const isCoarseMobile = window.matchMedia('(max-width: 768px), (hover: none) and (pointer: coarse)').matches;
 
-            if (prefersReduced) {
+            if (prefersReduced || seen) {
                 splash.remove();
                 document.body.classList.add('intro-done');
                 return;
@@ -2901,9 +2904,11 @@ body.music-room-open {
                 if (finished) return;
                 finished = true;
                 if (fallbackTimer) clearTimeout(fallbackTimer);
+                try { localStorage.setItem(seenKey, '1'); } catch (_) {}
                 document.body.classList.remove('splash-active');
                 document.body.classList.add('intro-done');
                 splash.classList.add('is-exiting');
+                document.dispatchEvent(new Event('shiloku:intro-done'));
                 const removeSplash = () => {
                     if (video) {
                         video.pause();
