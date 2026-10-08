@@ -183,3 +183,8 @@ body.home-glass{background:#0e0e16}
 body.home-glass .corner-tools{max-width:1032px;margin:0 auto 16px;padding:0 24px}
 @media(max-width:600px){#shiloku-home .sh-intro{padding-top:38px;min-height:400px}#shiloku-home .sh-path{grid-template-columns:1fr;gap:8px}#shiloku-home .sh-path a{padding:8px 0}#shiloku-home .sh-fallback{opacity:.45}#shiloku-home .sh-music{grid-template-columns:1fr;gap:18px}#shiloku-home .sh-room-entry{justify-content:flex-start}#shiloku-home .sh-header{gap:16px}#shiloku-home .sh-nav{gap:18px}}
 @media(prefers-reduced-motion:reduce){#shiloku-home .sh-actions .sh-primary:hover{transform:none}}
+
+/* Restore the original compact wordmark and serif initial. */
+#shiloku-home .sh-brand{gap:12px;font-family:'Segoe UI',sans-serif;font-size:11px;font-weight:500;letter-spacing:.10em;align-items:center}
+#shiloku-home .sh-monogram{font:400 29px/1 Georgia,'Times New Roman',serif;letter-spacing:-.08em}
+@media(max-width:430px){#shiloku-home .sh-brand{gap:10px;font-size:11px;letter-spacing:.10em}}
