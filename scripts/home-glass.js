@@ -215,7 +215,7 @@ SOFTWARE.
   }).observe(document.body,{attributes:true,attributeFilter:['class']});
 
   const copy = {
-    zh: ['很高兴，在这里遇见你。', '这里收录插画与歌单，', '还有一些想与你分享的日常。', '留一点时间，', '给喜欢的声音。', '进入音乐室', '音乐室', '联系我'],
+    zh: ['很高兴，在这里遇见你。', '喜欢绘画、音乐和游戏。', '这里放着我的兴趣、歌单与日常。', '留一点时间，', '给喜欢的声音。', '进入音乐室', '音乐室', '联系我'],
     en: ['Glad you found your way here.', 'Illustrations, playlists,', 'and little things worth sharing.', 'Make a little time', 'for the sounds you love.', 'Enter music room', 'Music room', 'Contact'],
     ja: ['ここで出会えて、うれしいです。', 'イラストやプレイリスト、', '日々の小さなことを集めています。', '好きな音に、', '少しだけ時間を。', '音楽室へ', '音楽室', '連絡先']
   };

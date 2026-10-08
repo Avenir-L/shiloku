@@ -143,3 +143,43 @@ body.home-glass .corner-tools{position:relative!important;left:auto;right:auto;b
 body.home-glass.splash-active{overflow:hidden!important;height:100dvh}
 body.home-glass:not(.intro-done) #shiloku-home{visibility:hidden}
 body.home-glass.splash-active .corner-tools{visibility:hidden}
+
+/* Approved compact homepage: bounded composition on large screens. */
+#shiloku-home .sh-site{max-width:1160px;margin:0 auto;background:#0e0e16}
+body.home-glass{background:#0e0e16}
+#shiloku-home .sh-hero{min-height:0;padding:0 clamp(24px,5.5vw,64px)}
+#shiloku-home .sh-header{padding:26px 0}
+#shiloku-home .sh-intro{padding:56px 0 40px;min-height:425px}
+#shiloku-home .sh-avatar{width:44px;height:44px}
+#shiloku-home .sh-name{font-size:clamp(34px,5.1vw,54px);line-height:1.2;margin-bottom:12px}
+#shiloku-home .sh-identity{gap:15px;margin-bottom:22px}
+#shiloku-home .sh-greeting{font-size:14px}
+#shiloku-home .sh-roman{font-size:15px;margin-bottom:24px!important}
+#shiloku-home .sh-bio{font-size:14px;line-height:1.9;letter-spacing:0;color:#ded9e6}
+#shiloku-home .sh-fallback{opacity:.76;object-position:center}
+#shiloku-home .sh-scrim{background:linear-gradient(90deg,#0e0e16 0%,#0e0e16e6 28%,#0e0e1640 66%),linear-gradient(0deg,#0e0e16 0%,transparent 55%)}
+#shiloku-home .sh-actions{display:flex;align-items:center;gap:26px;margin-top:23px;flex-wrap:wrap}
+#shiloku-home .sh-actions a{font-size:13px;min-height:44px;display:inline-flex;align-items:center;gap:18px}
+#shiloku-home .sh-actions .sh-primary{color:#211b2c;background:#eee7f9;border-radius:3px;padding:10px 17px;transition:transform .3s,box-shadow .3s}
+#shiloku-home .sh-actions .sh-primary:hover{transform:translateY(-2px);box-shadow:0 0 26px #e3d1ff26}
+#shiloku-home .sh-hero-foot{justify-content:flex-end;padding-bottom:24px}
+#shiloku-home .sh-hero-foot>a{display:none}
+#shiloku-home .sh-path,#shiloku-home .sh-contact,#shiloku-home .sh-interests,#shiloku-home .sh-music,#shiloku-home .sh-footer,#shiloku-home .sh-extra-links{margin-left:clamp(24px,5.5vw,64px);margin-right:clamp(24px,5.5vw,64px)}
+#shiloku-home .sh-path{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px;padding:23px 0;border-top:1px solid var(--sh-rule);border-bottom:1px solid var(--sh-rule)}
+#shiloku-home .sh-path a{display:flex;flex-direction:column;gap:7px;padding:10px 0}
+#shiloku-home .sh-path small{font-size:11px;letter-spacing:2px;color:var(--sh-muted)}
+#shiloku-home .sh-path strong{font-size:14px;font-weight:400}
+#shiloku-home .sh-path span{font-size:13px;color:var(--sh-muted);line-height:1.7}
+#shiloku-home .sh-path a:hover strong{ text-shadow:0 0 16px #e4d8ff65}
+#shiloku-home .sh-interests{display:block;padding:36px 0;border-top:0}
+#shiloku-home .sh-interest-list{margin-top:16px;font-size:14px}
+#shiloku-home .sh-music{padding:36px 0}
+#shiloku-home .sh-music-heading h2{font-family:inherit;font-size:21px}
+#shiloku-home .sh-contact{padding:30px 0;scroll-margin-top:24px}
+#shiloku-home .sh-contact h2{font-size:21px;font-weight:400;margin:12px 0 16px}
+#shiloku-home .sh-contact>p:not(.sh-section-label){font-size:14px;color:var(--sh-muted)}
+#shiloku-home .sh-social{margin-top:14px}
+#shiloku-home .sh-social a{font-size:14px;min-height:44px}
+body.home-glass .corner-tools{max-width:1032px;margin:0 auto 16px;padding:0 24px}
+@media(max-width:600px){#shiloku-home .sh-intro{padding-top:38px;min-height:400px}#shiloku-home .sh-path{grid-template-columns:1fr;gap:8px}#shiloku-home .sh-path a{padding:8px 0}#shiloku-home .sh-fallback{opacity:.45}#shiloku-home .sh-music{grid-template-columns:1fr;gap:18px}#shiloku-home .sh-room-entry{justify-content:flex-start}#shiloku-home .sh-header{gap:16px}#shiloku-home .sh-nav{gap:18px}}
+@media(prefers-reduced-motion:reduce){#shiloku-home .sh-actions .sh-primary:hover{transform:none}}
