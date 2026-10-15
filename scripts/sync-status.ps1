@@ -322,6 +322,8 @@ function Parse-NeteaseWindowTitle {
     param([string]$RawTitle)
     $title = [string]$RawTitle.Trim()
     if (-not $title) { return $null }
+    # NetEase's floating lyrics window is UI chrome, not track metadata.
+    if ($title -match '^(?:网易云音乐\s*[-—–|]\s*)?桌面歌词(?:\s*[-—–|]\s*网易云音乐)?$') { return $null }
 
     foreach ($suffix in @($config.windowTitleSuffixes)) {
         if (-not $suffix) { continue }
