@@ -424,53 +424,11 @@ function getAiNowPlaying() {
     return window.__shilokuRemoteListening || null;
 }
 
-function updateAiNowPlayingChip(song = getAiNowPlaying()) {
-    const chip = document.getElementById('ai-now-playing');
-    if (!chip) return;
-    if (song?.title) {
-        chip.hidden = false;
-        chip.textContent = `${t('aiNowPlaying')}: ${song.title}${song.artist ? ` — ${song.artist}` : ''}`;
-    } else {
-        chip.hidden = true;
-        chip.textContent = '';
-    }
-}
-
 export function updateRemoteListening(presence) {
     window.__shilokuRemoteListening = extractListeningFromPresence(presence);
-    updateAiNowPlayingChip();
     window.dispatchEvent(new CustomEvent('shiloku:listening', {
         detail: { song: window.__shilokuRemoteListening },
     }));
-}
-
-function setupAiMusicHooks() {
-    document.getElementById('ai-ask-song-btn')?.addEventListener('click', () => {
-        const song = getAiNowPlaying();
-        if (!song?.title) return;
-        const input = document.getElementById('chat-input');
-        const q = getLang() === 'en'
-            ? `Tell me about "${song.title}" by ${song.artist}`
-            : getLang() === 'ja'
-                ? `「${song.title}」（${song.artist}）について教えて`
-                : `介绍一下《${song.title}》— ${song.artist}`;
-        if (input) { input.value = q; input.focus(); }
-    });
-    document.getElementById('ai-recommend-btn')?.addEventListener('click', () => {
-        const song = getAiNowPlaying();
-        if (!song?.title) return;
-        const input = document.getElementById('chat-input');
-        const q = getLang() === 'en'
-            ? `Recommend songs similar to "${song.title}" by ${song.artist}`
-            : getLang() === 'ja'
-                ? `「${song.title}」に似た曲を教えて`
-                : `推荐一些和《${song.title}》风格类似的歌`;
-        if (input) { input.value = q; input.focus(); }
-    });
-
-    window.addEventListener('shiloku:langchange', () => updateAiNowPlayingChip());
-    window.addEventListener('shiloku:nowplaying', () => updateAiNowPlayingChip());
-    updateAiNowPlayingChip();
 }
 
 /** 处理 URL 深链：打开音乐室并播放 */
@@ -496,7 +454,6 @@ export function initSiteExtensions() {
     setupGallery();
     setupThemePicker();
     setupShareButton();
-    setupAiMusicHooks();
     setupListeningStatsUI();
     refreshDailyQuote();
 
