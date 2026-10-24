@@ -4,7 +4,7 @@
 import {
     initI18n, setLang, getLang, t, LANGS, LANG_LABELS,
     getGreetingForHour, formatDateLine, applyI18nDom,
-} from './i18n.js?v=20260701bio';
+} from './i18n.js?v=20261025guestbook';
 import {
     setupListeningStatsUI,
     refreshListenStatsUI,
@@ -195,20 +195,10 @@ export function applyMusicTheme(themeId) {
 
 /** ---------- 留言板 ---------- */
 async function fetchGuestbookMessages() {
-    const local = loadLocalGuestbook();
-    try {
-        const res = await fetch('/api/guestbook', { signal: AbortSignal.timeout(8000) });
-        if (!res.ok) throw new Error('api');
-        const data = await res.json();
-        const remote = Array.isArray(data.messages) ? data.messages : [];
-        const merged = [...remote];
-        const ids = new Set(remote.map((m) => m.id));
-        local.forEach((m) => { if (!ids.has(m.id)) merged.push(m); });
-        merged.sort((a, b) => (b.time || 0) - (a.time || 0));
-        return merged.slice(0, 50);
-    } catch {
-        return local.sort((a, b) => (b.time || 0) - (a.time || 0));
-    }
+    const res = await fetch('/api/guestbook', {cache:'no-store', signal:AbortSignal.timeout(10000)});
+    const data = await res.json();
+    if (!res.ok || !Array.isArray(data.messages)) throw new Error('Guestbook unavailable');
+    return data.messages;
 }
 
 function loadLocalGuestbook() {
@@ -227,27 +217,13 @@ function saveLocalGuestbook(messages) {
 }
 
 async function submitGuestbook(name, message) {
-    const entry = {
-        id: `local-${Date.now()}`,
-        name: name || '访客',
-        message,
-        time: Date.now(),
-    };
-    try {
-        const res = await fetch('/api/guestbook', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: entry.name, message }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.message) {
-            return { ok: true, entry: data.message, localOnly: Boolean(data.localOnly) };
-        }
-    } catch { /* fallback local */ }
-    const local = loadLocalGuestbook();
-    local.unshift(entry);
-    saveLocalGuestbook(local);
-    return { ok: true, entry, localOnly: true };
+    const res = await fetch('/api/guestbook', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:name || '访客',message}),signal:AbortSignal.timeout(10000)
+    });
+    const data = await res.json();
+    if (!res.ok || data.ok !== true || !data.message || data.localOnly) throw new Error('Guestbook save failed');
+    return {ok:true,entry:data.message};
 }
 
 function renderGuestbookMessages(messages) {
@@ -285,7 +261,8 @@ function setupGuestbook() {
         panel.classList.toggle('hidden');
         panel.setAttribute('aria-hidden', panel.classList.contains('hidden') ? 'true' : 'false');
         if (!panel.classList.contains('hidden')) {
-            renderGuestbookMessages(await fetchGuestbookMessages());
+            try { renderGuestbookMessages(await fetchGuestbookMessages()); }
+            catch { document.getElementById('guestbook-messages').textContent = t('guestbookLoadFailed'); }
         }
     });
     close?.addEventListener('click', () => {
@@ -299,12 +276,18 @@ function setupGuestbook() {
         const msgInput = document.getElementById('guestbook-message');
         const msg = msgInput?.value.trim();
         if (!msg) return;
-        const result = await submitGuestbook(nameInput?.value.trim(), msg);
-        if (result.ok) {
-            showToast(result.localOnly ? t('guestbookLocalOnly') : t('guestbookThanks'));
+        const send = form.querySelector('button[type="submit"]');
+        if (send?.disabled) return;
+        if (send) send.disabled = true;
+        try {
+            const result = await submitGuestbook(nameInput?.value.trim(), msg);
+            showToast(t('guestbookThanks'));
             msgInput.value = '';
-            renderGuestbookMessages(await fetchGuestbookMessages());
-        }
+            try { renderGuestbookMessages(await fetchGuestbookMessages()); }
+            catch { renderGuestbookMessages([result.entry]); showToast(t('guestbookSavedRefreshFailed')); }
+        } catch {
+            showToast(t('guestbookSendFailed'));
+        } finally { if (send) send.disabled = false; }
     });
 }
 
