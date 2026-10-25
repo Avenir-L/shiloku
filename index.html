@@ -2579,8 +2579,8 @@ body.music-room-open {
         }
 
         /* Transformed glyphs must not inherit transparent gradient text fill. */
-        .gradient-text-flow .hover-char:hover,
-        .gradient-text-flow .char-span:hover {
+        #name-text .hover-char:hover,
+        #name-text .char-span:hover {
             -webkit-text-fill-color: #fff;
             color: #fff;
             filter: none;
@@ -2716,7 +2716,7 @@ body.music-room-open {
             </div>
 
             <div class="mid-area bio animate-item delay-2">
-                <h2 class="bio-title gradient-text-flow hover-copy" data-i18n="bioTitle">个人简介</h2>
+                <h2 class="bio-title gradient-text-flow" data-i18n="bioTitle">个人简介</h2>
                 <div>
                     <p class="hover-copy" id="bio-p1" data-i18n="bioP1">栀落余殁（Shiloku）— 作品集、音乐室、访客留言。</p>
                     <p class="hover-copy" id="bio-p2" data-i18n="bioP2">收录插画与歌单，开放留言；欢迎浏览与我联系。</p>
