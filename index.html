@@ -2578,6 +2578,16 @@ body.music-room-open {
             text-shadow: 0 0 14px rgba(255, 229, 237, .62);
         }
 
+        /* Transformed glyphs must not inherit transparent gradient text fill. */
+        .gradient-text-flow .hover-char:hover,
+        .gradient-text-flow .char-span:hover {
+            -webkit-text-fill-color: #fff;
+            color: #fff;
+            filter: none;
+            transform: translateY(-1px) scale(1.06);
+            text-shadow: 0 0 5px rgba(255, 229, 237, .18);
+        }
+
         /* Restore the system cursor and prevent decorative effects from covering text. */
         .cursor-ring { display: none !important; }
         #particle-canvas { display: none !important; }
