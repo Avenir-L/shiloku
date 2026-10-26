@@ -46,7 +46,9 @@ export function createAdminHandler({env=process.env,store=redis,auth=createAuth(
         case 'music-save':
         case 'music-qr-create':
         case 'music-qr-check': {
-          if(Date.now()-owner.createdAt>300000) return res.status(403).json({error:'请重新登录后修改音乐账号'});
+          // QR login already requires a valid owner session and phone authorization;
+          // only manual credential replacement requires a recent admin verification.
+          if(action==='music-save' && Date.now()-owner.createdAt>300000) return res.status(403).json({error:'请重新登录后修改音乐账号'});
           result=action==='music-save'?await music.save(body.cookie):action==='music-qr-create'?await music.createQr(owner):await music.checkQr(body.id,owner);
           break;
         }

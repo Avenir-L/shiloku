@@ -47,6 +47,12 @@ test('cross origin writes fail even with an authenticated session', async () => 
   await handler({method:'POST',headers:{origin:'https://evil.example'},query:{action:'music-save'},body:{}},res);
   assert.equal(res.code,403);
 });
+test('QR login remains available during a valid older admin session; manual credentials still require recent verification',async()=>{
+ const owner={id:'owner',createdAt:Date.now()-10*60000};let created=0,checked=0,saved=0;
+ const handler=createAdminHandler({env,auth:{session:async()=>owner,rateLimit:async()=>{}},music:{createQr:async()=>{created++;return {id:'qr'}},checkQr:async()=>{checked++;return {state:'waiting'}},save:async()=>{saved++;return {}}}});
+ for(const action of ['music-qr-create','music-qr-check']){const out=response();await handler({method:'POST',headers:{origin:env.ADMIN_ORIGIN,'content-type':'application/json'},query:{action},body:{}},out);assert.equal(out.code,200,action)}
+ const out=response();await handler({method:'POST',headers:{origin:env.ADMIN_ORIGIN,'content-type':'application/json'},query:{action:'music-save'},body:{cookie:'MUSIC_U=test'}},out);assert.equal(out.code,403);assert.equal(created,1);assert.equal(checked,1);assert.equal(saved,0);
+});
 
 test('encrypted account records hide plaintext and detect tampering', () => {
   const record=seal('MUSIC_U=private-cookie',env.ADMIN_ENCRYPTION_KEY);
