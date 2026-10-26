@@ -1,3 +1,5 @@
+import { readMusicCookie } from '../admin/music-account.js';
+import { createHash } from 'node:crypto';
 const neteaseHeaders = {
     Referer: 'https://music.163.com/',
     Origin: 'https://music.163.com',
@@ -7,9 +9,9 @@ const neteaseHeaders = {
 };
 
 const PAGE_RAW_SIZE = 30;
-// Only deployment configuration can select the site's music account.
-export function resolveNeteaseCookie() {
-    return parseNeteaseCookie(process.env.NETEASE_COOKIE);
+// Only authenticated owner maintenance or deployment configuration selects the account.
+export async function resolveNeteaseCookie() {
+    return parseNeteaseCookie(await readMusicCookie());
 }
 
 function getNeteaseHeadersWithCookie(cookie, extra = {}) {
@@ -33,9 +35,9 @@ export function parseNeteaseCookie(raw) {
     return parts.join('; ');
 }
 
-function getNeteaseHeaders(extra = {}) {
+async function getNeteaseHeaders(extra = {}) {
     const headers = { ...neteaseHeaders, ...extra };
-    const cookie = parseNeteaseCookie(process.env.NETEASE_COOKIE);
+    const cookie = await resolveNeteaseCookie();
     if (cookie) headers.Cookie = cookie;
     return headers;
 }
@@ -72,44 +74,25 @@ export function applyCors(req, res) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
 }
 
-export async function getNeteasePlayableUrl(id) {
-    const cached = playableUrlCache.get(id);
-    if (cached && cached.expiresAt > Date.now()) return cached.url;
-
-    const headers = getNeteaseHeaders();
-    const encodedId = encodeURIComponent(id);
-    const endpoints = [
-        `https://music.163.com/api/song/enhance/player/url?id=${encodedId}&ids=%5B${encodedId}%5D&br=320000`,
-        `https://music.163.com/api/song/enhance/player/url/v1?ids=%5B${encodedId}%5D&level=exhigh&encodeType=mp3`,
-        `https://music.163.com/api/song/enhance/player/url?id=${encodedId}&ids=%5B${encodedId}%5D&br=999000`,
-    ];
-
-    let playableUrl = null;
-    for (const url of endpoints) {
-        const response = await fetch(url, { headers }).catch(() => null);
-        if (!response?.ok) continue;
-        const data = await response.json().catch(() => null);
-        playableUrl = data?.data?.[0]?.url || null;
-        if (playableUrl) break;
-    }
-
-    playableUrlCache.set(id, { url: playableUrl, expiresAt: Date.now() + playableUrlCacheTtl });
-    return playableUrl;
+export async function getNeteasePlayableUrl(id, cookie) {
+    return getNeteasePlayableUrlWithCookie(id, cookie ?? await resolveNeteaseCookie());
 }
 
 export async function getPlayableMap(ids) {
+    const cookie = await resolveNeteaseCookie();
     const limited = (ids || []).slice(0, PLAYABLE_MAX_IDS).map((id) => String(id));
     const result = {};
     for (let i = 0; i < limited.length; i += PLAYABLE_BATCH_SIZE) {
         const batch = limited.slice(i, i + PLAYABLE_BATCH_SIZE);
         await Promise.all(batch.map(async (id) => {
-            result[id] = Boolean(await getNeteasePlayableUrl(id));
+            result[id] = Boolean(await getNeteasePlayableUrl(id, cookie));
         }));
     }
     return result;
 }
 
 export async function filterPlayableSongs(rawSongs, resultLimit) {
+    const cookie = await resolveNeteaseCookie();
     const playableSongs = [];
     const batchSize = 8;
 
@@ -117,7 +100,7 @@ export async function filterPlayableSongs(rawSongs, resultLimit) {
         const batch = rawSongs.slice(i, i + batchSize);
         const results = await Promise.all(batch.map(async (song) => ({
             song,
-            playableUrl: await getNeteasePlayableUrl(String(song.id)),
+            playableUrl: await getNeteasePlayableUrl(String(song.id), cookie),
         })));
 
         for (const result of results) {
@@ -129,9 +112,9 @@ export async function filterPlayableSongs(rawSongs, resultLimit) {
     return playableSongs;
 }
 
-function getSearchCacheKey(keywords, offset, resultLimit, fetchLimit) {
-    const cookie = parseNeteaseCookie(process.env.NETEASE_COOKIE) || '';
-    const cookieTag = cookie.includes('MUSIC_U=') ? 'auth' : 'anon';
+async function getSearchCacheKey(keywords, offset, resultLimit, fetchLimit) {
+    const cookie = await resolveNeteaseCookie();
+    const cookieTag = createHash('sha256').update(cookie).digest('hex');
     return `${cookieTag}::${keywords.toLowerCase()}::${offset}::${resultLimit}::${fetchLimit}`;
 }
 
@@ -155,7 +138,7 @@ async function fetchNeteaseSearchResult(keywords, offset, fetchLimit) {
         total: 'true',
         limit: String(fetchLimit),
     });
-    const headers = getNeteaseHeaders();
+    const headers = await getNeteaseHeaders();
 
     const tryParse = async (response) => {
         if (!response?.ok) return null;
@@ -183,7 +166,7 @@ async function fetchNeteaseSearchResult(keywords, offset, fetchLimit) {
 export async function searchNetease(keywords, resultLimit = 30, offset = 0) {
     offset = Math.max(0, Number(offset) || 0);
     const fetchLimit = PAGE_RAW_SIZE;
-    const cacheKey = getSearchCacheKey(keywords, offset, resultLimit, fetchLimit);
+    const cacheKey = await getSearchCacheKey(keywords, offset, resultLimit, fetchLimit);
     const cached = searchCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
         return { ...cached.payload, cached: true };
@@ -211,7 +194,7 @@ export async function searchNetease(keywords, resultLimit = 30, offset = 0) {
 export async function fetchNeteaseLyric(id) {
     const response = await fetch(
         `https://music.163.com/api/song/lyric?id=${encodeURIComponent(id)}&lv=-1&kv=-1&tv=-1`,
-        { headers: getNeteaseHeaders() }
+        { headers: await getNeteaseHeaders() }
     );
     const data = await response.json();
     let lyric = data?.lrc?.lyric || '';
@@ -265,8 +248,8 @@ function yrcTextToLrc(yrcText) {
 }
 
 export async function fetchNeteaseAccount() {
-    const response = await fetch('https://music.163.com/api/nuser/account/get', {
-        headers: getNeteaseHeaders(),
+    const response = await fetchNeteaseWithTimeout('https://music.163.com/api/nuser/account/get', {
+        headers: await getNeteaseHeaders(),
     });
     const data = await response.json();
     if (data?.code !== 200 || !data?.account?.id) return null;
@@ -275,7 +258,7 @@ export async function fetchNeteaseAccount() {
 
 export async function fetchUserLevel() {
     const response = await fetch('https://music.163.com/api/user/level', {
-        headers: getNeteaseHeaders(),
+        headers: await getNeteaseHeaders(),
     });
     const data = await response.json();
     if (data?.code !== 200) return null;
@@ -285,7 +268,7 @@ export async function fetchUserLevel() {
 export async function fetchWeekPlayRecord(uid) {
     const response = await fetch(
         `https://music.163.com/api/play/record?uid=${encodeURIComponent(uid)}&type=1`,
-        { headers: getNeteaseHeaders() },
+        { headers: await getNeteaseHeaders() },
     );
     const data = await response.json();
     const weekData = Array.isArray(data?.weekData) ? data.weekData : [];
@@ -304,7 +287,7 @@ export async function fetchWeekPlayRecord(uid) {
 }
 
 export async function fetchNeteaseListenStats() {
-    const cookie = parseNeteaseCookie(process.env.NETEASE_COOKIE);
+    const cookie = await resolveNeteaseCookie();
     if (!cookie) {
         return { available: false, reason: 'missing_cookie' };
     }
@@ -358,7 +341,7 @@ function mapNeteaseSong(song) {
 
 export async function getNeteasePlayableUrlWithCookie(id, cookie = '') {
     const normalized = parseNeteaseCookie(cookie);
-    const cacheKey = `${id}::${normalized}`;
+    const cacheKey = `${id}::${createHash('sha256').update(normalized).digest('hex')}`;
     const cached = playableUrlCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return cached.url;
 
@@ -385,7 +368,7 @@ export async function getNeteasePlayableUrlWithCookie(id, cookie = '') {
 export async function fetchNeteaseAccountWithCookie(cookie) {
     const normalized = parseNeteaseCookie(cookie);
     if (!normalized) return null;
-    const response = await fetch('https://music.163.com/api/nuser/account/get', {
+    const response = await fetchNeteaseWithTimeout('https://music.163.com/api/nuser/account/get', {
         headers: getNeteaseHeadersWithCookie(normalized),
     });
     const data = await response.json();

@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-const PRESET_KEY = '0CoJMe%w^dd^';
+const PRESET_KEY = '0CoJUm6Qyw8W8jud';
 const IV = '0102030405060708';
 const PUB_KEY = '010001';
 const MODULUS =
@@ -11,7 +11,7 @@ const CHARSET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 function createSecretKey(size = 16) {
   let key = '';
   for (let i = 0; i < size; i += 1) {
-    key += CHARSET.charAt(Math.floor(Math.random() * CHARSET.length));
+    key += CHARSET.charAt(crypto.randomInt(CHARSET.length));
   }
   return key;
 }
@@ -81,7 +81,7 @@ async function postWeapi(url, payload, cookie = '') {
   const body = new URLSearchParams(encryptWeapi(payload));
   const headers = { ...WEAPI_HEADERS };
   if (cookie) headers.Cookie = cookie;
-  const response = await fetch(url, { method: 'POST', headers, body });
+  const response = await fetch(url, { method: 'POST', headers, body, signal:AbortSignal.timeout(12000) });
   const data = await response.json();
   const setCookie = parseSetCookie(response.headers);
   return { data, setCookie };
@@ -96,14 +96,7 @@ export async function createQrLoginKey() {
 }
 
 export async function createQrLoginImage(key) {
-  const { data } = await postWeapi(
-    `https://music.163.com/weapi/login/qrcode/create?key=${encodeURIComponent(key)}`,
-    { key, type: 1 },
-  );
-  if (data.code !== 200 || !data.qrurl) {
-    throw new Error(data.message || data.msg || '无法生成二维码');
-  }
-  return data.qrurl;
+  return `https://music.163.com/login?codekey=${encodeURIComponent(key)}`;
 }
 
 export async function checkQrLogin(key) {

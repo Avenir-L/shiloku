@@ -17,11 +17,11 @@ test('public music API rejects credential management even with spoofed localhost
   } finally { globalThis.fetch = originalFetch; }
 });
 
-test('visitor cookie headers cannot replace the server account', () => {
+test('visitor cookie headers cannot replace the server account', async () => {
   const original = process.env.NETEASE_COOKIE;
   process.env.NETEASE_COOKIE = 'MUSIC_U=owner-test';
   try {
-    assert.equal(resolveNeteaseCookie({ headers: { 'x-netease-cookie': 'MUSIC_U=visitor' } }), 'MUSIC_U=owner-test');
+    assert.equal(await resolveNeteaseCookie({ headers: { 'x-netease-cookie': 'MUSIC_U=visitor' } }), 'MUSIC_U=owner-test');
   } finally {
     if (original === undefined) delete process.env.NETEASE_COOKIE;
     else process.env.NETEASE_COOKIE = original;

@@ -19,3 +19,5 @@ solar-system.html
 textures/planets/
 
 .vercel
+node_modules/
+.env.admin.local

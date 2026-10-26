@@ -1,0 +1,62 @@
+import {createAuth,expectedOrigin} from './_lib/admin/auth.js';
+import {createMusic} from './_lib/admin/music-account.js';
+import {redis} from './_lib/admin/store.js';
+import {validateNeteaseCookie} from './_lib/netease/lib.js';
+import {createQrLoginSession,checkQrLogin} from './_lib/netease/weapi.js';
+
+export function createAdminHandler({env=process.env,store=redis,auth=createAuth({store,env}),music=createMusic({store,env,provider:{validateNeteaseCookie,createQrLoginSession,checkQrLogin}})}={}) {
+  return async function handler(req,res) {
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('X-Content-Type-Options','nosniff');
+    const action=String(req.query?.action||'session');
+    const origin=expectedOrigin(env);
+    if(req.method!=='POST' && req.method!=='GET') return res.status(405).json({error:'不支持的请求方法'});
+    if(req.method==='POST' && req.headers.origin!==origin) return res.status(403).json({error:'请求来源不受信任'});
+    if(req.method==='GET' && action!=='session') return res.status(405).json({error:'此操作需要 POST'});
+    if(req.method==='POST' && !String(req.headers['content-type']||'').startsWith('application/json')) return res.status(415).json({error:'需要 JSON 请求'});
+    try {
+      const owner=await auth.session(req);
+      if(action==='session') return res.status(200).json({authenticated:Boolean(owner)&&!owner.restricted,recoveryOnly:Boolean(owner?.restricted),initialized:await auth.initialized()});
+      const publicActions=['login-options','login-verify','register-options','register-verify','recover'];
+      if(!owner && !publicActions.includes(action)) return res.status(401).json({error:'请先使用站长通行密钥登录'});
+      if(owner?.restricted && !['register-options','register-verify','logout'].includes(action)) return res.status(403).json({error:'请先登记新的通行密钥'});
+      await auth.rateLimit(req);
+      const body=req.body||{};
+      if(JSON.stringify(body).length>24000) return res.status(413).json({error:'请求内容过大'});
+      let result;
+      switch(action) {
+        case 'login-options': result=await auth.loginOptions(); break;
+        case 'login-verify': result=await auth.loginVerify(body); break;
+        case 'register-options': result=await auth.registrationOptions({...body,session:owner}); break;
+        case 'register-verify': result=await auth.registrationVerify({...body,session:owner}); break;
+        case 'recover': result=await auth.recover(body); break;
+        case 'logout': res.setHeader('Set-Cookie',await auth.logout(owner)); return res.status(200).json({ok:true});
+        case 'passkeys': return res.status(200).json({credentials:(await auth.credentials()).map(({id,label,createdAt,backedUp})=>({id,label,createdAt,backedUp}))});
+        case 'passkey-remove': result=await auth.removeCredential(owner,body.id); break;
+        case 'recovery-create': result=await auth.recoveryCreate(owner); break;
+        case 'music-status': result=await music.status(); break;
+        case 'music-save':
+        case 'music-qr-create':
+        case 'music-qr-check': {
+          if(Date.now()-owner.createdAt>300000) return res.status(403).json({error:'请重新登录后修改音乐账号'});
+          result=action==='music-save'?await music.save(body.cookie):action==='music-qr-create'?await music.createQr(owner):await music.checkQr(body.id,owner);
+          break;
+        }
+        case 'guestbook': {
+          // Read-only by construction. No guestbook mutation command exists in this router.
+          const rows=await store.command(['ZREVRANGE','shiloku:guestbook:v1',0,79]);
+          return res.status(200).json({messages:rows.map(row=>JSON.parse(row))});
+        }
+        default: return res.status(404).json({error:'未知管理操作'});
+      }
+      if(result?.cookie) {
+        res.setHeader('Set-Cookie',result.cookie);
+        return res.status(200).json({ok:true});
+      }
+      return res.status(200).json(result);
+    } catch(error) {
+      return res.status(error.status||503).json({error:error.status?error.message:'服务暂时不可用，请检查配置或稍后重试'});
+    }
+  };
+}
+export default createAdminHandler();

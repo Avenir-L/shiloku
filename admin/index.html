@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+  <title>Shiloku · 管理后台</title>
+  <link rel="stylesheet" href="/admin/admin.css?v=20261026a">
+  <script type="module" src="/admin/admin.js?v=20261026a"></script>
+</head>
+<body>
+  <main id="login" class="login-shell">
+    <a class="wordmark" href="/">S<span>SHILOKU</span></a>
+    <section class="login-card">
+      <span class="eyebrow">YOUR PRIVATE CORNER</span>
+      <h1>欢迎回来。</h1><p class="muted">用你的通行密钥，打开管理空间。</p>
+      <button id="sign-in" class="primary">使用通行密钥登录 <span>↗</span></button>
+      <p class="hint">支持 Windows Hello、iPhone 与已同步的通行密钥。<br>使用手机登录电脑时，在系统窗口选择「其他设备」。</p>
+      <details id="setup"><summary>首次设置 / 恢复访问</summary>
+        <label>本机生成的一次性初始化凭证<input id="setup-token" type="password" autocomplete="off" placeholder="粘贴初始化凭证"></label>
+        <label>设备名称<input id="device-label" maxlength="60" placeholder="例如：我的 iPhone"></label>
+        <p id="recovery-warning" class="hint" hidden>恢复完成后，旧设备的通行密钥全部失效，需要重新登记。验证新密钥成功之前不会移除旧密钥。</p>
+        <button id="register-first" class="secondary">登记第一个通行密钥</button>
+        <label>或使用一次性恢复码<input id="recovery-code" type="password" autocomplete="off" placeholder="仅在无法使用已有通行密钥时使用"></label>
+        <button id="recover" class="text-button">恢复访问</button>
+      </details>
+    </section>
+    <p class="login-footer">仅站长可访问 · 不开放注册</p>
+  </main>
+  <div id="dashboard" class="dashboard" hidden>
+    <aside>
+      <a class="wordmark" href="/">S<span>SHILOKU<br><small>管理后台</small></span></a>
+      <nav aria-label="后台模块">
+        <button data-page="music" class="active"><span>♫</span>音乐室</button>
+        <button data-page="space"><span>◈</span>我的空间</button>
+        <button data-page="guestbook"><span>☷</span>访客留言</button>
+        <button data-page="security"><span>⌘</span>账号与安全</button>
+      </nav>
+      <div class="aside-footer"><a href="/" target="_blank" rel="noopener">查看网站 ↗</a><button id="logout" class="text-button">退出登录</button></div>
+    </aside>
+    <div class="workspace">
+      <header><span class="eyebrow">SHILOKU / CONSOLE</span><span class="owner-badge"><i></i>站长专用</span></header>
+      <section id="page-music" class="page">
+        <div class="page-heading"><div><p class="eyebrow">MUSIC ROOM</p><h1>音乐室</h1><p class="muted">维护账号连接，让音乐继续。</p></div><button id="refresh-status" class="secondary">刷新状态 ↻</button></div>
+        <article class="card account-card"><div><span class="eyebrow">网易云音乐</span><h2 id="account-state">正在检查连接…</h2><p id="account-detail" class="muted">登录信息仅保存在服务端。</p></div><span class="status-pill" id="account-pill">检查中</span></article>
+        <div class="grid">
+          <article class="card"><span class="step">01</span><h2>扫码连接</h2><p class="muted">使用网易云音乐 App 扫码，并在手机上确认授权。</p><button id="qr-start" class="primary">生成登录二维码</button><div id="qr-area" hidden><img id="qr-image" alt="网易云登录二维码"><p id="qr-status" role="status"></p><button id="qr-stop" class="text-button">取消扫码</button></div></article>
+          <article class="card"><span class="step">02</span><h2>登录后即刻生效</h2><p class="muted">授权通过后自动验证并加密保存。下一次音乐请求使用新的账号，无需重新部署网站。</p><div class="note">访客看不到账号管理入口，也无法读取或修改登录凭据。</div><details><summary>手动更新登录信息</summary><label>网易云 Cookie<textarea id="manual-cookie" rows="4" autocomplete="off" spellcheck="false" placeholder="仅在扫码不可用时粘贴"></textarea></label><button id="manual-save" class="secondary">验证并保存</button></details></article>
+        </div>
+      </section>
+      <section id="page-space" class="page" hidden><div class="page-heading"><div><p class="eyebrow">PERSONAL SPACE</p><h1>我的空间</h1><p class="muted">生活日常与更新日志，有自己的位置。</p></div></div><article class="card empty"><span class="empty-icon">◈</span><h2>空间发布功能尚未接入</h2><p class="muted">后续单独接入内容数据库、图文编辑、草稿与发布。<br>这里与访客留言分开管理，不共用内容数据。</p></article></section>
+      <section id="page-guestbook" class="page" hidden><div class="page-heading"><div><p class="eyebrow">GUESTBOOK</p><h1>访客留言</h1><p class="muted">独立的留言板，本期仅供查看。</p></div><span class="status-pill">只读</span></div><div id="messages" class="message-list"></div></section>
+      <section id="page-security" class="page" hidden><div class="page-heading"><div><p class="eyebrow">ACCOUNT & SECURITY</p><h1>账号与安全</h1><p class="muted">为你的电脑和手机分别登记通行密钥。</p></div></div><article class="card"><h2>已登记设备</h2><div id="credentials"></div><label>新设备名称<input id="additional-label" maxlength="60" placeholder="例如：我的电脑"></label><button id="add-passkey" class="primary">添加通行密钥</button><p class="hint">敏感操作需要在最近 5 分钟内完成身份验证。</p></article><article class="card"><h2>离线恢复码</h2><p class="muted">无法使用通行密钥时，可用一次性恢复码重新登记设备。生成新的一组会替换旧恢复码。</p><button id="create-recovery" class="secondary">生成 / 更换恢复码</button><pre id="recovery-output" hidden></pre><button id="download-recovery" class="text-button" hidden>下载并离线保存</button></article></section>
+      <footer>SHILOKU · 私密管理空间</footer>
+    </div>
+  </div>
+  <div id="notice" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

@@ -33,7 +33,7 @@ async function handleSearch(req, res) {
     const offset = Math.max(0, Number(req.query.offset || '0') || 0);
     if (!keywords) return res.status(400).json({ error: '请输入搜索关键词' });
     const data = await searchNetease(keywords, resultLimit, offset);
-    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.setHeader('Cache-Control', 'private, no-store');
     return res.status(200).json(data);
 }
 
@@ -52,18 +52,18 @@ async function handlePlayable(req, res) {
         .slice(0, 30);
     if (!ids.length) return res.status(400).json({ error: '缺少歌曲 id' });
     const playable = await getPlayableMap(ids);
-    res.setHeader('Cache-Control', 'private, max-age=600');
+    res.setHeader('Cache-Control', 'private, no-store');
     return res.status(200).json({ playable });
 }
 
 async function handleListenStats(_req, res) {
     const stats = await fetchNeteaseListenStats();
-    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.setHeader('Cache-Control', 'private, no-store');
     return res.status(200).json(stats);
 }
 
 async function handlePlaylists(req, res) {
-    const cookie = resolveNeteaseCookie(req);
+    const cookie = await resolveNeteaseCookie(req);
     const { valid, playlists } = await fetchUserPlaylists(cookie);
     if (!valid) {
         return res.status(401).json({ error: 'Netease cookie is invalid or expired', playlists: [] });
@@ -75,7 +75,7 @@ async function handlePlaylists(req, res) {
 async function handlePlaylist(req, res) {
     const id = String(req.query.id || '').trim();
     if (!id) return res.status(400).json({ error: 'Missing id' });
-    const cookie = resolveNeteaseCookie(req);
+    const cookie = await resolveNeteaseCookie(req);
     const account = await fetchNeteaseAccountWithCookie(cookie);
     if (!account?.valid) {
         return res.status(401).json({ error: 'Netease cookie is invalid or expired', songs: [] });
@@ -89,7 +89,7 @@ async function handleAudio(req, res) {
     const id = String(req.query.id || '');
     if (!id) return res.status(400).json({ error: '缺少歌曲 id' });
 
-    const cookie = resolveNeteaseCookie(req);
+    const cookie = await resolveNeteaseCookie(req);
     const audioResponse = await proxyNeteaseAudio(id, req.headers, cookie);
     if (!audioResponse) {
         return res.status(404).json({ error: '这首歌暂时无法播放' });
@@ -122,6 +122,7 @@ async function handleAudio(req, res) {
 
 export default async function handler(req, res) {
     applyCors(req, res);
+    res.setHeader('Cache-Control', 'private, no-store');
     if (req.method === 'OPTIONS') return res.status(204).end();
 
     const action = getAction(req);
@@ -130,25 +131,25 @@ export default async function handler(req, res) {
         switch (action) {
             case 'ping':
                 if (req.method !== 'GET') return res.status(405).json({ error: '只允许 GET 请求' });
-                return handlePing(req, res);
+                return await handlePing(req, res);
             case 'search':
                 if (req.method !== 'GET') return res.status(405).json({ error: '只允许 GET 请求' });
-                return handleSearch(req, res);
+                return await handleSearch(req, res);
             case 'lyric':
                 if (req.method !== 'GET') return res.status(405).json({ error: '只允许 GET 请求' });
-                return handleLyric(req, res);
+                return await handleLyric(req, res);
             case 'playable':
                 if (req.method !== 'GET') return res.status(405).json({ error: '只允许 GET 请求' });
-                return handlePlayable(req, res);
+                return await handlePlayable(req, res);
             case 'listen-stats':
                 if (req.method !== 'GET') return res.status(405).json({ error: '只允许 GET 请求' });
-                return handleListenStats(req, res);
+                return await handleListenStats(req, res);
             case 'playlists':
                 if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
-                return handlePlaylists(req, res);
+                return await handlePlaylists(req, res);
             case 'playlist':
                 if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
-                return handlePlaylist(req, res);
+                return await handlePlaylist(req, res);
             case 'cookie-bootstrap':
             case 'cookie-refresh':
             case 'qr-login':
@@ -160,7 +161,7 @@ export default async function handler(req, res) {
                 if (req.method !== 'GET' && req.method !== 'HEAD') {
                     return res.status(405).json({ error: '只允许 GET / HEAD 请求' });
                 }
-                return handleAudio(req, res);
+                return await handleAudio(req, res);
             default:
                 return res.status(404).json({ error: '未知接口' });
         }
