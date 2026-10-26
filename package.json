@@ -6,7 +6,7 @@
     "node": "24.x"
   },
   "scripts": {
-    "build": "node scripts/build-admin.mjs",
+    "build": "node scripts/build-admin.mjs && node scripts/build-static.mjs",
     "test:admin": "node --test tests/admin*.test.mjs tests/analytics.test.mjs tests/netease-owner-security.test.mjs"
   },
   "dependencies": {

@@ -1,6 +1,7 @@
 .git/
 node_modules/
 .scratch/
+public/
 .env*
 tests/
 docs/
