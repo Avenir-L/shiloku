@@ -40,7 +40,7 @@ async function handleSearch(req, res) {
 
 async function handleLyric(req, res) {
     const id = String(req.query.id || '');
-    if (!id) return res.status(400).json({ error: '缺少歌曲 id' });
+    if (!/^\d{1,20}$/.test(id)) return res.status(400).json({ error: '缺少歌曲 id 或格式无效' });
     const data = await fetchNeteaseLyric(id);
     return res.status(200).json(data);
 }

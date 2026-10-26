@@ -192,9 +192,12 @@ export async function searchNetease(keywords, resultLimit = 30, offset = 0) {
 }
 
 export async function fetchNeteaseLyric(id) {
-    const response = await fetch(
+    const headers=await getNeteaseHeaders();
+    const details=fetchNeteaseWithTimeout(`https://music.163.com/api/song/detail?ids=${encodeURIComponent(JSON.stringify([String(id)]))}`,{headers})
+        .then(async response=>{if(!response.ok)return null;const data=await response.json();const song=data.songs?.find(song=>String(song.id)===String(id));return song?{...mapNeteaseSong(song),artists:(song.artists||song.ar||[]).map(artist=>({id:artist.id,name:artist.name})),albumId:(song.album||song.al)?.id||null,publishedAt:song.publishTime||null}:null;}).catch(()=>null);
+    const response = await fetchNeteaseWithTimeout(
         `https://music.163.com/api/song/lyric?id=${encodeURIComponent(id)}&lv=-1&kv=-1&tv=-1`,
-        { headers: await getNeteaseHeaders() }
+        { headers }
     );
     const data = await response.json();
     let lyric = data?.lrc?.lyric || '';
@@ -206,6 +209,7 @@ export async function fetchNeteaseLyric(id) {
         lyric,
         translatedLyric,
         hasTranslation: Boolean(translatedLyric.trim()),
+        song:await details,
     };
 }
 
@@ -326,7 +330,7 @@ export async function proxyNeteaseAudio(id, reqHeaders, cookie = '') {
 }
 
 function mapNeteaseSong(song) {
-    const album = song?.album || {};
+    const album = song?.album || song?.al || {};
     const artists = song?.artists || song?.ar || [];
     return {
         id: song?.id,

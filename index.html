@@ -19,8 +19,8 @@
     <link rel="preload" href="https://cdn.jsdelivr.net/gh/Avenir-L/shiloku@main/bg.jpg" as="image">
     <link rel="stylesheet" href="fonts/site-fonts.css?v=20260701a">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css">
-    <script src="scripts/static-assets.js?v=20260701b"></script>
-    <link rel="stylesheet" href="aether-music.css?v=20260624ab">
+    <script src="scripts/static-assets.js?v=20261027metadata1"></script>
+    <link rel="stylesheet" href="aether-music.css?v=20261027metadata1">
     <link rel="stylesheet" href="site-extensions.css">
     <script type="importmap">
     {
@@ -3562,6 +3562,7 @@ body.music-room-open {
             <div class="aether-player-head">
                 <h2 id="song-title">等待播放...</h2>
                 <p id="song-artist">LOCAL AUDIO</p>
+                <p id="song-album" hidden></p>
                 <button type="button" class="aether-theme-cycle-btn" id="sonic-theme-cycle-btn" title="Cycle visual theme" aria-label="Cycle visual theme">Theme</button>
             </div>
             <div class="aether-transport">
@@ -3741,6 +3742,7 @@ const LOCAL_SONGS = [
     {
         title: "Listen",
         artist: "ONE OK ROCK / Avril Lavigne",
+        album: "Ambitions [日本盤]", duration: 218986,
         src: "listen.mp3",
         neteaseId: 453176145,
         cover: "listen.jpg",
@@ -3748,7 +3750,8 @@ const LOCAL_SONGS = [
     },
     {
         title: "Beautiful World",
-        artist: "宇多田光",
+        artist: "宇多田ヒカル",
+        album: "Beautiful World / Kiss & Cry", duration: 316040,
         src: "beautiful_world.mp3",
         cover: "beautiful_world.jpg",
         lrc: "beautiful_world.lrc"
@@ -3756,13 +3759,15 @@ const LOCAL_SONGS = [
     {
         title: "夕日坂",
         artist: "doriko / 初音ミク",
+        album: "夕日坂", duration: 380347,
         src: "yuuhizaka.mp3",
         cover: "yuuhizaka.jpg",
         lrc: "yuuhizaka.lrc"
     },
     {
         title: "Hypnotized",
-        artist: "Purple Disco Machine",
+        artist: "Purple Disco Machine / Sophie and the Giants",
+        album: "Hypnotized", duration: 195704,
         src: "Hypnotized.mp3",
         cover: "Hypnotized.jpg",
         lrc: "Hypnotized.lrc"
@@ -3770,6 +3775,7 @@ const LOCAL_SONGS = [
     {
         title: "mede:mede",
         artist: "Reol",
+        album: "極彩色", duration: 215133,
         src: "medemede.mp3",
         cover: "medemede.jpg",
         lrc: "medemede.lrc"
@@ -3777,6 +3783,7 @@ const LOCAL_SONGS = [
     {
         title: "Do You Feel It?",
         artist: "Chaos Chaos",
+        album: "Committed to the Crime", duration: 250713,
         src: "do_you_feel_it.mp3",
         neteaseId: 29481242,
         cover: "do_you_feel_it.jpg",
@@ -3785,10 +3792,20 @@ const LOCAL_SONGS = [
     {
         title: "more than words",
         artist: "羊文学",
+        album: "more than words", duration: 289785,
         src: "more_than_words.mp3",
         neteaseId: 2073738346,
         cover: "more_than_words.jpg",
         lrc: "more_than_words.lrc"
+    },
+    {
+        title: "End of Beginning",
+        artist: "Djo",
+        album: "DECIDE", duration: 159246,
+        src: "end_of_beginning.mp3",
+        neteaseId: 1966970103,
+        cover: "end_of_beginning.jpg",
+        lrc: "end_of_beginning.lrc"
     },
 ];
 
@@ -3957,6 +3974,8 @@ const playlistBackdrop = document.getElementById('playlist-backdrop');
 const playlistToggleBtn = document.getElementById('playlist-toggle-btn');
 
 const lyricsCache = {};
+const lyricRequests=new Map();
+const songDetailsCache={};
 const audio = document.getElementById('bg-audio');
 if (audio) {
     audio.crossOrigin = 'anonymous';
@@ -4243,13 +4262,20 @@ async function loadSong(index, options = {}) {
     await loadSongByEntry(songs[index], options);
 }
 
+function refreshTrackDisplay(song){
+    songTitle.textContent=song.title||'未知歌曲';
+    songTitle.title=song.title||'';
+    songArtist.textContent=`${song.artist||'未知歌手'} · ${song.isNeteaseOnly?'NETEASE':'LOCAL'}`;
+    songArtist.title=song.artist||'';
+    const album=document.getElementById('song-album');
+    album.textContent=song.album||'';album.title=song.album||'';album.hidden=!song.album;
+    if(song.isNeteaseOnly&&song.cover)crossfadeCover(song.cover);
+}
+
 function primePlayerShell() {
     const song = songs[currentSongIndex];
     if (!song || !songTitle || !songArtist) return;
-    songTitle.innerText = song.title;
-    songArtist.innerText = song.isNeteaseOnly
-        ? `${song.artist} · NETEASE`
-        : `${song.artist} · LOCAL`;
+    refreshTrackDisplay(song);
 }
 
 async function initPlayer() {
@@ -4335,6 +4361,8 @@ function neteaseSongToPlaylistEntry(song) {
     return {
         title: song.name,
         artist: song.artist || '未知歌手',
+        album: song.album || '',
+        duration: song.duration || 0,
         neteaseId: song.id,
         cover: song.cover || '',
         isNeteaseOnly: true,
@@ -4881,25 +4909,43 @@ async function applySongAudioSrc(song) {
     return ready;
 }
 
+async function updateTrackMetadata(key,details){
+    if(!details)return;
+    const {mergeTrackMetadata}=await import('./scripts/song-metadata.js');
+    for(const entry of new Set([...songs,...neteaseQueue,neteasePreviewSong,getCurrentSong()].filter(Boolean))){
+        if(String(entry.neteaseId)===key)Object.assign(entry,mergeTrackMetadata(entry,details));
+    }
+    const active=getCurrentSong();
+    if(active&&String(active.neteaseId)===key)refreshTrackDisplay(active);
+    persistNeteaseQueue();
+}
+
 async function loadNeteaseLyrics(neteaseId) {
     const key = String(neteaseId);
-    if (lyricsCache[key]) return lyricsCache[key];
+    if (lyricsCache[key]) {await updateTrackMetadata(key,songDetailsCache[key]);return lyricsCache[key];}
+    if(lyricRequests.has(key))return lyricRequests.get(key);
+    const pending=(async()=>{
     try {
         const lyricRes = await fetch(`/api/netease/lyric?id=${encodeURIComponent(key)}`);
         if (!lyricRes.ok) {
-            lyricsCache[key] = [];
             return [];
         }
         const lyricData = await lyricRes.json();
+        if(lyricData.song){
+            songDetailsCache[key]=lyricData.song;
+            await updateTrackMetadata(key,lyricData.song);
+        }
         const lrc = lyricData.lyric || '';
         const trans = lyricData.translatedLyric || '';
         const parsed = lrc ? parseLRCText(lrc, trans) : [];
         lyricsCache[key] = parsed;
         return parsed;
     } catch {
-        lyricsCache[key] = [];
         return [];
     }
+    })();
+    lyricRequests.set(key,pending);
+    try{return await pending;}finally{lyricRequests.delete(key);}
 }
 
 let lyricLoadSeq = 0;
@@ -4909,7 +4955,8 @@ async function loadSongLyrics(song) {
     let lyrics = [];
 
     if (song.lrc) {
-        lyrics = await fetchAndParseLRC(song.lrc);
+        if(song.neteaseId)void loadNeteaseLyrics(song.neteaseId);
+        lyrics=await fetchAndParseLRC(song.lrc);
     } else if (song.isNeteaseOnly && song.neteaseId) {
         lyrics = await loadNeteaseLyrics(song.neteaseId);
     }
@@ -4937,10 +4984,7 @@ async function loadSongByEntry(song, { deferLyrics = false, resetAudio = true } 
         updateProgressUI();
     }
 
-    songTitle.innerText = song.title;
-    songArtist.innerText = song.isNeteaseOnly
-        ? `${song.artist} · NETEASE`
-        : `${song.artist} · LOCAL`;
+    refreshTrackDisplay(song);
 
     const coverUrl = song.cover
         ? (window.shilokuAssetUrl?.(song.cover) || song.cover)

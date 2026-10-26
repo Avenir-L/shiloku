@@ -1,6 +1,6 @@
 (function (global) {
     const CDN_BASE = 'https://cdn.jsdelivr.net/gh/Avenir-L/shiloku@main';
-    const CDN_VERSION = '20260701b';
+    const CDN_VERSION = '20261027metadata1';
     const CDN_FILES = new Set([
         'avatar.jpg',
         'bg.jpg',
@@ -12,6 +12,7 @@
 
     global.shilokuAssetUrl = function assetUrl(file) {
         if (!file || isLocal) return file;
+        if(/^end_of_beginning\.(mp3|jpg|lrc)$/.test(file))return file;
         const name = String(file).replace(/^\//, '');
         if (/^https?:\/\//i.test(name)) return file;
         if (CDN_FILES.has(name) || CDN_MEDIA.test(name)) {
