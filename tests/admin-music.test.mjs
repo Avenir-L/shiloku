@@ -47,3 +47,14 @@ test('NetEase verification challenge is terminal and never overwrites the music 
  await assert.rejects(()=>music.checkQr(qr.id,owner),e=>e.status===422&&e.code==='NETEASE_VERIFICATION_REQUIRED'&&e.upstreamCode===8821&&e.message.includes('安全验证')&&!e.message.includes('private'));
  assert.equal(values.has(MUSIC_KEY),false);
 });
+test('QR session cookies remain encrypted and refreshed between owner-bound polls without extending expiry',async()=>{
+ const values=new Map(),writes=[];
+ const store={command:async args=>{const [op,key,value]=args;if(op==='SET'){writes.push(args);values.set(key,value);return 'OK'}return values.get(key)}};
+ const env={ADMIN_ENCRYPTION_KEY:Buffer.alloc(32,7).toString('base64')};let polls=0;
+ const music=createMusic({store,env,provider:{createQrLoginSession:async()=>({key:'key',qrUrl:'https://music.163.com/login',cookie:'NMTID=private-session'}),checkQrLogin:async(key,cookie)=>{assert.equal(cookie,polls++?'NMTID=private-next':'NMTID=private-session');return {code:801,cookie:'NMTID=private-next'}}}});
+ const owner={id:'owner'},qr=await music.createQr(owner);
+ assert.ok(!JSON.stringify([...values]).includes('private-session'));
+ await music.checkQr(qr.id,owner);await music.checkQr(qr.id,owner);
+ assert.ok(!JSON.stringify([...values]).includes('private-next'));
+ assert.equal(writes[1].at(-1),'KEEPTTL');
+});

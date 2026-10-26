@@ -78,9 +78,17 @@ const WEAPI_HEADERS = {
 };
 
 function upstreamError(code,message,phase,extra={}){return Object.assign(new Error(message),{code,status:code==='NETEASE_TIMEOUT'?504:502,phase,...extra})}
-async function postWeapi(url, payload, cookie = '',phase='netease') {
-  const body = new URLSearchParams(encryptWeapi(payload));
+async function postWeapi(url, payload, cookie = '',phase='netease',eapiPath='') {
+  let encrypted=encryptWeapi(payload);
+  if(eapiPath){
+    const text=JSON.stringify(payload);
+    const digest=crypto.createHash('md5').update(`nobody${eapiPath}use${text}md5forencrypt`).digest('hex');
+    const cipher=crypto.createCipheriv('aes-128-ecb',Buffer.from('e82ckenh8dichen8'),null);
+    encrypted={params:Buffer.concat([cipher.update(`${eapiPath}-36cd479b6b5-${text}-36cd479b6b5-${digest}`),cipher.final()]).toString('hex').toUpperCase()};
+  }
+  const body = new URLSearchParams(encrypted);
   const headers = { ...WEAPI_HEADERS };
+  if(eapiPath)headers['User-Agent']='Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36 Chrome/91.0.4472.164 NeteaseMusicDesktop/3.1.29.205117';
   if (cookie) headers.Cookie = cookie;
   let response;
   try{response=await fetch(url, { method: 'POST', headers, body, signal:AbortSignal.timeout(12000) });}
@@ -96,26 +104,36 @@ async function postWeapi(url, payload, cookie = '',phase='netease') {
 }
 
 export async function createQrLoginKey() {
-  const { data } = await postWeapi('https://music.163.com/weapi/login/qrcode/unikey', { type: 1 },'','qr-key');
+  return (await createQrLoginSession()).key;
+}
+
+async function postQr(path,payload,cookie,phase){
+  const identity=Object.fromEntries(cookie.split(';').map(part=>{const i=part.indexOf('=');return [part.slice(0,i).trim(),part.slice(i+1).trim()]}));
+  const header={os:'pc',appver:'3.1.17.204416',osver:'Microsoft-Windows-10-Professional-build-19045-64bit',channel:'netease',deviceId:identity.deviceId,requestId:`${Date.now()}_${crypto.randomInt(10000)}`,__csrf:identity.__csrf||''};
+  const requestCookie=mergeCookieStrings(cookie,Object.entries(header).map(([name,value])=>`${name}=${encodeURIComponent(value)}`).join('; '));
+  const result=await postWeapi('https://interfacepc.music.163.com/eapi/login/qrcode/'+path,{...payload,header},requestCookie,phase,'/api/login/qrcode/'+path);
+  return {...result,cookie:mergeCookieStrings(cookie,result.setCookie)};
+}
+
+export async function createQrLoginSession() {
+  const identity=`deviceId=${crypto.randomUUID()}; os=pc; appver=3.1.17.204416; __remember_me=true`;
+  const { data,cookie } = await postQr('unikey', { type: 3 },identity,'qr-key');
   if (data.code !== 200 || !data.unikey) {
     throw upstreamError('NETEASE_KEY_REJECTED','网易云暂未允许生成二维码，请稍后重试','qr-key',{upstreamCode:Number.isFinite(data.code)?data.code:undefined});
   }
-  return data.unikey;
+  return {key:data.unikey,qrUrl:await createQrLoginImage(data.unikey),cookie};
 }
 
 export async function createQrLoginImage(key) {
   return `https://music.163.com/login?codekey=${encodeURIComponent(key)}`;
 }
 
-export async function checkQrLogin(key) {
-  const { data, setCookie } = await postWeapi(
-    `https://music.163.com/weapi/login/qrcode/client/login?key=${encodeURIComponent(key)}&time=${Date.now()}`,
-    { key, type: 1 },'','qr-check',
-  );
+export async function checkQrLogin(key,sessionCookie='') {
+  const { data,cookie } = await postQr('client/login',{key,type:3},sessionCookie,'qr-check');
   return {
     code: data.code,
     message: data.message || data.msg || '',
-    cookie: setCookie,
+    cookie,
     data,
   };
 }
@@ -130,8 +148,3 @@ export async function refreshLoginCookie(cookie) {
   };
 }
 
-export async function createQrLoginSession() {
-  const key = await createQrLoginKey();
-  const qrUrl = await createQrLoginImage(key);
-  return { key, qrUrl };
-}
