@@ -3738,56 +3738,16 @@ body.music-room-open {
         }
     });
 // ================== 音乐室核心逻辑（搭载全自动 LRC 解析引擎 + 极限性能懒加载版） ==================
+// Local tracks are ordered by addition date, newest first. Insert new tracks at the top.
 const LOCAL_SONGS = [
     {
-        title: "Listen",
-        artist: "ONE OK ROCK / Avril Lavigne",
-        album: "Ambitions [日本盤]", duration: 218986,
-        src: "listen.mp3",
-        neteaseId: 453176145,
-        cover: "listen.jpg",
-        lrc: "listen.lrc"
-    },
-    {
-        title: "Beautiful World",
-        artist: "宇多田ヒカル",
-        album: "Beautiful World / Kiss & Cry", duration: 316040,
-        src: "beautiful_world.mp3",
-        cover: "beautiful_world.jpg",
-        lrc: "beautiful_world.lrc"
-    },
-    {
-        title: "夕日坂",
-        artist: "doriko / 初音ミク",
-        album: "夕日坂", duration: 380347,
-        src: "yuuhizaka.mp3",
-        cover: "yuuhizaka.jpg",
-        lrc: "yuuhizaka.lrc"
-    },
-    {
-        title: "Hypnotized",
-        artist: "Purple Disco Machine / Sophie and the Giants",
-        album: "Hypnotized", duration: 195704,
-        src: "Hypnotized.mp3",
-        cover: "Hypnotized.jpg",
-        lrc: "Hypnotized.lrc"
-    },
-    {
-        title: "mede:mede",
-        artist: "Reol",
-        album: "極彩色", duration: 215133,
-        src: "medemede.mp3",
-        cover: "medemede.jpg",
-        lrc: "medemede.lrc"
-    },
-    {
-        title: "Do You Feel It?",
-        artist: "Chaos Chaos",
-        album: "Committed to the Crime", duration: 250713,
-        src: "do_you_feel_it.mp3",
-        neteaseId: 29481242,
-        cover: "do_you_feel_it.jpg",
-        lrc: "do_you_feel_it.lrc"
+        title: "End of Beginning",
+        artist: "Djo",
+        album: "DECIDE", duration: 159246,
+        src: "end_of_beginning.mp3",
+        neteaseId: 1966970103,
+        cover: "end_of_beginning.jpg",
+        lrc: "end_of_beginning.lrc"
     },
     {
         title: "more than words",
@@ -3799,13 +3759,54 @@ const LOCAL_SONGS = [
         lrc: "more_than_words.lrc"
     },
     {
-        title: "End of Beginning",
-        artist: "Djo",
-        album: "DECIDE", duration: 159246,
-        src: "end_of_beginning.mp3",
-        neteaseId: 1966970103,
-        cover: "end_of_beginning.jpg",
-        lrc: "end_of_beginning.lrc"
+        title: "Do You Feel It?",
+        artist: "Chaos Chaos",
+        album: "Committed to the Crime", duration: 250713,
+        src: "do_you_feel_it.mp3",
+        neteaseId: 29481242,
+        cover: "do_you_feel_it.jpg",
+        lrc: "do_you_feel_it.lrc"
+    },
+    {
+        title: "mede:mede",
+        artist: "Reol",
+        album: "極彩色", duration: 215133,
+        src: "medemede.mp3",
+        cover: "medemede.jpg",
+        lrc: "medemede.lrc"
+    },
+    {
+        title: "Hypnotized",
+        artist: "Purple Disco Machine / Sophie and the Giants",
+        album: "Hypnotized", duration: 195704,
+        src: "Hypnotized.mp3",
+        cover: "Hypnotized.jpg",
+        lrc: "Hypnotized.lrc"
+    },
+    {
+        title: "夕日坂",
+        artist: "doriko / 初音ミク",
+        album: "夕日坂", duration: 380347,
+        src: "yuuhizaka.mp3",
+        cover: "yuuhizaka.jpg",
+        lrc: "yuuhizaka.lrc"
+    },
+    {
+        title: "Beautiful World",
+        artist: "宇多田ヒカル",
+        album: "Beautiful World / Kiss & Cry", duration: 316040,
+        src: "beautiful_world.mp3",
+        cover: "beautiful_world.jpg",
+        lrc: "beautiful_world.lrc"
+    },
+    {
+        title: "Listen",
+        artist: "ONE OK ROCK / Avril Lavigne",
+        album: "Ambitions [日本盤]", duration: 218986,
+        src: "listen.mp3",
+        neteaseId: 453176145,
+        cover: "listen.jpg",
+        lrc: "listen.lrc"
     },
 ];
 

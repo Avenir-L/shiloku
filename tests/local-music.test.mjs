@@ -2,6 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import {rea
 test('all eight local tracks have complete metadata and packaged audio, lyrics and covers',async()=>{
  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');const block=html.match(/const LOCAL_SONGS = (\[[\s\S]*?\n\]);/)[1];const songs=runInNewContext('('+block+')');
  assert.equal(songs.length,8);
+ assert.deepEqual(Array.from(songs,s=>s.title),['End of Beginning','more than words','Do You Feel It?','mede:mede','Hypnotized','夕日坂','Beautiful World','Listen']);
  for(const song of songs){assert.ok(song.title&&song.artist&&song.album);assert.ok(song.duration>0);for(const path of [song.src,song.lrc,song.cover])await access(new URL('../'+path,import.meta.url));}
  const added=songs.find(s=>s.title==='End of Beginning');assert.equal(added.artist,'Djo');assert.equal(added.album,'DECIDE');assert.equal(added.neteaseId,1966970103);
 });
