@@ -41,6 +41,7 @@ export function createAdminHandler({env=process.env,store=redis,auth=createAuth(
         case 'logout': res.setHeader('Set-Cookie',await auth.logout(owner)); return res.status(200).json({ok:true});
         case 'passkeys': return res.status(200).json({credentials:(await auth.credentials()).map(({id,label,createdAt,backedUp})=>({id,label,createdAt,backedUp}))});
         case 'passkey-remove': result=await auth.removeCredential(owner,body.id); break;
+        case 'passkey-rename': result=await auth.renameCredential(owner,body.id,body.label); break;
         case 'recovery-create': result=await auth.recoveryCreate(owner); break;
         case 'music-status': result=await music.status(); break;
         case 'music-save':

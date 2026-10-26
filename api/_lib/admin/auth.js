@@ -139,7 +139,19 @@ export function createAuth({store=redis,env=process.env,webauthn=webauthnLibrary
     if(result!==1) fail('至少需要保留一个可用通行密钥');
     return {ok:true,sessionsRevoked:true};
   }
-  return {session,credentials,registrationOptions,registrationVerify,loginOptions,loginVerify,recoveryCreate,recover,removeCredential,issueSession,
+  async function renameCredential(owner,id,label){
+    if(!owner||owner.restricted)fail('请先登录站长账号');
+    if(typeof id!=='string'||!id||id.length>2048)fail('设备标识无效');
+    if(typeof label!=='string'||!label.trim()||label.trim().length>60||/[\u0000-\u001f\u007f]/.test(label))fail('设备名称需为 1–60 个字符，不能包含换行');
+    const result=await store.command(['EVAL',`-- rename-credential
+if (redis.call('GET',KEYS[2]) or 'initial')~=ARGV[1] then return -1 end
+local raw=redis.call('HGET',KEYS[1],ARGV[2]);if not raw then return 0 end
+local record=cjson.decode(raw);record.label=ARGV[3];redis.call('HSET',KEYS[1],ARGV[2],cjson.encode(record));return 1`,2,P+'credentials',P+'session-version',owner.version,id,label.trim()]);
+    if(result===-1)fail('身份状态已改变，请重新登录');
+    if(result!==1)fail('设备不存在或已被移除');
+    return {ok:true};
+  }
+  return {session,credentials,registrationOptions,registrationVerify,loginOptions,loginVerify,recoveryCreate,recover,removeCredential,renameCredential,issueSession,
     async initialized(){return Boolean(await store.command(['GET',P+'owner']));},
     async logout(owner){if(owner) await store.command(['DEL',P+'session:'+owner.id]); return cookie('',0);},
     async rateLimit(req){

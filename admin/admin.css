@@ -193,6 +193,7 @@ html{scrollbar-gutter:auto;background:#7b94ad;scrollbar-color:#e3edf78c #7b94ad}
 html::-webkit-scrollbar-track{background:#7b94ad}
 html::-webkit-scrollbar-thumb{background-color:#e3edf78c}
 html::-webkit-scrollbar-thumb:hover{background-color:#f0f6ffb3}
+.credential-rename{max-width:420px;margin-top:14px}.credential-rename label{color:var(--text)}.credential-rename button{margin-right:18px}.credential>.text-button{display:inline-block;margin-right:20px}
 :root{--admin-scene:url('/assets/admin-sky-desktop-20261026.webp')}
 @supports(background-image:image-set(url('/assets/admin-sky-desktop-20261026.avif') type('image/avif'))){
  :root{--admin-scene:image-set(url('/assets/admin-sky-desktop-20261026.avif') type('image/avif'),url('/assets/admin-sky-desktop-20261026.webp') type('image/webp'))}

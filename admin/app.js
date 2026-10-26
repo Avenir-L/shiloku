@@ -78,6 +78,16 @@ async function showPage(name) {
       const title=document.createElement('div'),detail=document.createElement('small');
       title.textContent=credential.label;detail.textContent='登记于 '+new Date(credential.createdAt).toLocaleString()+(credential.backedUp?' · 已备份通行密钥':'');
       row.append(title,detail);
+      const rename=document.createElement('button');rename.className='text-button';rename.textContent='重命名';
+      const editor=document.createElement('form');editor.className='credential-rename';editor.hidden=true;
+      const label=document.createElement('label');label.textContent='设备名称';
+      const input=document.createElement('input');input.maxLength=60;input.required=true;input.autocomplete='off';label.append(input);
+      const save=document.createElement('button');save.className='secondary';save.type='submit';save.textContent='保存';
+      const cancel=document.createElement('button');cancel.className='text-button';cancel.type='button';cancel.textContent='取消';
+      editor.append(label,save,cancel);
+      rename.addEventListener('click',()=>{editor.hidden=false;input.value=credential.label;input.focus();input.select()});
+      cancel.addEventListener('click',()=>{editor.hidden=true;rename.focus()});
+      editor.addEventListener('submit',async event=>{event.preventDefault();save.disabled=true;cancel.disabled=true;try{await api('passkey-rename',{id:credential.id,label:input.value});await showPage('security');notify('设备名称已更新')}catch(error){notify(error.message,true)}finally{save.disabled=false;cancel.disabled=false}});
       const remove=document.createElement('button');remove.className='text-button';remove.textContent='移除设备';remove.disabled=credentials.length<=1;
       remove.addEventListener('click',async()=>{
         if(!window.confirm('移除这个设备并退出所有已登录会话？至少需要保留一个可用通行密钥。'))return;
@@ -85,7 +95,7 @@ async function showPage(name) {
         try{await api('passkey-remove',{id:credential.id});loginScreen();notify('设备已移除，所有会话已退出。请使用保留的通行密钥登录。');}
         catch(error){notify(error.message,true);remove.disabled=false;}
       });
-      row.append(remove);$('credentials').append(row);
+      row.append(rename,remove,editor);$('credentials').append(row);
     }
   }
 }

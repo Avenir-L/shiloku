@@ -22,6 +22,7 @@ class MemoryStore {
       const data=this.values.get(credentials)||{};data[id]=record;this.values.set(credentials,data);this.values.set(owner,'owner');this.values.delete(bootstrap);return 1;
     }
     if(op==='EVAL' && String(key).includes('commit-login')) {const [,credentials,version,expected,id,original,updated]=args;const data=this.values.get(credentials)||{};if((this.values.get(version)||'initial')!==expected||data[id]!==original)return 0;data[id]=updated;return 1;}
+    if(op==='EVAL' && String(key).includes('rename-credential')){const [,credentials,version,expected,id,label]=args;if((this.values.get(version)||'initial')!==expected)return -1;const data=this.values.get(credentials)||{};if(!data[id])return 0;const record=JSON.parse(data[id]);record.label=label;data[id]=JSON.stringify(record);return 1;}
     if(op==='EVAL' && String(key).includes('commit-registration')) {const [,credentials,version,expected,id,record,mode,next]=args;if((this.values.get(version)||'initial')!==expected)return 0;let data=this.values.get(credentials)||{};if(mode==='recover'){data={};this.values.set(version,next);}else if(Object.keys(data).length>=8)return 0;data[id]=record;this.values.set(credentials,data);return 1;}
     if(op==='EVAL' && args[0]===2){const [,credentials,version,id,next]=args;const data=this.values.get(credentials)||{};if(Object.keys(data).length<=1||!data[id])return 0;delete data[id];this.values.set(version,next);return 1;}
     throw new Error('Unexpected operation '+op);
@@ -33,12 +34,25 @@ const env = { ADMIN_ORIGIN:'https://www.shiloku.cn', ADMIN_ENCRYPTION_KEY:Buffer
 test('music and guestbook admin routes reject visitors before touching services', async () => {
   let calls=0;
   const handler=createAdminHandler({auth:{session:async()=>null}, music:{status:async()=>{calls++}}});
-  for(const action of ['music-status','music-qr-create','music-qr-check','music-save','guestbook','passkeys','recovery-create']) {
+  for(const action of ['music-status','music-qr-create','music-qr-check','music-save','guestbook','passkeys','passkey-rename','recovery-create']) {
     const res=response();
     await handler({method:'POST',headers:{origin:env.ADMIN_ORIGIN,'content-type':'application/json'},query:{action},body:{}},res);
     assert.equal(res.code,401,action);
   }
   assert.equal(calls,0);
+});
+test('device rename changes only the label, validates names, and rejects revoked sessions',async()=>{
+ const store=new MemoryStore(),auth=createAuth({env,store});
+ const record={id:'key-1',label:'通行密钥',counter:42,createdAt:123,publicKey:'public-key',backedUp:true};
+ store.values.set('shiloku:admin:v1:credentials',{'key-1':JSON.stringify(record)});
+ const owner={id:'session',version:'initial',createdAt:Date.now()-1800000};
+ await auth.renameCredential(owner,'key-1','  我的 iPhone  ');
+ assert.deepEqual((await auth.credentials())[0],{...record,label:'我的 iPhone'});
+ for(const label of ['', ' ', 'x'.repeat(61),'bad\nname'])await assert.rejects(()=>auth.renameCredential(owner,'key-1',label));
+ await assert.rejects(()=>auth.renameCredential(owner,'missing','新名称'));
+ store.values.set('shiloku:admin:v1:session-version','revoked');
+ await assert.rejects(()=>auth.renameCredential(owner,'key-1','不应保存'));
+ assert.equal((await auth.credentials())[0].label,'我的 iPhone');
 });
 
 test('cross origin writes fail even with an authenticated session', async () => {
