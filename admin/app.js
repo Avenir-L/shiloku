@@ -1,6 +1,7 @@
 import {startRegistration,startAuthentication,browserSupportsWebAuthn} from '@simplewebauthn/browser';
 import QRCode from 'qrcode';
 import {chartModel} from './analytics-chart.js';
+import {qrRetryDelay} from './qr-poll.js';
 
 const $=id=>document.getElementById(id);
 let currentSession=null,qrTimer=null,qrVersion=0,recoveryCodes=[];
@@ -17,7 +18,7 @@ function loginScreen() {
 async function api(action,body={}) {
   const response=await fetch('/api/admin?action='+encodeURIComponent(action),{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(35000)});
   const result=await response.json();
-  if(!response.ok) {if(response.status===401) loginScreen();throw new Error(result.error||'操作失败');}
+  if(!response.ok) {if(response.status===401) loginScreen();throw Object.assign(new Error(result.error||'操作失败'),{status:response.status});}
   return result;
 }
 async function refreshSession() {
@@ -160,7 +161,7 @@ on('manual-save',async()=>{
 });
 on('qr-stop',stopQr);
 on('qr-start',async()=>{
-  stopQr();const version=qrVersion;
+  stopQr();const version=qrVersion;let failures=0;
   const {id,qrUrl}=await api('music-qr-create');
   if(version!==qrVersion) return;
   $('qr-image').src=await QRCode.toDataURL(qrUrl,{width:220,margin:1,errorCorrectionLevel:'M'});
@@ -169,11 +170,18 @@ on('qr-start',async()=>{
     try {
       const result=await api('music-qr-check',{id});
       if(version!==qrVersion) return;
+      failures=0;
       if(result.state==='success') {stopQr();await musicStatus();notify('网易云已连接，登录信息已加密保存。');return;}
       if(result.state==='expired') {stopQr();notify('二维码已过期，请重新生成。',true);return;}
       $('qr-status').textContent=result.state==='scanned'?'已扫描，请在手机上确认':'等待扫码…';
       qrTimer=setTimeout(poll,3000);
-    } catch(error) {if(version===qrVersion){stopQr();notify(error.message,true);}}
+    } catch(error) {
+      if(version!==qrVersion)return;
+      const delay=qrRetryDelay(error,++failures);
+      if(delay!==null){$('qr-status').textContent=`状态检查暂时失败，二维码保留，正在重试（${failures}/3）`;qrTimer=setTimeout(poll,delay);return;}
+      if([502,503,504].includes(error.status)){$('qr-status').textContent='暂时无法确认扫码结果，请重新生成二维码';notify(error.message,true);}
+      else{stopQr();notify(error.message,true);}
+    }
   }
   qrTimer=setTimeout(poll,3000);
 });

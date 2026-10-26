@@ -45,7 +45,7 @@ export function createMusic({store=redis,env=process.env,provider}={}) {
         return {state:'success',...saved};
       }
       if(result.code===800) {await store.command(['DEL',key]);return {state:'expired'};}
-      if(![801,802].includes(result.code)) throw new Error('网易云扫码状态暂时不可用');
+      if(![801,802].includes(result.code)) throw Object.assign(new Error('网易云扫码状态暂时不可用，正在等待服务恢复'),{status:502,code:'NETEASE_QR_STATE',phase:'qr-check',upstreamCode:Number.isFinite(result.code)?result.code:undefined});
       return {state:result.code===802?'scanned':'waiting'};
     },
   };

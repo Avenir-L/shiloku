@@ -33,3 +33,10 @@ test('invalid manual update preserves existing account and storage outage never 
   assert.equal(writes,0);
   await assert.rejects(()=>readMusicCookie({store,env}));
 });
+test('unexpected QR provider states preserve pending session and return safe classified errors',async()=>{
+ const values=new Map(),store={command:async([op,key,value])=>op==='SET'?(values.set(key,value),'OK'):values.get(key)};
+ const music=createMusic({store,env:{},provider:{createQrLoginSession:async()=>({key:'private-qr-key',qrUrl:'https://music.163.com/login'}),checkQrLogin:async()=>({code:503,cookie:''})}});
+ const owner={id:'owner'},qr=await music.createQr(owner);
+ await assert.rejects(()=>music.checkQr(qr.id,owner),e=>e.status===502&&e.code==='NETEASE_QR_STATE'&&e.upstreamCode===503&&!e.message.includes('private-qr-key'));
+ assert.equal(values.size,1);
+});
