@@ -1,5 +1,13 @@
 {
   "outputDirectory": "public",
+  "redirects": [
+    {
+      "source": "/admin/:path*",
+      "has": [{ "type": "host", "value": "shiloku.vercel.app" }],
+      "destination": "https://www.shiloku.cn/admin/:path*",
+      "permanent": false
+    }
+  ],
   "ignoreCommand": "bash -c 'files=$(git diff --name-only HEAD^ HEAD 2>/dev/null | tr -d \"\\r\" | grep -v \"^$\" | sort); if [ \"$files\" = \"status.json\" ]; then exit 0; else exit 1; fi'",
   "rewrites": [
     {
