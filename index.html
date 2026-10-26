@@ -302,7 +302,7 @@
             100% { opacity: 1; transform: scale(1) rotate(0); }
         }
 
-        /* ================== 专属水印开场（视频） ================== */
+        /* ================== 专属水印开场（SVG 代码动画） ================== */
         @keyframes splashExit {
             0% { opacity: 1; }
             100% { opacity: 0; visibility: hidden; }
@@ -325,70 +325,18 @@
             animation: splashExit 0.55s ease forwards;
         }
 
-        .splash-video {
+        .splash-motion,
+        .splash-motion svg {
+            display: block;
             width: 100%;
             height: 100%;
-            object-fit: contain;
-            background: #000;
         }
 
         @media (max-width: 768px), (hover: none) and (pointer: coarse) {
-            .splash-video {
-                object-fit: cover;
-            }
-
             .splash-skip-hint {
                 right: max(22px, env(safe-area-inset-right));
                 bottom: max(18px, env(safe-area-inset-bottom));
             }
-        }
-
-        .splash-mobile-fallback {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 14px;
-            padding: 24px;
-            text-align: center;
-        }
-
-        .splash-mobile-logo {
-            font-size: clamp(28px, 9vw, 42px);
-            letter-spacing: 0.42em;
-            text-indent: 0.42em;
-            color: rgba(255, 255, 255, 0.92);
-            font-weight: 700;
-            animation: mobileSplashLogo 1.8s cubic-bezier(0.16, 1, 0.3, 1) both;
-        }
-
-        .splash-mobile-sub {
-            font-size: clamp(14px, 4.5vw, 18px);
-            letter-spacing: 0.28em;
-            color: rgba(251, 113, 133, 0.88);
-            animation: mobileSplashSub 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
-        }
-
-        @keyframes mobileSplashLogo {
-            0% { opacity: 0; transform: translateY(18px) scale(0.94); filter: blur(6px); }
-            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-        }
-
-        @keyframes mobileSplashSub {
-            0% { opacity: 0; transform: translateY(12px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-
-        .intro-splash.use-mobile-intro {
-            background: radial-gradient(circle at 50% 38%, rgba(251, 113, 133, 0.12), transparent 52%), #06040c;
-        }
-
-        .intro-splash.use-mobile-intro .splash-video {
-            display: none;
-        }
-
-        .intro-splash.use-mobile-intro .splash-mobile-fallback {
-            display: flex;
         }
 
         .splash-skip-hint {
@@ -2663,11 +2611,7 @@ body.music-room-open {
     </div>
 
     <div id="intro-splash" class="intro-splash" aria-hidden="true">
-        <video id="splash-video" class="splash-video" playsinline webkit-playsinline muted autoplay preload="auto" disablepictureinpicture disableremoteplayback controlslist="nofullscreen nodownload noremoteplayback noplaybackrate"></video>
-        <div class="splash-mobile-fallback" aria-hidden="true">
-            <div class="splash-mobile-logo">SHILOKU</div>
-            <div class="splash-mobile-sub">栀落余殁</div>
-        </div>
+        <div id="splash-motion" class="splash-motion" aria-hidden="true"></div>
         <span class="splash-skip-hint">点击跳过</span>
     </div>
 
@@ -2837,92 +2781,69 @@ body.music-room-open {
     <script>
         (function initIntroSplash() {
             const splash = document.getElementById('intro-splash');
-            const video = document.getElementById('splash-video');
-
-            if (!splash) {
-                document.body.classList.add('intro-done');
-                return;
-            }
-
-            const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            const isCoarseMobile = window.matchMedia('(max-width: 768px), (hover: none) and (pointer: coarse)').matches;
-
-            if (prefersReduced) {
-                splash.remove();
+            const mount = document.getElementById('splash-motion');
+            const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+            const mobileViewport = window.matchMedia('(max-width: 768px), (hover: none) and (pointer: coarse)');
+            if (!splash || !mount || reducedMotion.matches) {
+                splash?.remove();
                 document.body.classList.add('intro-done');
                 return;
             }
 
             document.body.classList.add('splash-active');
-
             let finished = false;
-            let videoPlaying = false;
-            let fallbackTimer = null;
+            let animationFrame = 0;
+            let deadline = 0;
+            let updateViewport = null;
 
             const finish = () => {
                 if (finished) return;
                 finished = true;
-                if (fallbackTimer) clearTimeout(fallbackTimer);
+                clearTimeout(deadline);
+                cancelAnimationFrame(animationFrame);
+                splash.removeEventListener('click', finish);
+                if (updateViewport) mobileViewport.removeEventListener('change', updateViewport);
                 document.body.classList.remove('splash-active');
                 document.body.classList.add('intro-done');
                 splash.classList.add('is-exiting');
-                const removeSplash = () => {
-                    if (video) {
-                        video.pause();
-                        video.removeAttribute('src');
-                        video.load();
-                    }
-                    splash.remove();
-                };
-                splash.addEventListener('animationend', (e) => {
-                    if (e.target === splash && e.animationName === 'splashExit') removeSplash();
+                const removeSplash = () => splash.remove();
+                splash.addEventListener('animationend', (event) => {
+                    if (event.target === splash && event.animationName === 'splashExit') removeSplash();
                 }, { once: true });
                 setTimeout(removeSplash, 700);
             };
 
-            const useTextFallback = () => {
-                if (finished || videoPlaying) return;
-                splash.classList.add('use-mobile-intro');
-                if (fallbackTimer) clearTimeout(fallbackTimer);
-                fallbackTimer = setTimeout(finish, 2600);
-            };
-
             splash.addEventListener('click', finish);
-
-            if (!video) {
-                finish();
-                return;
-            }
-
-            const videoSrc = window.shilokuAssetUrl?.(isCoarseMobile ? 'watermark-mobile.mp4' : 'watermark.mp4')
-                || (isCoarseMobile ? 'watermark-mobile.mp4' : 'watermark.mp4');
-            video.src = videoSrc;
-            video.load();
-
-            video.addEventListener('playing', () => {
-                videoPlaying = true;
-                splash.classList.remove('use-mobile-intro');
-            });
-
-            video.addEventListener('ended', finish);
-            video.addEventListener('error', useTextFallback);
-
-            video.addEventListener('loadedmetadata', () => {
-                const ms = Number.isFinite(video.duration) && video.duration > 0
-                    ? (video.duration * 1000) + 800
-                    : 6000;
-                setTimeout(finish, ms);
-            }, { once: true });
-
-            setTimeout(() => {
-                if (!finished && !videoPlaying && video.paused) useTextFallback();
-            }, 4000);
-
-            setTimeout(finish, 12000);
-
-            const tryPlay = () => video.play();
-
-            tryPlay().catch(() => tryPlay().catch(useTextFallback));
+            // A failed/slow animation download must never trap the visitor.
+            deadline = setTimeout(finish, 5000);
+            import('./scripts/intro/intro-motion-20261026.js').then(({ IntroMotion, DEFAULTS }) => {
+                if (finished) return;
+                const motion = new IntroMotion(mount);
+                const settings = { ...DEFAULTS };
+                updateViewport = () => motion.svg.setAttribute('preserveAspectRatio',
+                    mobileViewport.matches ? 'xMidYMid slice' : 'xMidYMid meet');
+                updateViewport();
+                mobileViewport.addEventListener('change', updateViewport);
+                splash.dataset.introDuration = String(settings.duration);
+                splash.dataset.introRenderer = 'svg';
+                motion.render(0, settings);
+                clearTimeout(deadline);
+                deadline = setTimeout(finish, settings.duration * 1000 + 1000);
+                let startTime = null;
+                const animate = (now) => {
+                    if (finished) return;
+                    try {
+                        if (startTime === null) startTime = now;
+                        const seconds = Math.min((now - startTime) / 1000, settings.duration);
+                        motion.render(seconds, settings);
+                        if (seconds >= settings.duration) finish();
+                        else animationFrame = requestAnimationFrame(animate);
+                    } catch {
+                        finish();
+                    }
+                };
+                animationFrame = requestAnimationFrame(animate);
+            }).catch(finish);
         })();
 
         (function preloadSiteAssets() {
