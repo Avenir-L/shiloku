@@ -14,7 +14,7 @@ html{scrollbar-gutter:stable}
 *::-webkit-scrollbar-corner{background:transparent}
 @supports not selector(::-webkit-scrollbar){*{scrollbar-width:thin;scrollbar-color:#756b8859 transparent}}
 
-.login-shell{background:linear-gradient(180deg,rgba(7,14,26,.12),rgba(7,14,26,.24)),url('/admin/login-background.webp') center center/cover no-repeat}
+.login-shell{background:linear-gradient(180deg,rgba(7,14,26,.12),rgba(7,14,26,.24)),var(--admin-scene) center center/cover no-repeat;background-color:#7089a4}
 .login-card h1,.login-shell .wordmark{text-shadow:0 2px 20px #0008}
 .login-card .eyebrow,.login-card .hint,.login-card summary,.login-footer{color:#e0e5edc7;text-shadow:0 1px 8px #0008}
 .login-card .passkey-button{background:#101a2b6b;border-color:#d8e4f02e;color:#e3e9f1;backdrop-filter:blur(8px)}
@@ -24,7 +24,7 @@ html{scrollbar-gutter:stable}
 
 /* Share the login artwork with authenticated pages, keeping controls readable. */
 .dashboard{position:relative;isolation:isolate;--muted:#c4ccd8;--line:#e5edff24}
-.dashboard::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#07132270,#07132299),url('/admin/login-background.webp') center center/max(100vw,216svh) auto no-repeat}
+.dashboard::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#07132270,#07132299),var(--admin-scene) center center/max(100vw,216svh) auto no-repeat;background-color:#7089a4}
 .dashboard aside{background:#101b2bc9;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
 .dashboard .card,.dashboard .message{background:#101b2bd6;box-shadow:0 8px 28px #03101f1a;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 .dashboard .workspace>.page-heading,.dashboard .page-heading,.dashboard header{ text-shadow:0 1px 10px #07132280 }
@@ -152,7 +152,7 @@ html{scrollbar-gutter:stable}
 .overview-grid .overview-entry{margin:0}.overview-entry:hover{border-color:#ffffff70;background:#152538e8}
 
 /* Clear glass: preserve the artwork's detail instead of frosting it. */
-.dashboard::before{background-image:linear-gradient(180deg,#07132214,#07132238),url('/admin/login-background.webp')}
+.dashboard::before{background-image:linear-gradient(180deg,#07132214,#07132238),var(--admin-scene)}
 .dashboard aside,.dashboard .card,.dashboard .message,.login-card .google-button,.login-card .passkey-button{backdrop-filter:none;-webkit-backdrop-filter:none}
 .dashboard aside{background:linear-gradient(135deg,#eaf4ff24,#b9d5ee0a);border-right-color:#ffffff50;box-shadow:inset -1px 0 0 #ffffff14,8px 0 32px #0713220d}
 .dashboard .card,.dashboard .message{background:linear-gradient(135deg,#f1f8ff2b,#d6eaff0d);border-color:#ffffff59;box-shadow:inset 0 1px 0 #ffffff66,inset 0 -1px 0 #ffffff0d,0 10px 30px #07132214}
@@ -187,3 +187,19 @@ html{scrollbar-gutter:stable}
 .analytics-panel{margin-bottom:36px}.analytics-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px}.analytics-ranges{display:flex;gap:8px}.analytics-ranges [aria-pressed="true"]{background:#ffffff45;border-color:#ffffff99}.analytics-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-top:18px}.analytics-metrics .card{padding:22px}.analytics-metrics strong{display:block;font-size:32px;font-weight:500;margin-top:10px}.analytics-chart svg{display:block;width:100%;height:200px;color:#f2f7ff;filter:drop-shadow(0 3px 6px #0d345966)}.analytics-row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #ffffff26;padding:10px 0;font-size:13px}.analytics-note{margin-top:20px;color:var(--muted)}.analytics-breakdown{margin-top:24px}
 @media(max-width:1000px){.analytics-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:500px){.analytics-heading{align-items:flex-start;flex-direction:column}.analytics-ranges .secondary{padding:7px 12px}.analytics-metrics{gap:12px}.analytics-metrics .card{padding:16px}.analytics-metrics strong{font-size:26px}}
 .analytics-chart{overflow-x:auto}.analytics-chart svg{height:auto;min-width:480px;filter:none}.analytics-chart .chart-grid{stroke:#ffffff30;stroke-width:1;stroke-dasharray:4 5}.analytics-chart .chart-axis{stroke:#ffffff80;stroke-width:1}.analytics-chart .chart-tick{fill:#f4f8ff;font-size:13px;font-family:inherit}.analytics-chart .chart-axis-title{fill:#f4f8ff;font-size:13px;font-family:inherit}
+
+/* Versioned public assets can be cached independently of private admin HTML. */
+html{scrollbar-gutter:auto;background:#7b94ad;scrollbar-color:#e3edf78c #7b94ad}
+html::-webkit-scrollbar-track{background:#7b94ad}
+html::-webkit-scrollbar-thumb{background-color:#e3edf78c}
+html::-webkit-scrollbar-thumb:hover{background-color:#f0f6ffb3}
+:root{--admin-scene:url('/assets/admin-sky-desktop-20261026.webp')}
+@supports(background-image:image-set(url('/assets/admin-sky-desktop-20261026.avif') type('image/avif'))){
+ :root{--admin-scene:image-set(url('/assets/admin-sky-desktop-20261026.avif') type('image/avif'),url('/assets/admin-sky-desktop-20261026.webp') type('image/webp'))}
+}
+@media(max-width:800px){
+ :root{--admin-scene:url('/assets/admin-sky-mobile-20261026.webp')}
+ @supports(background-image:image-set(url('/assets/admin-sky-mobile-20261026.avif') type('image/avif'))){
+  :root{--admin-scene:image-set(url('/assets/admin-sky-mobile-20261026.avif') type('image/avif'),url('/assets/admin-sky-mobile-20261026.webp') type('image/webp'))}
+ }
+}

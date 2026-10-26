@@ -71,10 +71,10 @@ createServer(async(req,res)=>{
     await (url.pathname==='/api/admin-google'?googleCallback:handler)(req,res);return;
   }
   const path=url.pathname==='/'||url.pathname==='/admin/'||url.pathname==='/admin'?'/admin/index.html':url.pathname;
-  if(!['/admin/index.html','/admin/admin.css','/admin/admin.js','/admin/login-background.webp'].includes(path)){res.writeHead(404).end();return;}
+  if(!['/admin/index.html','/admin/admin.css','/admin/admin.js','/admin/login-background.webp','/assets/admin-sky-desktop-20261026.avif','/assets/admin-sky-desktop-20261026.webp','/assets/admin-sky-mobile-20261026.avif','/assets/admin-sky-mobile-20261026.webp'].includes(path)){res.writeHead(404).end();return;}
   try{
     let data=await readFile(new URL('.'+path,root));
     if(path.endsWith('.html'))data=Buffer.from(data.toString().replace('<body>','<body><div style="padding:8px;text-align:center;background:#423850;color:#fff;font-size:12px">本地隔离预览 · 模拟音乐与留言，不连接线上数据</div>'));
-    res.setHeader('Content-Type',path.endsWith('.html')?'text/html; charset=utf-8':path.endsWith('.css')?'text/css':path.endsWith('.webp')?'image/webp':'text/javascript');res.end(data);
+    res.setHeader('Content-Type',path.endsWith('.html')?'text/html; charset=utf-8':path.endsWith('.css')?'text/css':path.endsWith('.webp')?'image/webp':path.endsWith('.avif')?'image/avif':'text/javascript');res.end(data);
   }catch{res.writeHead(404).end();}
 }).listen(port,'127.0.0.1',()=>console.log(`Isolated admin preview: ${env.ADMIN_ORIGIN}/admin/ (setup stored privately in .scratch/admin/local-preview.json)`));
