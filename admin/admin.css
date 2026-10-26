@@ -204,3 +204,5 @@ html::-webkit-scrollbar-thumb:hover{background-color:#f0f6ffb3}
   :root{--admin-scene:image-set(url('/assets/admin-sky-mobile-20261026.avif') type('image/avif'),url('/assets/admin-sky-mobile-20261026.webp') type('image/webp'))}
  }
 }
+.login-footer{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.login-footer>span{font-size:inherit;font-weight:inherit;line-height:1.7}
