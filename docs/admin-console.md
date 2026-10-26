@@ -1,6 +1,19 @@
 # 站长管理后台
 
-当前范围：通行密钥登录、网易云账号状态/扫码/手动更新、通行密钥追加登记、离线恢复码，以及独立的留言只读面板。空间页面明确标记尚未接入；后续图文、草稿、发布及日志使用独立内容数据库，不复用留言数据。
+当前范围：Google 账号主登录、可选通行密钥、网易云账号状态/扫码/手动更新、通行密钥追加登记、离线恢复码，以及独立的留言只读面板。空间页面明确标记尚未接入；后续图文、草稿、发布及日志使用独立内容数据库，不复用留言数据。
+
+## Google 登录配置
+
+Google 登录需要站点自己的 OAuth Web Application 客户端，不能借用其他网站的客户端。只申请 `openid email` 身份范围，不访问 Gmail、云盘等数据，不保存 Google access/refresh token。
+
+- 在 Google Cloud / Google Auth Platform 创建 Web application OAuth 客户端，设置同意屏幕；若处于测试模式，将站长账号列入测试用户。
+- 正式回调：`https://www.shiloku.cn/api/admin-google`。
+- 本地回调：`http://localhost:8785/api/admin-google`（只有需要本地联调时添加）。
+- 服务端配置 `GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`，不要放进页面或聊天。未配置时 Google 登录按钮明确禁用，不模拟登录成功。
+- 第一次使用本机生成的初始化链接，再点击 Google 登录、选择自己的账号。服务端验证 Google 签名、issuer、audience、nonce、state 和 PKCE 后，原子地将此账号的 `sub` 绑定为站长；不是“任意先登录的人取得管理权”，也不需要提前提交邮箱。
+- 已通过通行密钥初始化的站点，可以在刚登录的站长会话中发起 Google 登录来绑定；已有 Google 绑定时只能同一 `sub` 登录，不能通过换账号覆盖。
+- Google 回调使用短期 SameSite=Lax 的独立浏览器绑定 Cookie；后台正式会话仍为 Secure / HttpOnly / SameSite=Strict。OAuth 请求和身份标识都不存入浏览器 localStorage。
+- Google 登录成功后无需登记任何通行密钥，音乐管理可直接使用。通行密钥仅在“账号与安全”按需添加为备用。
 
 ## 本地查看
 

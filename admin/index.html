@@ -12,10 +12,12 @@
     <a class="wordmark" href="/">S<span>SHILOKU</span></a>
     <section class="login-card">
       <span class="eyebrow">YOUR PRIVATE CORNER</span>
-      <h1>欢迎回来。</h1><p class="muted">用你的通行密钥，打开管理空间。</p>
-      <button id="sign-in" class="primary">使用通行密钥登录 <span>↗</span></button>
-      <p class="hint">支持 Windows Hello、iPhone 与已同步的通行密钥。<br>使用手机登录电脑时，在系统窗口选择「其他设备」。</p>
-      <details id="setup"><summary>首次设置 / 恢复访问</summary>
+      <h1>欢迎回来。</h1><p class="muted">选择你的 Google 账号，打开管理空间。</p>
+      <button id="google-sign-in" class="primary google-button">使用 Google 账号登录 <span>↗</span></button>
+      <p id="google-login-hint" class="hint">仅已绑定的站长 Google 账号可进入。</p>
+      <button id="sign-in" class="secondary passkey-button">使用通行密钥登录（可选）</button>
+      <p id="passkey-login-hint" class="hint">通行密钥可作为备用登录方式，登录后再添加。</p>
+      <details id="setup"><summary>首次绑定 / 备用方式恢复</summary>
         <label>本机生成的一次性初始化凭证<input id="setup-token" type="password" autocomplete="off" placeholder="粘贴初始化凭证"></label>
         <label>设备名称<input id="device-label" maxlength="60" placeholder="例如：我的 iPhone"></label>
         <p id="recovery-warning" class="hint" hidden>恢复完成后，旧设备的通行密钥全部失效，需要重新登记。验证新密钥成功之前不会移除旧密钥。</p>
@@ -49,7 +51,7 @@
       </section>
       <section id="page-space" class="page" hidden><div class="page-heading"><div><p class="eyebrow">PERSONAL SPACE</p><h1>我的空间</h1><p class="muted">生活日常与更新日志，有自己的位置。</p></div></div><article class="card empty"><span class="empty-icon">◈</span><h2>空间发布功能尚未接入</h2><p class="muted">后续单独接入内容数据库、图文编辑、草稿与发布。<br>这里与访客留言分开管理，不共用内容数据。</p></article></section>
       <section id="page-guestbook" class="page" hidden><div class="page-heading"><div><p class="eyebrow">GUESTBOOK</p><h1>访客留言</h1><p class="muted">独立的留言板，本期仅供查看。</p></div><span class="status-pill">只读</span></div><div id="messages" class="message-list"></div></section>
-      <section id="page-security" class="page" hidden><div class="page-heading"><div><p class="eyebrow">ACCOUNT & SECURITY</p><h1>账号与安全</h1><p class="muted">为你的电脑和手机分别登记通行密钥。</p></div></div><article class="card"><h2>已登记设备</h2><div id="credentials"></div><label>新设备名称<input id="additional-label" maxlength="60" placeholder="例如：我的电脑"></label><button id="add-passkey" class="primary">添加通行密钥</button><p class="hint">敏感操作需要在最近 5 分钟内完成身份验证。</p></article><article class="card"><h2>离线恢复码</h2><p class="muted">无法使用通行密钥时，可用一次性恢复码重新登记设备。生成新的一组会替换旧恢复码。</p><button id="create-recovery" class="secondary">生成 / 更换恢复码</button><pre id="recovery-output" hidden></pre><button id="download-recovery" class="text-button" hidden>下载并离线保存</button></article></section>
+      <section id="page-security" class="page" hidden><div class="page-heading"><div><p class="eyebrow">ACCOUNT & SECURITY</p><h1>账号与安全</h1><p class="muted">为你的电脑和手机分别登记通行密钥。</p></div></div><article class="card"><h2>Google</h2><p id="google-account-state" class="muted"></p><button id="google-bind" class="secondary" disabled>Google</button></article><article class="card"><h2>已登记设备</h2><div id="credentials"></div><label>新设备名称<input id="additional-label" maxlength="60" placeholder="例如：我的电脑"></label><button id="add-passkey" class="primary">添加通行密钥</button><p class="hint">敏感操作需要在最近 5 分钟内完成身份验证。</p></article><article class="card"><h2>离线恢复码</h2><p class="muted">无法使用通行密钥时，可用一次性恢复码重新登记设备。生成新的一组会替换旧恢复码。</p><button id="create-recovery" class="secondary">生成 / 更换恢复码</button><pre id="recovery-output" hidden></pre><button id="download-recovery" class="text-button" hidden>下载并离线保存</button></article></section>
       <footer>SHILOKU · 私密管理空间</footer>
     </div>
   </div>

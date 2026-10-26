@@ -139,7 +139,7 @@ export function createAuth({store=redis,env=process.env,webauthn=webauthnLibrary
     if(result!==1) fail('至少需要保留一个可用通行密钥');
     return {ok:true,sessionsRevoked:true};
   }
-  return {session,credentials,registrationOptions,registrationVerify,loginOptions,loginVerify,recoveryCreate,recover,removeCredential,
+  return {session,credentials,registrationOptions,registrationVerify,loginOptions,loginVerify,recoveryCreate,recover,removeCredential,issueSession,
     async initialized(){return Boolean(await store.command(['GET',P+'owner']));},
     async logout(owner){if(owner) await store.command(['DEL',P+'session:'+owner.id]); return cookie('',0);},
     async rateLimit(req){

@@ -3,8 +3,9 @@ import {createMusic} from './_lib/admin/music-account.js';
 import {redis} from './_lib/admin/store.js';
 import {validateNeteaseCookie} from './_lib/netease/lib.js';
 import {createQrLoginSession,checkQrLogin} from './_lib/netease/weapi.js';
+import {createGoogleAuth} from './_lib/admin/google.js';
 
-export function createAdminHandler({env=process.env,store=redis,auth=createAuth({store,env}),music=createMusic({store,env,provider:{validateNeteaseCookie,createQrLoginSession,checkQrLogin}})}={}) {
+export function createAdminHandler({env=process.env,store=redis,auth=createAuth({store,env}),music=createMusic({store,env,provider:{validateNeteaseCookie,createQrLoginSession,checkQrLogin}}),google=createGoogleAuth({env,store,auth})}={}) {
   return async function handler(req,res) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Content-Type-Options','nosniff');
@@ -16,8 +17,8 @@ export function createAdminHandler({env=process.env,store=redis,auth=createAuth(
     if(req.method==='POST' && !String(req.headers['content-type']||'').startsWith('application/json')) return res.status(415).json({error:'需要 JSON 请求'});
     try {
       const owner=await auth.session(req);
-      if(action==='session') return res.status(200).json({authenticated:Boolean(owner)&&!owner.restricted,recoveryOnly:Boolean(owner?.restricted),initialized:await auth.initialized()});
-      const publicActions=['login-options','login-verify','register-options','register-verify','recover'];
+      if(action==='session') return res.status(200).json({authenticated:Boolean(owner)&&!owner.restricted,recoveryOnly:Boolean(owner?.restricted),initialized:await auth.initialized(),passkeyAvailable:(await auth.credentials()).length>0,googleAvailable:google.available(),googleBound:await google.bound()});
+      const publicActions=['login-options','login-verify','register-options','register-verify','recover','google-start'];
       if(!owner && !publicActions.includes(action)) return res.status(401).json({error:'请先使用站长通行密钥登录'});
       if(owner?.restricted && !['register-options','register-verify','logout'].includes(action)) return res.status(403).json({error:'请先登记新的通行密钥'});
       await auth.rateLimit(req);
@@ -25,6 +26,11 @@ export function createAdminHandler({env=process.env,store=redis,auth=createAuth(
       if(JSON.stringify(body).length>24000) return res.status(413).json({error:'请求内容过大'});
       let result;
       switch(action) {
+        case 'google-start': {
+          const result=await google.start({token:body.token,owner});
+          res.setHeader('Set-Cookie',result.cookie);
+          return res.status(200).json({url:result.url});
+        }
         case 'login-options': result=await auth.loginOptions(); break;
         case 'login-verify': result=await auth.loginVerify(body); break;
         case 'register-options': result=await auth.registrationOptions({...body,session:owner}); break;

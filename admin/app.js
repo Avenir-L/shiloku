@@ -24,11 +24,18 @@ async function refreshSession() {
   const state=await response.json();
   if(!response.ok) throw new Error(state.error||'后台暂时不可用');
   currentSession=state;
-  $('sign-in').disabled=!state.initialized;
+  $('google-sign-in').disabled=!state.googleAvailable;
+  $('google-bind').disabled=!state.googleAvailable;
+  $('google-bind').textContent=state.googleBound?'使用 Google 重新验证':'绑定 Google 账号';
+  $('google-account-state').textContent=state.googleBound?'已绑定站长 Google 账号。':state.googleAvailable?'首次绑定需要当前站长身份在最近 5 分钟内验证过。':'Google 登录尚未配置。';
+  $('google-login-hint').textContent=state.googleAvailable?'选择账号即可登录；仅已绑定的站长账号可进入。':'Google 登录尚未启用，需要完成网站的 Google 登录配置。';
+  const passkeyAvailable=state.passkeyAvailable ?? state.initialized;
+  $('sign-in').disabled=!passkeyAvailable;
+  $('passkey-login-hint').textContent=passkeyAvailable?'通行密钥是可选的备用登录方式。':'尚未登记通行密钥。可以先用 Google 登录，再按需添加。';
   if(state.authenticated) {$('login').hidden=true;$('dashboard').hidden=false;await showPage(location.hash.slice(1)||'music');}
   else {
-    loginScreen();$('sign-in').disabled=!state.initialized;
-    if(!state.initialized||state.recoveryOnly) $('setup').open=true;
+    loginScreen();
+    if(state.recoveryOnly) $('setup').open=true;
     $('register-first').textContent=state.recoveryOnly?'登记新的通行密钥':'登记第一个通行密钥';
     $('setup-token').parentElement.hidden=state.recoveryOnly;
     if(state.recoveryOnly) notify('恢复码已验证，请登记新的通行密钥。');
@@ -92,6 +99,17 @@ function on(id,fn) {
     finally {$(id).disabled=false;}
   });
 }
+on('google-sign-in',async()=>{
+  const {url}=await api('google-start',{token:$('setup-token').value.trim()});
+  const target=new URL(url);
+  if(target.origin!=='https://accounts.google.com')throw new Error('登录地址不受信任');
+  location.assign(target.href);
+});
+on('google-bind',async()=>{
+  const {url}=await api('google-start');
+  if(new URL(url).origin!=='https://accounts.google.com')throw new Error('登录地址不受信任');
+  location.assign(url);
+});
 on('sign-in',async()=>{
   const result=await api('login-options');
   const response=await startAuthentication({optionsJSON:result.options});
@@ -139,5 +157,7 @@ on('download-recovery',()=>{
 document.querySelectorAll('[data-page]').forEach(el=>el.addEventListener('click',()=>showPage(el.dataset.page).catch(error=>notify(error.message,true))));
 const setupFragment=new URLSearchParams(location.hash.slice(1));
 if(setupFragment.has('setup')) {$('setup-token').value=setupFragment.get('setup');$('setup').open=true;history.replaceState(null,'',location.pathname);}
-if(!browserSupportsWebAuthn()) {$('sign-in').disabled=true;notify('当前浏览器不支持通行密钥，请使用新版 Safari 或支持 Windows Hello 的浏览器。',true);}
+const loginResult=new URLSearchParams(location.search).get('login');
+if(loginResult){history.replaceState(null,'',location.pathname+location.hash);notify(loginResult==='google-denied'?'这个 Google 账号没有后台权限，或首次绑定入口已失效。':'Google 登录未完成，请重试或检查登录配置。',true);}
+if(!browserSupportsWebAuthn()) {$('sign-in').disabled=true;$('passkey-login-hint').textContent='当前浏览器不支持通行密钥，可以使用 Google 账号登录。';}
 refreshSession().catch(error=>notify(error.message,true));
