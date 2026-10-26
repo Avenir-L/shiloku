@@ -63,6 +63,7 @@ export function createAdminHandler({env=process.env,store=redis,auth=createAuth(
       }
       return res.status(200).json(result);
     } catch(error) {
+      if(action.startsWith('music-') && (!error.status||error.status>=500))console.error('admin-music-upstream',{action,name:error.name,code:error.code||'UNCLASSIFIED',phase:error.phase||'admin',upstreamStatus:error.upstreamStatus,upstreamCode:error.upstreamCode});
       return res.status(error.status||503).json({error:error.status?error.message:'服务暂时不可用，请检查配置或稍后重试'});
     }
   };

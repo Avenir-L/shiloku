@@ -77,20 +77,28 @@ const WEAPI_HEADERS = {
   'Content-Type': 'application/x-www-form-urlencoded',
 };
 
-async function postWeapi(url, payload, cookie = '') {
+function upstreamError(code,message,phase,extra={}){return Object.assign(new Error(message),{code,status:code==='NETEASE_TIMEOUT'?504:502,phase,...extra})}
+async function postWeapi(url, payload, cookie = '',phase='netease') {
   const body = new URLSearchParams(encryptWeapi(payload));
   const headers = { ...WEAPI_HEADERS };
   if (cookie) headers.Cookie = cookie;
-  const response = await fetch(url, { method: 'POST', headers, body, signal:AbortSignal.timeout(12000) });
-  const data = await response.json();
+  let response;
+  try{response=await fetch(url, { method: 'POST', headers, body, signal:AbortSignal.timeout(12000) });}
+  catch(error){
+    const timeout=error.name==='TimeoutError'||error.name==='AbortError'||/TIMEOUT/.test(error.cause?.code||'');
+    throw upstreamError(timeout?'NETEASE_TIMEOUT':'NETEASE_CONNECTION',timeout?'网易云响应超时，请稍后重新生成二维码':'暂时无法连接网易云，请稍后重试',phase);
+  }
+  if(!response.ok)throw upstreamError('NETEASE_HTTP','网易云扫码服务暂不可用，请稍后重试',phase,{upstreamStatus:response.status});
+  let data;
+  try{data=await response.json();}catch{throw upstreamError('NETEASE_RESPONSE','网易云返回了异常响应，请稍后重试',phase,{upstreamStatus:response.status})}
   const setCookie = parseSetCookie(response.headers);
   return { data, setCookie };
 }
 
 export async function createQrLoginKey() {
-  const { data } = await postWeapi('https://music.163.com/weapi/login/qrcode/unikey', { type: 1 });
+  const { data } = await postWeapi('https://music.163.com/weapi/login/qrcode/unikey', { type: 1 },'','qr-key');
   if (data.code !== 200 || !data.unikey) {
-    throw new Error(data.message || data.msg || '无法创建扫码登录');
+    throw upstreamError('NETEASE_KEY_REJECTED','网易云暂未允许生成二维码，请稍后重试','qr-key',{upstreamCode:Number.isFinite(data.code)?data.code:undefined});
   }
   return data.unikey;
 }
@@ -102,7 +110,7 @@ export async function createQrLoginImage(key) {
 export async function checkQrLogin(key) {
   const { data, setCookie } = await postWeapi(
     `https://music.163.com/weapi/login/qrcode/client/login?key=${encodeURIComponent(key)}&time=${Date.now()}`,
-    { key, type: 1 },
+    { key, type: 1 },'','qr-check',
   );
   return {
     code: data.code,
