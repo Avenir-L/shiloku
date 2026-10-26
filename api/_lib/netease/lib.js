@@ -7,19 +7,9 @@ const neteaseHeaders = {
 };
 
 const PAGE_RAW_SIZE = 30;
-const NETEASE_COOKIE_HEADER = 'x-netease-cookie';
-
-let runtimeNeteaseCookie = '';
-
-export function setRuntimeNeteaseCookie(raw) {
-    runtimeNeteaseCookie = parseNeteaseCookie(raw);
-}
-
-export function resolveNeteaseCookie(req) {
-    const header = req?.headers?.[NETEASE_COOKIE_HEADER]
-        || req?.headers?.['X-Netease-Cookie']
-        || '';
-    return parseNeteaseCookie(header || runtimeNeteaseCookie || process.env.NETEASE_COOKIE);
+// Only deployment configuration can select the site's music account.
+export function resolveNeteaseCookie() {
+    return parseNeteaseCookie(process.env.NETEASE_COOKIE);
 }
 
 function getNeteaseHeadersWithCookie(cookie, extra = {}) {
@@ -78,8 +68,8 @@ export function applyCors(req, res) {
     } else {
         res.setHeader('Access-Control-Allow-Origin', '*');
     }
-    res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, X-Netease-Cookie');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
 }
 
 export async function getNeteasePlayableUrl(id) {

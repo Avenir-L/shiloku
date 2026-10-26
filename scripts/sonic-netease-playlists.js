@@ -1,4 +1,4 @@
-import { fetchNeteaseCloud } from './sonic-netease-api.js';
+import { fetchNeteaseCloud } from './sonic-netease-api.js?v=20261026owner1';
 
 const CACHE_PREFIX = 'shiloku:netease:';
 const CACHE_TTL_MS = 30 * 60 * 1000;
@@ -370,7 +370,7 @@ export function initSonicNeteasePlaylists({
         renderCloudSongs();
         setNeteaseStatus(
           error.status === 401
-            ? 'Cookie expired. Open Settings and save your NetEase cookie again.'
+            ? 'Cloud playlists are temporarily unavailable. Please try the local playlist.'
             : error.status === 404
               ? 'NetEase API is unavailable on this deployment.'
               : 'Failed to load playlists.',

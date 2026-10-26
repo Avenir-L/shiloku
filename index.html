@@ -6024,12 +6024,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
 <script type="module">
 import { initSonicTopographyViz } from './scripts/sonic-topography-viz.js?v=20260625play1';
-import { initSonicSettingsPanel } from './scripts/sonic-settings-panel.js?v=20260624u';
+import { initSonicSettingsPanel } from './scripts/sonic-settings-panel.js?v=20261026owner1';
 import { initSonicMusicExtras } from './scripts/sonic-music-extras.js?v=20260624n';
-import { checkNeteaseCookie, initNeteaseCookieAutoSync, syncNeteaseCookie } from './scripts/sonic-netease-api.js?v=20260624u';
-import { initSonicNeteasePlaylists } from './scripts/sonic-netease-playlists.js?v=20260701c';
+import { initSonicNeteasePlaylists } from './scripts/sonic-netease-playlists.js?v=20261026owner1';
 
-window.checkNeteaseCookie = checkNeteaseCookie;
 
 try {
     initSonicTopographyViz({
@@ -6054,7 +6052,6 @@ try {
             togglePlaylist(false);
             toggleNeteaseDrawer(false);
         },
-        syncNeteaseCookie,
     });
     initSonicNeteasePlaylists({
         drawer: document.getElementById('playlist-drawer'),
@@ -6081,7 +6078,6 @@ try {
         brandBtn: document.querySelector('.aether-brand'),
         sidebarRail: document.querySelector('.aether-sidebar-rail'),
     });
-    initNeteaseCookieAutoSync();
 } catch (error) {
     console.error('[music-viz] 3D 视效启动失败:', error);
 }

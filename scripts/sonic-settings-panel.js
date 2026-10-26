@@ -6,7 +6,6 @@ const SETTINGS_ZH = {
   settingsClose: '关闭',
   settingsPresetMigration: '预设迁移',
   settingsPresetMigrationNote: '导出或导入触发器、地面均衡、自定义主题和浏览器设置。',
-  settingsIncludeCookie: '包含 Cookie',
   settingsExportPreset: '导出预设',
   settingsImportPreset: '导入预设',
   settingsTabPulse: '脉冲',
@@ -22,7 +21,6 @@ const SETTINGS_ZH = {
   settingsBackgroundColorTop: '上方颜色',
   settingsBackgroundColorBottom: '下方颜色',
   settingsBackgroundApplied: '背景已更新。',
-  settingsTabCookie: '网易 Cookie',
   settingsEnabled: '启用',
   settingsModeAutoBeat: '自动节拍',
   settingsModeAdvanced: '高级',
@@ -53,31 +51,8 @@ const SETTINGS_ZH = {
   settingsAutoRotation: '自动轮换主题',
   settingsEnableRotation: '启用轮换',
   settingsRotationInterval: '间隔（秒）',
-  settingsCookieTitle: '网易 Cookie',
-  settingsCookieNote: '推荐扫码登录；也可手动粘贴 Cookie。登录信息只保存在本机浏览器。',
-  settingsCookieQrTitle: '扫码登录',
-  settingsCookieQrNote: '用网易云 App 扫码，成功后会自动保存并同步。',
-  settingsCookieQrStart: '开始扫码',
-  settingsCookieQrCancel: '取消扫码',
-  settingsCookieQrWaiting: '请用网易云 App 扫码',
-  settingsCookieQrScanned: '已扫描，请在手机上点确认',
-  settingsCookieQrExpired: '二维码已过期，请重新开始',
-  settingsCookieQrSuccess: '登录成功',
-  settingsCookieQrFail: '扫码失败，请重试',
-  settingsCookieManualTitle: '手动粘贴',
-  settingsCookieAutoValid: '当前 Cookie 有效',
-  settingsCookieAutoInvalid: 'Cookie 已失效，请重新登录',
-  settingsCookieAutoMissing: '尚未登录网易云',
-  settingsCookieClear: '清除',
-  settingsCookieSave: '保存 Cookie',
-  settingsCookieSaving: '保存中…',
-  settingsCookieSavedValid: 'Cookie 已保存并通过验证。',
-  settingsCookieSavedInvalid: 'Cookie 已本地保存，但验证失败。',
-  settingsCookieSavedLocal: 'Cookie 已本地保存。',
-  settingsCookieCleared: 'Cookie 已清除。',
   settingsVizLoading: '可视化仍在加载…',
-  settingsPresetExportWithCookie: '预设已导出（含 Cookie）。',
-  settingsPresetExportNoCookie: '预设已导出（不含 Cookie）。',
+  settingsPresetExportNoCookie: '预设已导出。',
   settingsPresetExportFail: '导出失败，请重试。',
   settingsPresetImporting: '正在导入预设…',
   settingsPresetImported: '预设导入成功。',
@@ -104,26 +79,19 @@ import {
   createPresetTransferPackage,
   normalizePresetTransferPackage,
   writePresetTransferPackage,
-} from './sonic/preset-transfer.js';
-import { readNeteaseCookieStorage, writeNeteaseCookieStorage } from './sonic/netease-cookie.js';
+} from './sonic/preset-transfer.js?v=20261026owner1';
 import {
   VIZ_BG_MODE_CUSTOM,
   VIZ_BG_MODE_FOLLOW_SONG,
 } from './sonic/viz-background.js';
-import {
-  checkNeteaseQrLogin,
-  createNeteaseQrLogin,
-  renderNeteaseQrCode,
-} from './sonic-netease-api.js?v=20260624u';
 
-const TAB_IDS = ['Pulse', 'Meteor', 'GroundEq', 'Color', 'Background', 'Cookie'];
+const TAB_IDS = ['Pulse', 'Meteor', 'GroundEq', 'Color', 'Background'];
 const TAB_I18N = {
   Pulse: 'settingsTabPulse',
   Meteor: 'settingsTabMeteor',
   GroundEq: 'settingsTabGroundEq',
   Color: 'settingsTabColor',
   Background: 'settingsTabBackground',
-  Cookie: 'settingsTabCookie',
 };
 
 function clamp(value, min, max) {
@@ -147,11 +115,10 @@ function getAccent() {
   return raw || '#33d1ff';
 }
 
-export function initSonicSettingsPanel({ mount, onClosePanels, syncNeteaseCookie }) {
+export function initSonicSettingsPanel({ mount, onClosePanels }) {
   if (!mount) return;
 
   let activeTab = 'Pulse';
-  let includeCookieInExport = false;
   let presetStatus = '';
 
   mount.innerHTML = '';
@@ -201,7 +168,6 @@ export function initSonicSettingsPanel({ mount, onClosePanels, syncNeteaseCookie
       <div class="sonic-settings-block-title">${t('settingsPresetMigration')}</div>
       <div class="sonic-settings-block-note">${t('settingsPresetMigrationNote')}</div>
       <div class="sonic-settings-actions sonic-settings-migrate-actions">
-        <label class="sonic-settings-check"><input type="checkbox" data-cookie-export> ${t('settingsIncludeCookie')}</label>
         <button type="button" data-export-preset>${t('settingsExportPreset')}</button>
         <button type="button" data-import-preset class="ghost">${t('settingsImportPreset')}</button>
         <input type="file" accept="application/json,.json" hidden data-import-file>
@@ -209,14 +175,9 @@ export function initSonicSettingsPanel({ mount, onClosePanels, syncNeteaseCookie
       <div class="sonic-settings-status" data-preset-status></div>
     `;
     migrateWrap.appendChild(box);
-    const cookieBox = box.querySelector('[data-cookie-export]');
-    cookieBox.checked = includeCookieInExport;
-    cookieBox.addEventListener('change', () => {
-      includeCookieInExport = cookieBox.checked;
-    });
     box.querySelector('[data-export-preset]').addEventListener('click', () => {
       try {
-        const presetPackage = createPresetTransferPackage({ includeNeteaseCookie: includeCookieInExport });
+        const presetPackage = createPresetTransferPackage();
         const blob = new Blob([JSON.stringify(presetPackage, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -227,9 +188,7 @@ export function initSonicSettingsPanel({ mount, onClosePanels, syncNeteaseCookie
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
-        presetStatus = includeCookieInExport
-          ? t('settingsPresetExportWithCookie')
-          : t('settingsPresetExportNoCookie');
+        presetStatus = t('settingsPresetExportNoCookie');
       } catch {
         presetStatus = t('settingsPresetExportFail');
       }
@@ -599,152 +558,6 @@ export function initSonicSettingsPanel({ mount, onClosePanels, syncNeteaseCookie
     syncCustomVisibility();
   }
 
-  function renderCookieTab() {
-    const prev = body.querySelector('.sonic-settings-block');
-    if (prev?.__cookieStatusCleanup) prev.__cookieStatusCleanup();
-    body.innerHTML = '';
-    const block = el('div', 'sonic-settings-block');
-    const current = window.__shilokuNeteaseCookieStatus || {};
-    const statusHint = current.valid
-      ? `${t('settingsCookieAutoValid')}${current.nickname ? `（${current.nickname}）` : ''}`
-      : (current.hasCookie ? t('settingsCookieAutoInvalid') : t('settingsCookieAutoMissing'));
-
-    block.innerHTML = `
-      <div class="sonic-settings-block-title">${t('settingsCookieTitle')}</div>
-      <div class="sonic-settings-block-note">${t('settingsCookieNote')}</div>
-      <div class="sonic-settings-status" data-cookie-auto-status>${statusHint}</div>
-      <div class="sonic-settings-block-title">${t('settingsCookieQrTitle')}</div>
-      <div class="sonic-settings-block-note">${t('settingsCookieQrNote')}</div>
-      <div class="sonic-settings-actions">
-        <button type="button" data-qr-start>${t('settingsCookieQrStart')}</button>
-        <button type="button" class="ghost" data-qr-cancel hidden>${t('settingsCookieQrCancel')}</button>
-      </div>
-      <div class="sonic-cookie-qr-panel" data-qr-panel hidden>
-        <img class="sonic-cookie-qr-img" data-qr-img alt="网易云登录二维码">
-        <div class="sonic-settings-status" data-qr-status></div>
-      </div>
-      <div class="sonic-settings-block-title">${t('settingsCookieManualTitle')}</div>
-      <textarea class="sonic-cookie-input" rows="6" spellcheck="false" placeholder="MUSIC_U=...; __csrf=...;"></textarea>
-      <div class="sonic-settings-actions">
-        <button type="button" class="ghost" data-clear-cookie>${t('settingsCookieClear')}</button>
-        <button type="button" data-save-cookie>${t('settingsCookieSave')}</button>
-      </div>
-      <div class="sonic-settings-status" data-cookie-status></div>
-    `;
-    body.appendChild(block);
-
-    const textarea = block.querySelector('.sonic-cookie-input');
-    const autoStatusEl = block.querySelector('[data-cookie-auto-status]');
-    const qrPanel = block.querySelector('[data-qr-panel]');
-    const qrImg = block.querySelector('[data-qr-img]');
-    const qrStatus = block.querySelector('[data-qr-status]');
-    const qrStartBtn = block.querySelector('[data-qr-start]');
-    const qrCancelBtn = block.querySelector('[data-qr-cancel]');
-    textarea.value = readNeteaseCookieStorage();
-
-    let qrTimer = null;
-    let qrActive = false;
-
-    const updateAutoStatus = (detail = window.__shilokuNeteaseCookieStatus || {}) => {
-      autoStatusEl.textContent = detail.valid
-        ? `${t('settingsCookieAutoValid')}${detail.nickname ? `（${detail.nickname}）` : ''}`
-        : (detail.hasCookie ? t('settingsCookieAutoInvalid') : t('settingsCookieAutoMissing'));
-    };
-
-    const stopQr = () => {
-      qrActive = false;
-      if (qrTimer) {
-        clearInterval(qrTimer);
-        qrTimer = null;
-      }
-      qrPanel.hidden = true;
-      qrCancelBtn.hidden = true;
-      qrStartBtn.disabled = false;
-    };
-
-    const startQr = async () => {
-      stopQr();
-      qrStartBtn.disabled = true;
-      qrStatus.textContent = '…';
-      qrPanel.hidden = false;
-      qrCancelBtn.hidden = false;
-      try {
-        const session = await createNeteaseQrLogin();
-        if (!session?.qrUrl) throw new Error(t('settingsCookieQrFail'));
-        await renderNeteaseQrCode(qrImg, session.qrUrl);
-        qrStatus.textContent = t('settingsCookieQrWaiting');
-        qrActive = true;
-        qrTimer = setInterval(async () => {
-          if (!qrActive) return;
-          try {
-            const result = await checkNeteaseQrLogin(session.key);
-            if (result.waiting) qrStatus.textContent = t('settingsCookieQrWaiting');
-            if (result.scanned) qrStatus.textContent = t('settingsCookieQrScanned');
-            if (result.expired) {
-              qrStatus.textContent = t('settingsCookieQrExpired');
-              stopQr();
-              return;
-            }
-            if (result.code === 800 && result.cookie) {
-              textarea.value = result.cookie;
-              writeNeteaseCookieStorage(result.cookie);
-              if (typeof syncNeteaseCookie === 'function') {
-                await syncNeteaseCookie(result.cookie);
-              }
-              qrStatus.textContent = `${t('settingsCookieQrSuccess')}${result.nickname ? `：${result.nickname}` : ''}`;
-              updateAutoStatus({ valid: true, hasCookie: true, nickname: result.nickname || '' });
-              block.querySelector('[data-cookie-status]').textContent = t('settingsCookieSavedValid');
-              window.refreshNeteaseCloudAvailability?.();
-              stopQr();
-            }
-          } catch (error) {
-            qrStatus.textContent = error?.message || t('settingsCookieQrFail');
-            stopQr();
-          }
-        }, 2000);
-      } catch (error) {
-        qrStatus.textContent = error?.message || t('settingsCookieQrFail');
-        stopQr();
-      }
-    };
-
-    qrStartBtn.addEventListener('click', startQr);
-    qrCancelBtn.addEventListener('click', stopQr);
-
-    block.querySelector('[data-save-cookie]').addEventListener('click', async () => {
-      writeNeteaseCookieStorage(textarea.value);
-      const statusEl = block.querySelector('[data-cookie-status]');
-      statusEl.textContent = t('settingsCookieSaving');
-      if (typeof syncNeteaseCookie === 'function') {
-        const result = await syncNeteaseCookie(textarea.value);
-        statusEl.textContent = result.valid
-          ? t('settingsCookieSavedValid')
-          : t('settingsCookieSavedInvalid');
-        updateAutoStatus({ valid: result.valid, hasCookie: Boolean(textarea.value.trim()), nickname: result.data?.nickname || '' });
-      } else {
-        statusEl.textContent = t('settingsCookieSavedLocal');
-      }
-      window.refreshNeteaseCloudAvailability?.();
-    });
-    block.querySelector('[data-clear-cookie]').addEventListener('click', async () => {
-      textarea.value = '';
-      writeNeteaseCookieStorage('');
-      block.querySelector('[data-cookie-status]').textContent = t('settingsCookieCleared');
-      updateAutoStatus({ valid: false, hasCookie: false });
-      if (typeof syncNeteaseCookie === 'function') {
-        await syncNeteaseCookie('');
-      }
-      window.refreshNeteaseCloudAvailability?.();
-    });
-
-    const onCookieStatus = (event) => updateAutoStatus(event.detail || {});
-    window.addEventListener('shiloku:netease-cookie', onCookieStatus);
-    block.__cookieStatusCleanup = () => {
-      stopQr();
-      window.removeEventListener('shiloku:netease-cookie', onCookieStatus);
-    };
-  }
-
   function render() {
     header.querySelector('.sonic-settings-drawer-title').textContent = t('settingsTitle');
     header.querySelector('.sonic-settings-drawer-sub').textContent = t('settingsSub');
@@ -754,7 +567,6 @@ export function initSonicSettingsPanel({ mount, onClosePanels, syncNeteaseCookie
     if (activeTab === 'GroundEq') renderGroundEqTab();
     else if (activeTab === 'Color') renderColorTab();
     else if (activeTab === 'Background') renderBackgroundTab();
-    else if (activeTab === 'Cookie') renderCookieTab();
     else renderTriggerTab(activeTab);
   }
 

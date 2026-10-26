@@ -13,7 +13,6 @@ import {
 import { GROUND_EQ_STORAGE_KEY, normalizeGroundEqSettings } from './ground-eq.js';
 import { VIZ_BACKGROUND_STORAGE_KEY, normalizeVizBackgroundSettings } from './viz-background.js';
 import { TRIGGER_SETTINGS_STORAGE_KEY, normalizeTriggerConfig } from './trigger-settings.js';
-import { NETEASE_COOKIE_STORAGE_KEY, normalizeNeteaseCookie } from './netease-cookie.js';
 
 export const PRESET_TRANSFER_VERSION = 1;
 export const PLAYLIST_STORAGE_KEY = 'sonic-topography-playlists-v1';
@@ -107,12 +106,10 @@ export function normalizePresetTransferPackage(value) {
     },
   };
 
-  const cookie = normalizeNeteaseCookie(input.data.neteaseCookie);
-  if (cookie) normalized.data.neteaseCookie = cookie;
   return normalized;
 }
 
-export function createPresetTransferPackage(options = {}) {
+export function createPresetTransferPackage() {
   const customThemes = (readJsonStorage(CUSTOM_THEME_STORAGE_KEY) || []).map((preset) => normalizeCustomThemeSettings(preset))
     || [defaultCustomThemeSettings];
   const activeCustomThemeId = normalizeActiveCustomThemeId(
@@ -138,10 +135,6 @@ export function createPresetTransferPackage(options = {}) {
     },
   };
 
-  if (options.includeNeteaseCookie && typeof window !== 'undefined') {
-    const cookie = normalizeNeteaseCookie(window.localStorage.getItem(NETEASE_COOKIE_STORAGE_KEY));
-    if (cookie) presetPackage.data.neteaseCookie = cookie;
-  }
 
   return normalizePresetTransferPackage(presetPackage);
 }
@@ -160,7 +153,5 @@ export function writePresetTransferPackage(presetPackage) {
   if (data.vizBackgroundSettings) {
     window.localStorage.setItem(VIZ_BACKGROUND_STORAGE_KEY, JSON.stringify(normalizeVizBackgroundSettings(data.vizBackgroundSettings)));
   }
-  if (data.neteaseCookie) window.localStorage.setItem(NETEASE_COOKIE_STORAGE_KEY, data.neteaseCookie);
-  else window.localStorage.removeItem(NETEASE_COOKIE_STORAGE_KEY);
   return normalized;
 }
