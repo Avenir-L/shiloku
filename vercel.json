@@ -2,6 +2,12 @@
   "outputDirectory": "public",
   "redirects": [
     {
+      "source": "/admin/",
+      "has": [{ "type": "host", "value": "shiloku.vercel.app" }],
+      "destination": "https://www.shiloku.cn/admin/",
+      "permanent": false
+    },
+    {
       "source": "/admin/:path*",
       "has": [{ "type": "host", "value": "shiloku.vercel.app" }],
       "destination": "https://www.shiloku.cn/admin/:path*",
