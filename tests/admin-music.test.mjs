@@ -40,3 +40,10 @@ test('unexpected QR provider states preserve pending session and return safe cla
  await assert.rejects(()=>music.checkQr(qr.id,owner),e=>e.status===502&&e.code==='NETEASE_QR_STATE'&&e.upstreamCode===503&&!e.message.includes('private-qr-key'));
  assert.equal(values.size,1);
 });
+test('NetEase verification challenge is terminal and never overwrites the music account',async()=>{
+ const values=new Map(),store={command:async([op,key,value])=>op==='SET'?(values.set(key,value),'OK'):values.get(key)};
+ const music=createMusic({store,env:{},provider:{createQrLoginSession:async()=>({key:'private-key',qrUrl:'https://music.163.com/login'}),checkQrLogin:async()=>({code:8821,cookie:'private-cookie',data:{redirectUrl:'https://untrusted.example/private'}})}});
+ const owner={id:'owner'},qr=await music.createQr(owner);
+ await assert.rejects(()=>music.checkQr(qr.id,owner),e=>e.status===422&&e.code==='NETEASE_VERIFICATION_REQUIRED'&&e.upstreamCode===8821&&e.message.includes('安全验证')&&!e.message.includes('private'));
+ assert.equal(values.has(MUSIC_KEY),false);
+});

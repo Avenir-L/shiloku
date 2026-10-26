@@ -177,6 +177,7 @@ on('qr-start',async()=>{
       qrTimer=setTimeout(poll,3000);
     } catch(error) {
       if(version!==qrVersion)return;
+      if(error.status===422){$('qr-status').textContent=error.message;notify(error.message,true);return;}
       const delay=qrRetryDelay(error,++failures);
       if(delay!==null){$('qr-status').textContent=`状态检查暂时失败，二维码保留，正在重试（${failures}/3）`;qrTimer=setTimeout(poll,delay);return;}
       if([502,503,504].includes(error.status)){$('qr-status').textContent='暂时无法确认扫码结果，请重新生成二维码';notify(error.message,true);}
