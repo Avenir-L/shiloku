@@ -1,5 +1,6 @@
 import {startRegistration,startAuthentication,browserSupportsWebAuthn} from '@simplewebauthn/browser';
 import QRCode from 'qrcode';
+import {chartModel} from './analytics-chart.js';
 
 const $=id=>document.getElementById(id);
 let currentSession=null,qrTimer=null,qrVersion=0,recoveryCodes=[];
@@ -104,10 +105,16 @@ async function loadAnalytics(range){
   const data=await api('analytics',{range});if(request!==analyticsRequest)return;
   for(const field of ['pv','uv','home','music'])$('analytics-'+field).textContent=Number(data[field]).toLocaleString();
   $('analytics-state').textContent=data.demo?'本地演示数据 · 不代表真实访问量':data.pv?'已更新 · '+new Date().toLocaleTimeString():'暂未记录访问，接入后会自动累计';
-  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 720 180');svg.setAttribute('role','img');svg.setAttribute('aria-label','每日浏览量折线图，详细数值见下方每日数据');
-  const max=Math.max(1,...data.days.map(d=>d.pv)),points=data.days.map((d,i)=>`${data.days.length===1?360:20+i*680/(data.days.length-1)},${150-d.pv/max*125}`).join(' ');
-  const line=document.createElementNS(ns,'polyline');line.setAttribute('points',points);line.setAttribute('fill','none');line.setAttribute('stroke','currentColor');line.setAttribute('stroke-width','3');svg.append(line);
-  data.days.forEach((d,i)=>{const dot=document.createElementNS(ns,'circle');dot.setAttribute('cx',data.days.length===1?'360':String(20+i*680/(data.days.length-1)));dot.setAttribute('cy',String(150-d.pv/max*125));dot.setAttribute('r','3');dot.setAttribute('fill','currentColor');const title=document.createElementNS(ns,'title');title.textContent=`${d.date} · PV ${d.pv} · UV ${d.uv}`;dot.append(title);svg.append(dot)});
+  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),model=chartModel(data.days);svg.setAttribute('viewBox','0 0 720 270');svg.setAttribute('role','img');svg.setAttribute('aria-label','每日浏览量折线图，横轴为北京时间日期，纵轴为浏览量 PV，详细数值见下方每日数据');
+  const add=(tag,attrs,text)=>{const el=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))el.setAttribute(k,String(v));if(text!==undefined)el.textContent=text;svg.append(el);return el};
+  add('text',{x:model.left,y:16,class:'chart-axis-title'},'浏览量 PV');
+  for(const tick of model.yTicks){add('line',{x1:model.left,x2:model.right,y1:tick.y,y2:tick.y,class:'chart-grid'});add('text',{x:model.left-12,y:tick.y+5,'text-anchor':'end',class:'chart-tick'},tick.value.toLocaleString())}
+  add('line',{x1:model.left,x2:model.right,y1:model.bottom,y2:model.bottom,class:'chart-axis'});
+  add('line',{x1:model.left,x2:model.left,y1:model.top,y2:model.bottom,class:'chart-axis'});
+  for(const tick of model.xTicks){add('line',{x1:tick.x,x2:tick.x,y1:model.bottom,y2:model.bottom+5,class:'chart-axis'});add('text',{x:tick.x,y:model.bottom+24,'text-anchor':'middle',class:'chart-tick'},tick.label)}
+  add('text',{x:(model.left+model.right)/2,y:257,'text-anchor':'middle',class:'chart-axis-title'},`${data.days[0].date} — ${data.days.at(-1).date} · 日期 / 北京时间`);
+  add('polyline',{points:model.points.map(p=>`${p.x},${p.y}`).join(' '),fill:'none',stroke:'currentColor','stroke-width':3});
+  for(const point of model.points){const dot=add('circle',{cx:point.x,cy:point.y,r:4,fill:'currentColor'});const title=document.createElementNS(ns,'title');title.textContent=`${point.date} · 浏览量 ${point.pv} · 访客数 ${point.uv}`;dot.append(title)}
   $('analytics-chart').replaceChildren(svg);
   $('analytics-days').replaceChildren();data.days.forEach(d=>{const row=document.createElement('p');row.className='analytics-row';row.textContent=`${d.date}　浏览量 ${d.pv}　访客数 ${d.uv}`;$('analytics-days').append(row)});
   for(const [id,fields]of [['sources',[['direct','直接访问'],['search','搜索引擎'],['social','社交链接'],['other','其他来源']]],['devices',[['desktop','电脑'],['mobile','手机'],['tablet','平板']]]]){

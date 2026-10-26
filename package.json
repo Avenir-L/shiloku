@@ -7,7 +7,7 @@
   },
   "scripts": {
     "build": "node scripts/build-admin.mjs && node scripts/build-static.mjs",
-    "test:admin": "node --test tests/admin*.test.mjs tests/analytics.test.mjs tests/netease-owner-security.test.mjs"
+    "test:admin": "node --test tests/admin*.test.mjs tests/analytics*.test.mjs tests/netease-owner-security.test.mjs"
   },
   "dependencies": {
     "@simplewebauthn/browser": "14.0.0",
