@@ -8,7 +8,7 @@ export function createGoogleCallback({google=createGoogleAuth()}={}) {
       if(req.query?.error)throw new Error('Google sign in cancelled');
       const result=await google.finish(req);
       res.setHeader('Set-Cookie',[result.cookie,result.clearCookie]);
-      res.setHeader('Location','/admin/#music');
+      res.setHeader('Location','/admin/#overview');
     }catch(error){
       res.setHeader('Set-Cookie',google.clearCookie());
       res.setHeader('Location',error.status===403?'/admin/?login=google-denied':'/admin/?login=google-error');

@@ -4,8 +4,9 @@ import {redis} from './_lib/admin/store.js';
 import {validateNeteaseCookie} from './_lib/netease/lib.js';
 import {createQrLoginSession,checkQrLogin} from './_lib/netease/weapi.js';
 import {createGoogleAuth} from './_lib/admin/google.js';
+import {createAnalytics} from './_lib/analytics.js';
 
-export function createAdminHandler({env=process.env,store=redis,auth=createAuth({store,env}),music=createMusic({store,env,provider:{validateNeteaseCookie,createQrLoginSession,checkQrLogin}}),google=createGoogleAuth({env,store,auth})}={}) {
+export function createAdminHandler({env=process.env,store=redis,auth=createAuth({store,env}),music=createMusic({store,env,provider:{validateNeteaseCookie,createQrLoginSession,checkQrLogin}}),google=createGoogleAuth({env,store,auth}),analytics=createAnalytics({store})}={}) {
   return async function handler(req,res) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Content-Type-Options','nosniff');
@@ -26,6 +27,7 @@ export function createAdminHandler({env=process.env,store=redis,auth=createAuth(
       if(JSON.stringify(body).length>24000) return res.status(413).json({error:'请求内容过大'});
       let result;
       switch(action) {
+        case 'analytics': return res.status(200).json(await analytics.summary(Number(body.range||7)));
         case 'google-start': {
           const result=await google.start({token:body.token,owner});
           res.setHeader('Set-Cookie',result.cookie);

@@ -1,3 +1,188 @@
 :root{color-scheme:dark;--bg:#101015;--panel:#19191f;--line:#ffffff12;--text:#eeeaf5;--muted:#9995a6;--accent:#c7b9f3;font-family:Inter,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-synthesis:none}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-size:14px;line-height:1.7}button,input,textarea{font:inherit}button,a,input,textarea,summary{-webkit-tap-highlight-color:transparent}button{cursor:pointer}button:disabled{opacity:.5;cursor:wait}a{color:inherit;text-decoration:none}button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:5px}[hidden]{display:none!important}h1,h2,p{margin:0}h1{font-weight:550;font-size:36px;letter-spacing:-1px;line-height:1.35}h2{font-size:19px;font-weight:550;margin:8px 0 10px}.muted{color:var(--muted)}.eyebrow{font-size:10px;letter-spacing:2px;color:#aaa2bd;font-weight:600}.wordmark{display:flex;align-items:center;gap:15px;font-family:Georgia,serif;font-size:38px;font-style:italic;line-height:1}.wordmark>span{font-family:"Segoe UI",sans-serif;font-size:12px;letter-spacing:3px;font-style:normal;font-weight:600}.wordmark small{display:inline-block;font-weight:400;color:var(--muted);font-size:10px;margin-top:10px;letter-spacing:2px}.login-shell{min-height:100svh;display:flex;align-items:center;flex-direction:column;padding:70px 24px;background:radial-gradient(ellipse at 50% 0%,#27203488,transparent 65%)}.login-card{width:min(440px,100%);margin-top:70px}.login-card h1{font-size:42px;margin:14px 0}.login-card .primary{margin-top:32px;width:100%;display:flex;justify-content:space-between}.primary,.secondary{border-radius:9px;padding:11px 17px;border:1px solid transparent;font-weight:550;transition:background .18s}.primary{background:var(--accent);color:#201b2b}.primary:hover{background:#ded1ff}.secondary{background:#ffffff06;border-color:#ffffff20;color:var(--text)}.secondary:hover{background:#ffffff10}.text-button{padding:0;background:none;border:0;color:var(--muted)}.text-button:hover{color:var(--text)}.hint{font-size:12px;color:var(--muted);margin-top:17px}.login-footer{margin-top:60px;color:#615c6d;font-size:11px;letter-spacing:2px}details{border-top:1px solid var(--line);margin-top:27px;padding-top:17px}summary{cursor:pointer;color:var(--muted);font-size:12px}label{display:block;color:var(--muted);font-size:12px;margin:18px 0 12px}input,textarea{display:block;width:100%;margin-top:8px;padding:11px 12px;background:#0e0e13;color:var(--text);border:1px solid #ffffff20;border-radius:8px;outline:none}input:focus,textarea:focus{border-color:var(--accent)}textarea{resize:vertical}.dashboard{display:flex;min-height:100svh}aside{width:236px;position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column;padding:35px 26px;border-right:1px solid var(--line);background:#131318}nav{margin-top:65px;display:grid;gap:8px}nav button{display:flex;align-items:center;gap:15px;text-align:left;border:0;background:transparent;color:var(--muted);padding:12px 14px;border-radius:8px}nav button span{font-size:18px;width:20px}nav button.active{background:#c7b9f312;color:var(--accent)}nav button:hover{background:#ffffff08}.aside-footer{margin-top:auto;display:grid;gap:15px;padding:24px 14px 0;font-size:12px}.aside-footer button{text-align:left}.workspace{margin-left:236px;width:calc(100% - 236px);padding:0 6%;max-width:1600px}header{height:94px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.owner-badge{font-size:11px;color:var(--muted);display:flex;gap:8px;align-items:center}.owner-badge i{width:5px;height:5px;background:#a9c6a5;border-radius:50%}.page{padding-top:48px;min-height:calc(100svh - 160px)}.page-heading{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:35px}.page-heading h1{margin:9px 0 10px}.card{background:linear-gradient(130deg,#1c1b24,#17171d);border:1px solid var(--line);border-radius:14px;padding:28px;margin-bottom:22px}.account-card{display:flex;align-items:center;justify-content:space-between;gap:15px;border-color:#c7b9f32b}.account-card h2{font-size:25px}.status-pill{font-size:11px;color:var(--accent);white-space:nowrap;border:1px solid #c7b9f32b;background:#c7b9f309;padding:5px 12px;border-radius:20px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.grid .card{margin:0}.grid button{margin-top:22px}.step{font-size:11px;color:var(--muted);font-family:monospace}.note{font-size:12px;line-height:1.8;border-left:2px solid #c7b9f344;padding-left:15px;margin-top:25px;color:var(--muted)}#qr-area{margin-top:25px}#qr-image{display:block;width:190px;height:190px;background:#fff;padding:8px;border-radius:10px}#qr-status{font-size:12px;margin-top:12px;color:var(--accent)}.empty{text-align:center;padding:75px 20px}.empty-icon{font-size:40px;color:#c7b9f36e}.empty p{line-height:2}.credential,.message{padding:18px 0;border-bottom:1px solid var(--line)}.credential small,.message time{color:var(--muted);font-size:11px}.message{padding:24px;border:1px solid var(--line);border-radius:12px;margin-bottom:15px;background:var(--panel)}.message p{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:12px}.message header{height:auto;border:0}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101015;border-radius:8px;padding:16px;color:var(--accent);font-size:12px}footer{padding:28px 0;font-size:10px;letter-spacing:2px;color:#625d70}#notice{position:fixed;bottom:25px;left:50%;transform:translateX(-50%);background:#eee8fa;color:#241e30;border-radius:10px;padding:12px 20px;max-width:calc(100% - 32px);box-shadow:0 10px 50px #0008;z-index:10}#notice.error{background:#f3d6db;color:#5c1c2b}@media(max-width:800px){aside{position:static;width:100%;padding:22px;display:block;border-right:0;border-bottom:1px solid var(--line)}aside .wordmark{font-size:30px}.wordmark small{display:none}nav{margin-top:25px;display:flex;overflow-x:auto;gap:4px}nav button{white-space:nowrap;font-size:12px;gap:7px;padding:8px 11px}nav button span{font-size:15px;width:auto}.aside-footer{position:absolute;top:22px;right:22px;padding:0;font-size:11px;display:flex;gap:18px}.aside-footer a{display:none}.dashboard{display:block}.workspace{margin:0;width:100%;padding:0 22px}header{height:65px}.page{padding-top:30px}.page-heading{margin-bottom:25px}.page-heading h1{font-size:29px}.page-heading>.secondary{padding:9px;font-size:12px}.grid{grid-template-columns:1fr;gap:16px}.card{padding:22px}.account-card h2{font-size:21px}.login-shell{padding-top:40px}.login-card{margin-top:55px}.login-card h1{font-size:36px}.eyebrow{font-size:9px}.account-card{align-items:flex-start}.status-pill{font-size:10px;padding:4px 9px}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
 .login-card .google-button{background:#f5f3f8;color:#242129}.login-card .google-button:hover{background:#fff}.login-card .passkey-button{width:100%;margin-top:24px;color:#c5becf;font-size:12px}.credential>.text-button{display:block;margin-top:10px;font-size:11px}
+
+.login-card{text-align:center}.login-card .google-button{position:relative;justify-content:center;align-items:center;gap:10px;padding-inline:40px}.google-icon{flex:none}.google-arrow{position:absolute;right:17px}.login-card details label,.login-card details input{text-align:left}
+
+/* Quiet scrollbar treatment across the login and administration panels. */
+html{scrollbar-gutter:stable}
+*::-webkit-scrollbar{width:6px;height:6px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:#756b8859;border:1px solid transparent;background-clip:padding-box;border-radius:20px}
+*::-webkit-scrollbar-thumb:hover{background-color:#a494bc99}
+*::-webkit-scrollbar-button{display:none;width:0;height:0}
+*::-webkit-scrollbar-corner{background:transparent}
+@supports not selector(::-webkit-scrollbar){*{scrollbar-width:thin;scrollbar-color:#756b8859 transparent}}
+
+.login-shell{background:linear-gradient(180deg,rgba(7,14,26,.12),rgba(7,14,26,.24)),url('/admin/login-background.webp') center center/cover no-repeat}
+.login-card h1,.login-shell .wordmark{text-shadow:0 2px 20px #0008}
+.login-card .eyebrow,.login-card .hint,.login-card summary,.login-footer{color:#e0e5edc7;text-shadow:0 1px 8px #0008}
+.login-card .passkey-button{background:#101a2b6b;border-color:#d8e4f02e;color:#e3e9f1;backdrop-filter:blur(8px)}
+.login-card details{border-top-color:#d8e4f02e}
+
+.login-shell{background-size:auto,max(100vw,216svh) auto}
+
+/* Share the login artwork with authenticated pages, keeping controls readable. */
+.dashboard{position:relative;isolation:isolate;--muted:#c4ccd8;--line:#e5edff24}
+.dashboard::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#07132270,#07132299),url('/admin/login-background.webp') center center/max(100vw,216svh) auto no-repeat}
+.dashboard aside{background:#101b2bc9;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.dashboard .card,.dashboard .message{background:#101b2bd6;box-shadow:0 8px 28px #03101f1a;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.dashboard .workspace>.page-heading,.dashboard .page-heading,.dashboard header{ text-shadow:0 1px 10px #07132280 }
+.dashboard .eyebrow,.dashboard footer{color:#d4dceb}
+.dashboard nav button.active{background:#c7b9f32b}
+
+.login-card .eyebrow,.login-card .hint,.login-card summary,.login-footer{color:#f4f7fbe6}
+
+/* Dedicated desktop proportions; retain the compact layout below 1440px. */
+@media(min-width:1440px){
+ .login-shell{padding:64px 32px}
+ .login-shell>.wordmark{font-size:48px;gap:18px}
+ .login-shell>.wordmark>span{font-size:15px;letter-spacing:3.5px}
+ .login-card{width:560px;margin-top:64px}
+ .login-card>.eyebrow{font-size:13px;letter-spacing:2.6px}
+ .login-card h1{font-size:56px;margin:18px 0 30px;letter-spacing:-1.5px}
+ .login-card .google-button{min-height:62px;font-size:18px;gap:13px;border-radius:12px;margin-top:30px}
+ .login-card .google-icon{width:24px;height:24px}
+ .login-card .google-arrow{right:22px;font-size:19px}
+ .login-card .hint{font-size:15px;line-height:1.85;margin-top:19px}
+ .login-card .passkey-button{min-height:56px;font-size:16px;margin-top:28px;border-radius:12px}
+ .login-card details{margin-top:31px;padding-top:22px}
+ .login-card summary{font-size:15px}
+ .login-card label{font-size:14px}
+ .login-card input,.login-card details button{font-size:16px}
+ .login-footer{font-size:13px;margin-top:40px;letter-spacing:2px}
+}
+@media(min-width:2200px){
+ .login-card{width:640px;margin-top:76px}
+ .login-card h1{font-size:64px}
+ .login-card .google-button{min-height:70px;font-size:20px}
+ .login-card .passkey-button{min-height:62px;font-size:18px}
+ .login-card .hint,.login-card summary{font-size:17px}
+}
+
+/* Center the compact sign-in composition as one group in the viewport. */
+.login-shell{position:relative;justify-content:center;padding-block:48px}
+.login-copyright{position:absolute;bottom:20px;inset-inline:24px;text-align:center;font-size:12px;letter-spacing:1px;color:#f4f7fbb3;text-shadow:0 1px 8px #0008}
+.login-shell>.wordmark{margin:0 0 64px;transform:translateY(-32px)}
+.login-card{margin-top:0}
+.login-card h1{margin-top:24px;margin-bottom:32px}
+.login-card .google-button{margin-top:40px}
+.login-card .hint{margin-top:24px}
+.login-footer{margin-top:52px}
+@media(min-width:1440px){
+ .login-shell{padding-block:56px}
+ .login-shell>.wordmark{margin-bottom:76px}
+ .login-card{margin-top:0}
+ .login-card h1{margin-top:28px;margin-bottom:40px}
+ .login-card .google-button{margin-top:48px}
+ .login-card .hint{margin-top:28px}
+ .login-footer{margin-top:60px}
+}
+@media(max-height:600px){
+ .login-shell{padding-block:28px}
+ .login-shell>.wordmark{margin-bottom:24px}
+ .login-footer{margin-top:24px}
+}
+
+/* Distribute space between every sign-in element while centering the whole group. */
+.login-console-label{display:flex;flex-direction:column;align-items:center;gap:10px}
+.login-console-label{position:fixed;top:48px;left:48px;align-items:flex-start;text-align:left;z-index:1}
+.login-card::before{content:"";height:75px;flex:none}
+.login-console-label>span[lang="en"]{align-self:center}
+.login-console-label>span[lang="zh-CN"]{letter-spacing:.3em;text-indent:.3em}
+.login-card>.login-console-label{font-size:36px;font-weight:550;line-height:1.35}
+.login-console-label>span[lang="en"]{font-size:.42em;letter-spacing:.24em;text-indent:.24em}
+.login-card h1{letter-spacing:.12em;text-indent:.12em}
+.login-card h1{font-size:24px;font-weight:450}
+@media(min-width:1440px){
+ .login-card>.login-console-label{font-size:56px}
+ .login-card::before{height:117px}
+ .login-card h1{font-size:28px}
+}
+@media(min-width:2200px){
+ .login-card>.login-console-label{font-size:64px}
+ .login-card::before{height:133px}
+ .login-card h1{font-size:32px}
+}
+@media(max-width:600px){.login-console-label{top:24px;left:24px}.login-card>.login-console-label{font-size:28px}}
+.login-card{display:flex;flex-direction:column;gap:36px}
+.login-card h1,.login-card .google-button,.login-card .hint{margin:0}
+.login-card .google-button{margin-top:12px}
+.login-shell>.wordmark{margin-bottom:76px}
+.login-footer{margin-top:60px}
+@media(min-width:1440px){
+ .login-card{gap:44px}
+ .login-card .google-button{margin-top:16px}
+ .login-shell>.wordmark{margin-bottom:92px}
+ .login-footer{margin-top:72px}
+}
+@media(max-height:700px){
+ .login-card{gap:28px}
+ .login-card .google-button{margin-top:8px}
+ .login-shell>.wordmark{margin-bottom:40px}
+ .login-footer{margin-top:36px}
+}
+
+/* Compact corner title, preserving the existing positions of the sign-in group. */
+.login-card>.login-console-label{font-size:28px}
+@media(min-width:1440px){.login-card>.login-console-label{font-size:32px}}
+@media(min-width:2200px){.login-card>.login-console-label{font-size:36px}}
+
+/* Align both header marks on the same horizontal centerline. */
+.login-shell{--login-brand-size:38px;--login-brand-gap:76px;--login-header-top:48px;--login-header-height:64px}
+.login-shell::before{content:"";height:calc(var(--login-brand-size) + var(--login-brand-gap));flex:none}
+.login-shell>.wordmark{position:fixed;top:var(--login-header-top);left:50%;height:var(--login-header-height);margin:0;transform:translateX(-50%);align-items:center}
+.login-console-label{top:var(--login-header-top);height:var(--login-header-height);justify-content:center}
+@media(min-width:1440px){.login-shell{--login-brand-size:48px;--login-brand-gap:92px;--login-header-height:72px}}
+@media(min-width:2200px){.login-shell{--login-header-height:80px}}
+@media(max-height:700px){.login-shell{--login-brand-gap:40px}}
+@media(max-width:600px){.login-shell{--login-header-top:24px}}
+
+.login-card .google-button{background:linear-gradient(135deg,#f0f6ff2e,#dbeaff14);border:1px solid #f0f6ff66;color:#fff;backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);box-shadow:inset 0 1px 0 #ffffff40,0 8px 28px #07132226;text-shadow:0 1px 8px #07132280;transition:background .2s,border-color .2s,box-shadow .2s}
+.login-card .google-button:hover{background:linear-gradient(135deg,#f0f6ff40,#dbeaff24);border-color:#f0f6ff99;box-shadow:inset 0 1px 0 #ffffff59,0 10px 32px #07132233}
+
+/* Prefer Noto Sans SC for Chinese while retaining the existing Latin branding. */
+@font-face{font-family:"Admin Chinese";src:local("Noto Sans SC"),local("NotoSansSC-Regular");font-style:normal;font-weight:100 900;font-display:swap;unicode-range:U+2E80-9FFF,U+F900-FAFF,U+FE30-FE4F,U+FF00-FFEF}
+:root{font-family:"Admin Chinese",Inter,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.login-console-label>span[lang="zh-CN"]{font-family:"Admin Chinese","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-weight:500}
+.login-card h1{font-weight:400;text-shadow:0 1px 12px #07132240}
+.overview-welcome{padding:36px}.overview-welcome h2{font-size:30px;margin:16px 0 12px}
+.overview-entry{display:block;width:100%;text-align:left;color:var(--text);font-weight:400;transition:border-color .2s,background .2s}
+.overview-entry h2{font-size:24px;margin:20px 0 12px}.overview-entry .overview-link{display:block;color:var(--accent);font-size:13px;margin-top:28px}
+.overview-grid .overview-entry{margin:0}.overview-entry:hover{border-color:#ffffff70;background:#152538e8}
+
+/* Clear glass: preserve the artwork's detail instead of frosting it. */
+.dashboard::before{background-image:linear-gradient(180deg,#07132214,#07132238),url('/admin/login-background.webp')}
+.dashboard aside,.dashboard .card,.dashboard .message,.login-card .google-button,.login-card .passkey-button{backdrop-filter:none;-webkit-backdrop-filter:none}
+.dashboard aside{background:linear-gradient(135deg,#eaf4ff24,#b9d5ee0a);border-right-color:#ffffff50;box-shadow:inset -1px 0 0 #ffffff14,8px 0 32px #0713220d}
+.dashboard .card,.dashboard .message{background:linear-gradient(135deg,#f1f8ff2b,#d6eaff0d);border-color:#ffffff59;box-shadow:inset 0 1px 0 #ffffff66,inset 0 -1px 0 #ffffff0d,0 10px 30px #07132214}
+.dashboard .overview-entry:hover{background:linear-gradient(135deg,#f1f8ff40,#d6eaff1c);border-color:#ffffff99}
+.dashboard{--muted:#f0f5fc;--accent:#f1eaff;--line:#ffffff40;text-shadow:0 1px 5px #07132299}
+.dashboard .primary{background:linear-gradient(135deg,#f3f7ff73,#dceaff40);border-color:#ffffff80;color:#fff;box-shadow:inset 0 1px 0 #ffffff80,0 4px 16px #0713221a;text-shadow:0 1px 4px #07132280}
+.dashboard .secondary{background:linear-gradient(135deg,#ffffff29,#ffffff0a);border-color:#ffffff59}
+.dashboard .secondary:hover,.dashboard nav button:hover{background:#ffffff30}
+.dashboard nav button.active{background:linear-gradient(135deg,#ffffff40,#ffffff14);box-shadow:inset 0 1px 0 #ffffff59;color:#fff}
+.dashboard input,.dashboard textarea,.dashboard pre{background:#10223b29;border-color:#ffffff59}
+.dashboard .status-pill{background:#ffffff1c;border-color:#ffffff59}
+.login-card .google-button{background:linear-gradient(135deg,#f0f6ff38,#dbeaff0d)}
+
+/* Layer clear surfaces with a raised rim and soft contact shadows. */
+.dashboard aside{z-index:2;background:linear-gradient(115deg,#f4faff3b 0%,#bcd8f00d 48%,#ffffff1c 100%);box-shadow:inset -1px 0 0 #ffffff80,inset -4px 0 12px #d8eeff1a,12px 0 36px #081a3524}
+.dashboard .workspace{position:relative;padding-top:12px;padding-bottom:24px}
+.dashboard .card,.dashboard .message{position:relative;border:1px solid #ffffff73;border-radius:20px;background:linear-gradient(145deg,#f4faff38 0%,#e4f3ff12 45%,#c4def01a 100%);box-shadow:inset 0 1px 0 #ffffffb3,inset 1px 0 0 #ffffff59,inset 0 -2px 3px #93b9d52e,0 2px 3px #071b351a,0 14px 28px -10px #071b3559,0 32px 64px -28px #071b3540}
+.dashboard .card::before,.dashboard .message::before{content:"";position:absolute;inset:1px;border-radius:inherit;pointer-events:none;border-top:1px solid #ffffff66;border-left:1px solid #ffffff26;background:linear-gradient(125deg,#ffffff14,transparent 36%);z-index:0}
+.dashboard .card>* ,.dashboard .message>*{position:relative;z-index:1}
+.dashboard .overview-welcome{background:linear-gradient(115deg,#f5faff45,#dceeff14 65%,#f4faff24);margin-bottom:32px}
+.dashboard .grid{gap:28px}
+.dashboard .overview-entry{transition:transform .25s,box-shadow .25s,background .25s}
+.dashboard .overview-entry:hover{transform:translateY(-5px);background:linear-gradient(145deg,#ffffff4d,#e4f3ff1a 55%,#d4e9ff29);box-shadow:inset 0 1px 0 #ffffffcc,inset 1px 0 0 #ffffff73,0 4px 8px #071b351a,0 24px 40px -12px #071b3566,0 48px 72px -32px #071b354d}
+.dashboard .primary,.dashboard .secondary{box-shadow:inset 0 1px 0 #ffffff99,inset 0 -1px 0 #92b8d559,0 4px 10px #071b3526;border-top-color:#ffffffb3}
+@media(max-width:800px){.dashboard .workspace{padding-top:0}.dashboard .grid{gap:20px}.dashboard .card,.dashboard .message{border-radius:16px}}
+@media(prefers-reduced-motion:reduce){.dashboard .overview-entry:hover{transform:none}}
+
+.login-card .google-button{background:linear-gradient(145deg,#f4faff29,#e4f3ff08 50%,#c4def014);border:1px solid #ffffff80;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:inset 0 1px 0 #ffffffb3,inset 1px 0 0 #ffffff59,inset 0 -2px 3px #93b9d52e,0 2px 3px #071b351a,0 14px 28px -10px #071b3559,0 32px 64px -28px #071b3540;transition:transform .25s,background .25s,box-shadow .25s}
+.login-card .google-button:hover{transform:translateY(-3px);background:linear-gradient(145deg,#ffffff38,#e4f3ff12 55%,#d4e9ff24);box-shadow:inset 0 1px 0 #ffffffcc,inset 1px 0 0 #ffffff73,0 4px 8px #071b351a,0 22px 36px -12px #071b3566}
+.login-card .google-button:active{transform:translateY(0)}
+@media(prefers-reduced-motion:reduce){.login-card .google-button:hover{transform:none}}
+.analytics-panel{margin-bottom:36px}.analytics-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px}.analytics-ranges{display:flex;gap:8px}.analytics-ranges [aria-pressed="true"]{background:#ffffff45;border-color:#ffffff99}.analytics-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-top:18px}.analytics-metrics .card{padding:22px}.analytics-metrics strong{display:block;font-size:32px;font-weight:500;margin-top:10px}.analytics-chart svg{display:block;width:100%;height:200px;color:#f2f7ff;filter:drop-shadow(0 3px 6px #0d345966)}.analytics-row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #ffffff26;padding:10px 0;font-size:13px}.analytics-note{margin-top:20px;color:var(--muted)}.analytics-breakdown{margin-top:24px}
+@media(max-width:1000px){.analytics-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:500px){.analytics-heading{align-items:flex-start;flex-direction:column}.analytics-ranges .secondary{padding:7px 12px}.analytics-metrics{gap:12px}.analytics-metrics .card{padding:16px}.analytics-metrics strong{font-size:26px}}

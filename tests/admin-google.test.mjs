@@ -4,7 +4,7 @@ import {createGoogleAuth} from '../api/_lib/admin/google.js';
 import {hash} from '../api/_lib/admin/auth.js';
 const P='shiloku:admin:v1:';
 const env={ADMIN_ORIGIN:'https://www.shiloku.cn',GOOGLE_CLIENT_ID:'client.apps.googleusercontent.com',GOOGLE_CLIENT_SECRET:'test-client-secret'};
-function fixture(){
+function fixture(overrides={}){
   const values=new Map([[P+'bootstrap',hash('offline-token')]]);
   const store={async command([op,key,...args]){
     if(op==='GET')return values.get(key)||null;
@@ -15,13 +15,13 @@ function fixture(){
       if((values.get(keys[3])||'initial')!==version)return 0;
       const current=values.get(keys[0]);if(current)return current===sub?1:0;
       if(mode==='bootstrap'){if(values.get(keys[1])!==digest)return 0;values.delete(keys[1]);}
-      else if(mode!=='session'||!values.has(keys[4]))return 0;
+      else if(mode!=='configured'&&(mode!=='session'||!values.has(keys[4])))return 0;
       values.set(keys[0],sub);values.set(keys[2],'owner');return 1;
     }
     throw new Error(op);
   }};
   let claims={sub:'owner-google-sub',email_verified:true};let received;
-  const google=createGoogleAuth({env,store,auth:{issueSession:async options=>({cookie:'owner-session-cookie',session:options})},
+  const google=createGoogleAuth({env:{...env,...overrides},store,auth:{issueSession:async options=>({cookie:'owner-session-cookie',session:options})},
     fetcher:async(_url,options)=>{received=options.body;return {ok:true,json:async()=>({id_token:'signed-token'})};},
     verify:async(_token,nonce)=>({...claims,nonce})});
   const finish=async start=>{
@@ -46,6 +46,21 @@ test('Google binding needs offline owner proof, then only that immutable account
   const other=await f.google.start({});
   await assert.rejects(()=>f.finish(other));
   assert.equal(f.values.get(P+'google-sub'),'owner-google-sub');
+});
+test('configured verified owner email can bind without bootstrap; all other accounts are denied',async()=>{
+  const f=fixture({ADMIN_GOOGLE_EMAIL:'520avenir@gmail.com'});
+  f.setClaims({sub:'wrong-account',email:'other@gmail.com',email_verified:true});
+  const denied=await f.google.start({});
+  await assert.rejects(()=>f.finish(denied));
+  assert.equal(f.values.has(P+'google-sub'),false);
+  f.setClaims({sub:'owner-sub',email:'520avenir@gmail.com',email_verified:false});
+  await assert.rejects(async()=>f.finish(await f.google.start({})));
+  f.setClaims({sub:'owner-sub',email:'520avenir@gmail.com',email_verified:true});
+  const result=await f.finish(await f.google.start({}));
+  assert.equal(result.cookie,'owner-session-cookie');
+  assert.equal(f.values.get(P+'google-sub'),'owner-sub');
+  f.setClaims({sub:'changed-sub',email:'520avenir@gmail.com',email_verified:true});
+  await assert.rejects(async()=>f.finish(await f.google.start({})));
 });
 test('Google callback rejects missing browser binding and revoked state',async()=>{
   const f=fixture(),start=await f.google.start({token:'offline-token'}),url=new URL(start.url);

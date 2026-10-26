@@ -11,27 +11,22 @@
   <main id="login" class="login-shell">
     <a class="wordmark" href="/">S<span>SHILOKU</span></a>
     <section class="login-card">
-      <span class="eyebrow">YOUR PRIVATE CORNER</span>
-      <h1>欢迎回来。</h1><p class="muted">选择你的 Google 账号，打开管理空间。</p>
-      <button id="google-sign-in" class="primary google-button">使用 Google 账号登录 <span>↗</span></button>
-      <p id="google-login-hint" class="hint">仅已绑定的站长 Google 账号可进入。</p>
-      <button id="sign-in" class="secondary passkey-button">使用通行密钥登录（可选）</button>
-      <p id="passkey-login-hint" class="hint">通行密钥可作为备用登录方式，登录后再添加。</p>
-      <details id="setup"><summary>首次绑定 / 备用方式恢复</summary>
-        <label>本机生成的一次性初始化凭证<input id="setup-token" type="password" autocomplete="off" placeholder="粘贴初始化凭证"></label>
-        <label>设备名称<input id="device-label" maxlength="60" placeholder="例如：我的 iPhone"></label>
-        <p id="recovery-warning" class="hint" hidden>恢复完成后，旧设备的通行密钥全部失效，需要重新登记。验证新密钥成功之前不会移除旧密钥。</p>
-        <button id="register-first" class="secondary">登记第一个通行密钥</button>
-        <label>或使用一次性恢复码<input id="recovery-code" type="password" autocomplete="off" placeholder="仅在无法使用已有通行密钥时使用"></label>
-        <button id="recover" class="text-button">恢复访问</button>
-      </details>
+      <span class="eyebrow login-console-label"><span lang="zh-CN">控制台</span><span lang="en">CONSOLE</span></span>
+      <h1>欢迎回来</h1>
+      <button id="google-sign-in" class="primary google-button">
+        <svg class="google-icon" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.89-1.74 2.98-4.3 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.05.97-3.38.97-2.61 0-4.82-1.76-5.61-4.12H3.05v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 13.93a6 6 0 0 1 0-3.86V7.48H3.05a10 10 0 0 0 0 9.04l3.34-2.59Z"/><path fill="#EA4335" d="M12 5.95c1.47 0 2.79.51 3.82 1.52l2.87-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.95 5.48l3.34 2.59C7.18 7.71 9.39 5.95 12 5.95Z"/></svg>
+        <span>使用 Google 账号登录</span>
+      </button>
+
     </section>
     <p class="login-footer">仅站长可访问 · 不开放注册</p>
+    <p class="login-copyright">© 2025–2026 Shiloku</p>
   </main>
   <div id="dashboard" class="dashboard" hidden>
     <aside>
       <a class="wordmark" href="/">S<span>SHILOKU<br><small>管理后台</small></span></a>
       <nav aria-label="后台模块">
+        <button data-page="overview" class="active"><span>⌂</span>总览</button>
         <button data-page="music" class="active"><span>♫</span>音乐室</button>
         <button data-page="space"><span>◈</span>我的空间</button>
         <button data-page="guestbook"><span>☷</span>访客留言</button>
@@ -41,6 +36,24 @@
     </aside>
     <div class="workspace">
       <header><span class="eyebrow">SHILOKU / CONSOLE</span><span class="owner-badge"><i></i>站长专用</span></header>
+      <section id="page-overview" class="page" hidden>
+        <div class="page-heading"><div><p class="eyebrow">OVERVIEW</p><h1>控制台总览</h1><p class="muted">管理你的网站，从这里开始</p></div><a class="secondary" href="https://www.shiloku.cn/" target="_blank" rel="noopener">查看网站 ↗</a></div>
+        <section class="analytics-panel" aria-label="访问统计">
+          <div class="analytics-heading"><h2>访问统计</h2><div class="analytics-ranges" aria-label="统计范围"><button class="secondary" data-range="1">今天</button><button class="secondary" data-range="7" aria-pressed="true">近 7 天</button><button class="secondary" data-range="30">近 30 天</button></div></div>
+          <p id="analytics-state" class="muted" role="status">正在读取统计</p>
+          <div class="analytics-metrics"><article class="card"><p class="muted">浏览量 PV</p><strong id="analytics-pv">—</strong></article><article class="card"><p class="muted">访客数 UV · 估算</p><strong id="analytics-uv">—</strong></article><article class="card"><p class="muted">首页浏览量</p><strong id="analytics-home">—</strong></article><article class="card"><p class="muted">音乐室打开次数</p><strong id="analytics-music">—</strong></article></div>
+          <article class="card analytics-chart-card"><h2>访问趋势</h2><div id="analytics-chart" class="analytics-chart"></div><details><summary>查看每日数据</summary><div id="analytics-days"></div></details></article>
+          <div class="grid analytics-breakdown"><article class="card"><h2>访问来源</h2><div id="analytics-sources"></div></article><article class="card"><h2>访问设备</h2><div id="analytics-devices"></div></article></div>
+          <p class="hint analytics-note">统计从接入后开始 · 北京时间 · 保留近 90 天 · 尊重浏览器的禁止跟踪设置<br>访客使用匿名浏览器标识估算，多设备和清理存储会影响去重，来源缺失归入直接访问，统计不代表带宽用量</p>
+        </section>
+        <article class="card overview-welcome"><p class="eyebrow">YOUR PRIVATE CORNER</p><h2>欢迎回来，Shiloku</h2><p class="muted">音乐、日常与来访的声音，各有自己的位置</p></article>
+        <div class="grid overview-grid">
+          <button class="card overview-entry" data-page="music"><span class="eyebrow">01 / MUSIC ROOM</span><h2>音乐室</h2><p class="muted">查看账号连接、扫码授权与更新登录信息</p><span class="overview-link">管理音乐室 ↗</span></button>
+          <button class="card overview-entry" data-page="space"><span class="eyebrow">02 / PERSONAL SPACE</span><h2>我的空间</h2><p class="muted">生活日常与更新日志的独立发布空间</p><span class="overview-link">尚未接入 · 查看规划 ↗</span></button>
+          <button class="card overview-entry" data-page="guestbook"><span class="eyebrow">03 / GUESTBOOK</span><h2>访客留言</h2><p class="muted">独立查看来访留言，与空间内容分开管理</p><span class="overview-link">查看留言 ↗</span></button>
+          <button class="card overview-entry" data-page="security"><span class="eyebrow">04 / ACCOUNT & SECURITY</span><h2>账号与安全</h2><p class="muted">管理 Google 账号、通行密钥与恢复码</p><span class="overview-link">管理账号 ↗</span></button>
+        </div>
+      </section>
       <section id="page-music" class="page">
         <div class="page-heading"><div><p class="eyebrow">MUSIC ROOM</p><h1>音乐室</h1><p class="muted">维护账号连接，让音乐继续。</p></div><button id="refresh-status" class="secondary">刷新状态 ↻</button></div>
         <article class="card account-card"><div><span class="eyebrow">网易云音乐</span><h2 id="account-state">正在检查连接…</h2><p id="account-detail" class="muted">登录信息仅保存在服务端。</p></div><span class="status-pill" id="account-pill">检查中</span></article>
@@ -51,7 +64,7 @@
       </section>
       <section id="page-space" class="page" hidden><div class="page-heading"><div><p class="eyebrow">PERSONAL SPACE</p><h1>我的空间</h1><p class="muted">生活日常与更新日志，有自己的位置。</p></div></div><article class="card empty"><span class="empty-icon">◈</span><h2>空间发布功能尚未接入</h2><p class="muted">后续单独接入内容数据库、图文编辑、草稿与发布。<br>这里与访客留言分开管理，不共用内容数据。</p></article></section>
       <section id="page-guestbook" class="page" hidden><div class="page-heading"><div><p class="eyebrow">GUESTBOOK</p><h1>访客留言</h1><p class="muted">独立的留言板，本期仅供查看。</p></div><span class="status-pill">只读</span></div><div id="messages" class="message-list"></div></section>
-      <section id="page-security" class="page" hidden><div class="page-heading"><div><p class="eyebrow">ACCOUNT & SECURITY</p><h1>账号与安全</h1><p class="muted">为你的电脑和手机分别登记通行密钥。</p></div></div><article class="card"><h2>Google</h2><p id="google-account-state" class="muted"></p><button id="google-bind" class="secondary" disabled>Google</button></article><article class="card"><h2>已登记设备</h2><div id="credentials"></div><label>新设备名称<input id="additional-label" maxlength="60" placeholder="例如：我的电脑"></label><button id="add-passkey" class="primary">添加通行密钥</button><p class="hint">敏感操作需要在最近 5 分钟内完成身份验证。</p></article><article class="card"><h2>离线恢复码</h2><p class="muted">无法使用通行密钥时，可用一次性恢复码重新登记设备。生成新的一组会替换旧恢复码。</p><button id="create-recovery" class="secondary">生成 / 更换恢复码</button><pre id="recovery-output" hidden></pre><button id="download-recovery" class="text-button" hidden>下载并离线保存</button></article></section>
+      <section id="page-security" class="page" hidden><div class="page-heading"><div><p class="eyebrow">ACCOUNT & SECURITY</p><h1>账号与安全</h1><p class="muted">为你的电脑和手机分别登记通行密钥。</p></div></div><article class="card"><h2>Google</h2><p id="google-account-state" class="muted"></p><button id="google-bind" class="secondary" disabled>Google</button></article><article class="card"><h2>备用验证</h2><button id="sign-in" class="secondary">使用通行密钥验证</button><p id="passkey-login-hint" class="hint">通行密钥可在此添加和管理。</p></article><article class="card"><h2>已登记设备</h2><div id="credentials"></div><label>新设备名称<input id="additional-label" maxlength="60" placeholder="例如：我的电脑"></label><button id="add-passkey" class="primary">添加通行密钥</button><p class="hint">敏感操作需要在最近 5 分钟内完成身份验证。</p></article><article class="card"><h2>离线恢复码</h2><p class="muted">无法使用通行密钥时，可用一次性恢复码重新登记设备。生成新的一组会替换旧恢复码。</p><button id="create-recovery" class="secondary">生成 / 更换恢复码</button><pre id="recovery-output" hidden></pre><button id="download-recovery" class="text-button" hidden>下载并离线保存</button></article></section>
       <footer>SHILOKU · 私密管理空间</footer>
     </div>
   </div>

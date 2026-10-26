@@ -11,6 +11,7 @@ if (redis.call('GET',KEYS[4]) or 'initial')~=ARGV[4] then return 0 end
 local current=redis.call('GET',KEYS[1]); if current then if current==ARGV[1] then return 1 else return 0 end end
 if ARGV[2]=='bootstrap' then if redis.call('GET',KEYS[2])~=ARGV[3] then return 0 end; redis.call('DEL',KEYS[2])
 elseif ARGV[2]=='session' then if redis.call('EXISTS',KEYS[5])==0 then return 0 end
+elseif ARGV[2]=='configured' then redis.call('DEL',KEYS[2])
 else return 0 end
 redis.call('SET',KEYS[1],ARGV[1]); redis.call('SET',KEYS[3],'owner'); return 1`;
 
@@ -32,6 +33,7 @@ export function createGoogleAuth({env=process.env,store=redis,auth=createAuth({e
     let mode='login',bootstrap,sessionId;
     if(!bound) {
       if(owner && !owner.restricted && owner.version===version && Date.now()-owner.createdAt<300000){mode='session';sessionId=owner.id;}
+      else if(env.ADMIN_GOOGLE_EMAIL?.trim()) mode='configured';
       else {
         bootstrap=hash(token||'');
         if(!token || await store.command(['GET',P+'bootstrap'])!==bootstrap) deny('首次绑定需要站长的一次性初始化入口');
@@ -66,6 +68,7 @@ export function createGoogleAuth({env=process.env,store=redis,auth=createAuth({e
     if(!tokens.id_token)deny('Google 未返回有效身份');
     const identity=await verify(tokens.id_token,active.nonce,env.GOOGLE_CLIENT_ID);
     if(typeof identity.sub!=='string'||!identity.sub||identity.sub.length>255||identity.email_verified!==true||identity.nonce!==active.nonce)deny('Google 账号未通过验证');
+    if(active.mode==='configured' && (!env.ADMIN_GOOGLE_EMAIL?.trim() || typeof identity.email!=='string' || identity.email.trim().toLowerCase()!==env.ADMIN_GOOGLE_EMAIL.trim().toLowerCase()))deny('此 Google 账号没有站长权限');
     const committed=await store.command(['EVAL',CLAIM_GOOGLE,5,P+'google-sub',P+'bootstrap',P+'owner',P+'session-version',P+'session:'+(active.sessionId||'none'),identity.sub,active.mode,active.bootstrap||'',active.version]);
     if(committed!==1)deny('此 Google 账号没有站长权限，或初始化入口已失效');
     const result=await auth.issueSession({expectedVersion:active.version});
