@@ -3490,7 +3490,7 @@ body.music-room-open {
     
     <div class="chat-input-area">
         <input type="text" id="chat-input" data-i18n-placeholder="aiInputPlaceholder" placeholder="输入你想说的话 (按回车发送)..." autocomplete="off">
-        <button onclick="sendMessage()" id="send-btn" class="hover-target" data-i18n="aiSend">发送</button>
+        <button id="send-btn" class="hover-target" data-i18n="aiSend">发送</button>
     </div>
 </div>
 
@@ -3729,6 +3729,7 @@ body.music-room-open {
         }
     }
 
+    document.getElementById('send-btn').addEventListener('click',sendMessage);
     // 3. 支持敲击回车键发送消息
     document.getElementById('chat-input').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
@@ -6027,7 +6028,7 @@ window.addEventListener('DOMContentLoaded', () => {
 import { initSonicTopographyViz } from './scripts/sonic-topography-viz.js?v=20260625play1';
 import { initSonicSettingsPanel } from './scripts/sonic-settings-panel.js?v=20261026owner1';
 import { initSonicMusicExtras } from './scripts/sonic-music-extras.js?v=20260624n';
-import { initSonicNeteasePlaylists } from './scripts/sonic-netease-playlists.js?v=20261026owner1';
+import { initSonicNeteasePlaylists } from './scripts/sonic-netease-playlists.js?v=20261026public2';
 
 
 try {

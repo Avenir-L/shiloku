@@ -389,7 +389,7 @@ export async function fetchUserPlaylists(cookie) {
     );
     const data = await response.json();
     const raw = Array.isArray(data?.playlist) ? data.playlist : [];
-    const playlists = raw.map((playlist) => ({
+    const playlists = raw.filter(playlist=>playlist.privacy===0).map((playlist) => ({
         id: playlist.id,
         name: playlist.name || '',
         trackCount: playlist.trackCount || 0,
@@ -420,6 +420,7 @@ export async function fetchPlaylistSongs(playlistId, cookie, resultLimit = 50) {
         { headers: getNeteaseHeadersWithCookie(cookie) },
     );
     const data = await response.json();
+    if(data?.playlist?.privacy!==0)throw Object.assign(new Error('此歌单未公开'),{status:403});
     const tracks = Array.isArray(data?.playlist?.tracks) ? data.playlist.tracks : [];
     const rawSongs = tracks.map(mapNeteaseSong);
     return filterPlayableWithCookie(rawSongs, limit, cookie);

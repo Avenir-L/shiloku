@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import {createMusicLimiter} from './_lib/netease/rate.js';
 import {
     applyCors,
     fetchNeteaseListenStats,
@@ -68,8 +69,7 @@ async function handlePlaylists(req, res) {
     if (!valid) {
         return res.status(401).json({ error: 'Netease cookie is invalid or expired', playlists: [] });
     }
-    const trimmed = playlists.length > 1 ? playlists.slice(1) : [];
-    return res.status(200).json({ playlists: trimmed });
+    return res.status(200).json({ playlists });
 }
 
 async function handlePlaylist(req, res) {
@@ -120,7 +120,7 @@ async function handleAudio(req, res) {
     Readable.fromWeb(audioResponse.body).pipe(res);
 }
 
-export default async function handler(req, res) {
+export function createNeteaseHandler({limit=createMusicLimiter()}={}){return async function handler(req, res) {
     applyCors(req, res);
     res.setHeader('Cache-Control', 'private, no-store');
     if (req.method === 'OPTIONS') return res.status(204).end();
@@ -128,6 +128,7 @@ export default async function handler(req, res) {
     const action = getAction(req);
 
     try {
+        if(['search','lyric','playable','listen-stats','playlists','playlist','audio'].includes(action)&&['GET','HEAD'].includes(req.method))await limit(req,action);
         switch (action) {
             case 'ping':
                 if (req.method !== 'GET') return res.status(405).json({ error: '只允许 GET 请求' });
@@ -170,6 +171,10 @@ export default async function handler(req, res) {
             res.end();
             return;
         }
+        if([403,429,503].includes(error.status)){
+            if(error.status===429)res.setHeader('Retry-After','60');
+            return res.status(error.status).json({error:error.message});
+        }
         const message = error?.message || '请求失败';
         if (action === 'audio') {
             return res.status(500).json({ error: '音频代理失败' });
@@ -194,4 +199,5 @@ export default async function handler(req, res) {
         }
         return res.status(500).json({ error: message });
     }
-}
+};}
+export default createNeteaseHandler();

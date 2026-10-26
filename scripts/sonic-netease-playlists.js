@@ -1,6 +1,7 @@
 import { fetchNeteaseCloud } from './sonic-netease-api.js?v=20261026owner1';
+import {appendSongText} from './song-text.js';
 
-const CACHE_PREFIX = 'shiloku:netease:';
+const CACHE_PREFIX = 'shiloku:netease:public-v2:';
 const CACHE_TTL_MS = 30 * 60 * 1000;
 
 function readNeteaseCache(key) {
@@ -249,7 +250,7 @@ export function initSonicNeteasePlaylists({
       if (playback.source === 'local' && playback.index === index) {
         li.classList.add('is-active');
       }
-      li.innerHTML = `<span class="netease-song-title">${song.title || song.name || ''}</span><span class="netease-song-artist">${song.artist || ''}</span>`;
+      appendSongText(li,song.title||song.name,song.artist);
       li.addEventListener('click', () => onPlayLocalSong?.(index));
       localSongsEl.appendChild(li);
     });
@@ -320,7 +321,7 @@ export function initSonicNeteasePlaylists({
       ) {
         li.classList.add('is-active');
       }
-      li.innerHTML = `<span class="netease-song-title">${song.name}</span><span class="netease-song-artist">${song.artist || ''}</span>`;
+      appendSongText(li,song.name,song.artist);
       li.addEventListener('click', () => {
         const playlist = playlists.find((item) => item.id === activePlaylistId) || null;
         if (onPlayPlaylistSong) {

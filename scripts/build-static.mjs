@@ -1,4 +1,5 @@
-import {readdir,mkdir,cp,rm} from 'node:fs/promises';
+import {readdir,mkdir,cp,rm,readFile,writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 const root=new URL('../',import.meta.url),out=new URL('../public/',import.meta.url);
 // This is a fixed build output beneath the repository, never a caller-supplied path.
 await rm(out,{recursive:true,force:true});await mkdir(out,{recursive:true});
@@ -16,3 +17,12 @@ async function copyBrowserScripts(dir='scripts/'){
  }
 }
 await copyBrowserScripts();
+// Recompute hashes from the emitted HTML on every build; future edits cannot
+// accidentally leave a stale inline-script allowlist in production.
+const home=new URL('index.html',out);
+let html=(await readFile(home,'utf8')).replace(/\r\n?/g,'\n');
+if(/\son\w+\s*=/.test(html.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi,'')))throw Error('Inline event handlers are forbidden by the homepage CSP');
+const hashes=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)].filter(m=>m[1].trim()).map(m=>`'sha256-${createHash('sha256').update(m[1]).digest('base64')}'`);
+const policy=`default-src 'self'; script-src 'self' https://cdn.jsdelivr.net ${hashes.join(' ')}; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' https: data:; connect-src 'self' https:; media-src 'self' https: data: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'`;
+html=html.replace(/<head>/i,`<head>\n<meta http-equiv="Content-Security-Policy" content="${policy}">`);
+await writeFile(home,html);
