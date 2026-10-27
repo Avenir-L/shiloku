@@ -16,7 +16,7 @@
     <link rel="icon" href="favicon.png" type="image/png">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preload" href="https://cdn.jsdelivr.net/gh/Avenir-L/shiloku@main/avatar.jpg" as="image">
-    <link rel="preload" href="https://cdn.jsdelivr.net/gh/Avenir-L/shiloku@main/bg.jpg" as="image">
+    <link rel="preload" href="assets/page-one-moon.png" as="image">
     <link rel="stylesheet" href="fonts/site-fonts.css?v=20260701a">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css">
     <script src="scripts/static-assets.js?v=20261027metadata1"></script>
@@ -2603,8 +2603,11 @@ body.music-room-open {
             #time-page-content .time-display { font-size: clamp(48px, 14vw, 88px); }
         }
     </style>
+<link rel="stylesheet" href="home-themes.css?v=20261027themes1">
+<script type="module" src="scripts/home-themes.js?v=20261027themes1"></script>
 </head>
 <body>
+<details class="home-themes" id="home-themes"><summary>◈ 主题</summary><div class="home-theme-panel"><div class="home-theme-options" role="group" aria-label="背景主题"></div><div role="status" aria-live="polite"></div></div></details>
     <div class="bg-layer" aria-hidden="true">
         <div class="bg-placeholder"></div>
         <div class="bg-image" id="bg-image"></div>
@@ -2848,7 +2851,7 @@ body.music-room-open {
         })();
 
         (function preloadSiteAssets() {
-            const BG_URL = window.shilokuAssetUrl?.('bg.jpg') || 'bg.jpg';
+            const BG_URL = 'assets/page-one-moon.png';
             const AVATAR_URL = window.shilokuAssetUrl?.('avatar.jpg') || 'avatar.jpg';
             const bgEl = document.getElementById('bg-image');
             const bgImg = new Image();
