@@ -26,7 +26,8 @@ async function loadManifest() {
 }
 
 function sortedItems(items = []) {
-    return [...items];
+    if(items.some(item=>item.image))return [...items];
+    return [...items].sort((a,b)=>Number(isDraft(a))-Number(isDraft(b))||String(a.id).localeCompare(String(b.id)));
 }
 function imageUrl(item){return item.image||`gallery/${item.file}`;}
 

@@ -17,6 +17,7 @@ const response=()=>({headers:{},setHeader(k,v){this.headers[k]=v;},status(c){thi
 test('site content starts from current multilingual profile and complete existing gallery',async()=>{
  const content=createSiteContent({store:new Store()}),data=await content.read();
  assert.equal(data.profile.nickname,'栀落余殁');assert.equal(data.profile.avatar,'/avatar.jpg');assert.ok(data.profile.locales.en.bioP1);assert.equal(data.gallery.length,9);
+ assert.deepEqual(data.gallery.map(item=>item.id),['02','03','04','08','09','05','07','11','12']);
 });
 test('profile/gallery persist across service instances; concurrent edits are rejected',async()=>{
  const store=new Store(),content=createSiteContent({store}),data=await content.read();
