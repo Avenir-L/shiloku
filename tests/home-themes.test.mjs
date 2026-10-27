@@ -41,3 +41,8 @@ test('invalid saved values cannot request arbitrary URLs; viewport changes use m
     s.button('umbrella').click();s.pending[0].ok();await flush();
     s.media.matches=true;s.media.change();assert.match(s.pending[1].url, /umbrella-mobile\.avif$/);
 });
+test('horizon restores with its cropped high quality assets on desktop and mobile',async()=>{
+    const s=setup('horizon');assert.match(s.pending[0].url,/admin-sky-desktop-20261027hq\.avif$/);
+    s.pending[0].ok();await flush();assert.equal(s.root.dataset.homeTheme,'horizon');
+    s.media.matches=true;s.media.change();assert.match(s.pending[1].url,/admin-sky-mobile-20261027hq\.avif$/);
+});

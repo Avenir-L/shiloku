@@ -3,6 +3,7 @@ const choices = [
     ['train', '列车', 'assets/theme-train-thumb.webp'],
     ['sky', '天空之城', 'assets/theme-sky-thumb.webp'],
     ['umbrella', '红伞', 'assets/theme-umbrella-thumb.webp'],
+    ['horizon', '晴空', 'assets/theme-horizon-thumb.webp'],
 ];
 const key = 'shiloku-home-theme-v1';
 const picker = document.querySelector('#home-themes');
@@ -13,7 +14,9 @@ let selected = 'original';
 let wanted = 'original';
 const mobile = matchMedia('(max-width: 768px)');
 const buttons = [];
-const asset = (id) => `assets/theme-${id}-${mobile.matches ? 'mobile' : 'desktop'}`;
+const asset = (id) => id === 'horizon'
+    ? `assets/admin-sky-${mobile.matches ? 'mobile' : 'desktop'}-20261027hq`
+    : `assets/theme-${id}-${mobile.matches ? 'mobile' : 'desktop'}`;
 
 function loadImage(url) {
     return new Promise((resolve, reject) => {
