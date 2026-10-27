@@ -31,8 +31,10 @@ async function refreshSession() {
   $('google-bind').textContent=state.googleBound?'使用 Google 重新验证':'绑定 Google 账号';
   $('google-account-state').textContent=state.googleBound?'已绑定站长 Google 账号。':state.googleAvailable?'首次绑定需要当前站长身份在最近 5 分钟内验证过。':'Google 登录尚未配置。';
   const passkeyAvailable=state.passkeyAvailable ?? state.initialized;
-  $('sign-in').disabled=!passkeyAvailable;
-  $('passkey-login-hint').textContent=passkeyAvailable?'通行密钥是可选的备用登录方式。':'尚未登记通行密钥。可以先用 Google 登录，再按需添加。';
+  const supportsPasskey=browserSupportsWebAuthn();
+  $('sign-in').disabled=!passkeyAvailable||!supportsPasskey;
+  $('passkey-login-hint').hidden=passkeyAvailable&&supportsPasskey;
+  $('passkey-login-hint').textContent=!supportsPasskey?'当前浏览器不支持通行密钥，可以使用 Google 账号登录':passkeyAvailable?'使用已登记设备的通行密钥，也可直接登录':'尚未登记通行密钥，可先用 Google 登录后添加';
   if(state.authenticated) {$('login').hidden=true;$('dashboard').hidden=false;await showPage(location.hash.slice(1)||'overview');}
   else {
     loginScreen();
