@@ -1,3 +1,5 @@
+import {prepareBackgroundDissolve} from './background-dissolve.js?v=20261027dust1';
+
 const choices = [
     ['original', '原主题', 'assets/page-one-moon.png'],
     ['train', '列车', 'assets/theme-train-thumb.webp'],
@@ -12,6 +14,7 @@ const status = picker.querySelector('[role="status"]');
 let request = 0;
 let selected = 'original';
 let wanted = 'original';
+let transition = null;
 const mobile = matchMedia('(max-width: 768px)');
 const buttons = [];
 const asset = (id) => id === 'horizon'
@@ -27,10 +30,12 @@ function loadImage(url) {
     });
 }
 
-async function selectTheme(id, close = false) {
+async function selectTheme(id, close = false, origin) {
     if (!choices.some(choice => choice[0] === id)) return;
     wanted = id;
     const token = ++request;
+    transition?.cancel();
+    transition = null;
     status.textContent = '加载中…';
     picker.setAttribute('aria-busy', 'true');
     try {
@@ -41,9 +46,16 @@ async function selectTheme(id, close = false) {
             catch { url = await loadImage(`${base}.webp`); }
         }
         if (token !== request) return;
+        let effect = null;
+        if (close && id !== selected) {
+            try { effect = await prepareBackgroundDissolve(origin); } catch { /* Keep switching available without canvas. */ }
+        }
+        if (token !== request) { effect?.cancel(); return; }
         const root = document.documentElement;
         root.style.setProperty('--home-theme-image', url ? `url("${url}")` : 'none');
         root.dataset.homeTheme = id;
+        transition = effect;
+        effect?.play();
         if (id !== 'original') document.body.classList.add('bg-ready');
         selected = id;
         buttons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.theme === id)));
@@ -69,7 +81,10 @@ for (const [id, name, thumbnail] of choices) {
     const label = document.createElement('span');
     label.textContent = name;
     button.append(image, label);
-    button.addEventListener('click', () => selectTheme(id, true));
+    button.addEventListener('click', () => {
+        const rect = button.getBoundingClientRect?.();
+        selectTheme(id, true, rect ? {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2} : undefined);
+    });
     picker.querySelector('.home-theme-options').append(button);
     buttons.push(button);
 }

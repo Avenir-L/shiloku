@@ -1,4 +1,8 @@
 .home-themes { position: fixed; top: max(22px, env(safe-area-inset-top)); left: max(22px, env(safe-area-inset-left)); z-index: 950; color: #fff; font-family: inherit; }
+.background-dissolve { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+.bg-layer:has(.background-dissolve) #bg-image::before { transition: none; }
+@media (prefers-reduced-motion: reduce) { #bg-image::before { transition: none; } }
+html[data-home-theme]:not([data-home-theme="original"]) #bg-image::before { transition: none; }
 .home-themes summary { list-style: none; cursor: pointer; padding: 10px 16px; border: 1px solid #ffffff40; border-radius: 24px; background: #10131bcc; font-size: 13px; letter-spacing: 1px; box-shadow: 0 3px 15px #0002; }
 .home-themes summary::-webkit-details-marker { display: none; }
 .home-themes summary { width: fit-content; }

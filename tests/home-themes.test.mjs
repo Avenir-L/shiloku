@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 
-const source = await readFile(new URL('../scripts/home-themes.js', import.meta.url), 'utf8');
+const source = (await readFile(new URL('../scripts/home-themes.js', import.meta.url), 'utf8')).replace(/^import .*;\r?\n/m, '');
 function setup(saved = 'original') {
     const elements = [];
     const pending = [];
@@ -18,6 +18,7 @@ function setup(saved = 'original') {
     vm.runInNewContext(source, {
         document:{querySelector:()=>picker,documentElement:root,body:{classList:{add(){}}},addEventListener(){},createElement(){const e=element();elements.push(e);return e;}},
         localStorage:storage,matchMedia:()=>media,
+        prepareBackgroundDissolve: async () => null,
         Image:class {set src(url){pending.push({url,ok:()=>this.onload(),fail:()=>this.onerror()});}},
     });
     return {root,styles,storage,pending,status,media,button:id=>elements.find(e=>e.dataset.theme===id)};
