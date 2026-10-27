@@ -20,11 +20,11 @@ html{scrollbar-gutter:stable}
 .login-card .passkey-button{background:#101a2b6b;border-color:#d8e4f02e;color:#e3e9f1;backdrop-filter:blur(8px)}
 .login-card details{border-top-color:#d8e4f02e}
 
-.login-shell{background-size:auto,max(100vw,216svh) auto}
+.login-shell{background-size:auto,cover}
 
 /* Share the login artwork with authenticated pages, keeping controls readable. */
 .dashboard{position:relative;isolation:isolate;--muted:#c4ccd8;--line:#e5edff24}
-.dashboard::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#07132270,#07132299),var(--admin-scene) center center/max(100vw,216svh) auto no-repeat;background-color:#7089a4}
+.dashboard::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#07132270,#07132299),var(--admin-scene) center center/cover no-repeat;background-color:#7089a4}
 .dashboard aside{background:#101b2bc9;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
 .dashboard .card,.dashboard .message{background:#101b2bd6;box-shadow:0 8px 28px #03101f1a;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 .dashboard .workspace>.page-heading,.dashboard .page-heading,.dashboard header{ text-shadow:0 1px 10px #07132280 }
@@ -194,14 +194,14 @@ html::-webkit-scrollbar-track{background:#7b94ad}
 html::-webkit-scrollbar-thumb{background-color:#e3edf78c}
 html::-webkit-scrollbar-thumb:hover{background-color:#f0f6ffb3}
 .credential-rename{max-width:420px;margin-top:14px}.credential-rename label{color:var(--text)}.credential-rename button{margin-right:18px}.credential>.text-button{display:inline-block;margin-right:20px}
-:root{--admin-scene:url('/assets/admin-sky-desktop-20261026.webp')}
+:root{--admin-scene:url('/assets/admin-sky-desktop-20261027hq.webp')}
 @supports(background-image:image-set(url('/assets/admin-sky-desktop-20261026.avif') type('image/avif'))){
- :root{--admin-scene:image-set(url('/assets/admin-sky-desktop-20261026.avif') type('image/avif'),url('/assets/admin-sky-desktop-20261026.webp') type('image/webp'))}
+ :root{--admin-scene:image-set(url('/assets/admin-sky-desktop-20261027hq.avif') type('image/avif'),url('/assets/admin-sky-desktop-20261027hq.webp') type('image/webp'))}
 }
 @media(max-width:800px){
- :root{--admin-scene:url('/assets/admin-sky-mobile-20261026.webp')}
+ :root{--admin-scene:url('/assets/admin-sky-mobile-20261027hq.webp')}
  @supports(background-image:image-set(url('/assets/admin-sky-mobile-20261026.avif') type('image/avif'))){
-  :root{--admin-scene:image-set(url('/assets/admin-sky-mobile-20261026.avif') type('image/avif'),url('/assets/admin-sky-mobile-20261026.webp') type('image/webp'))}
+  :root{--admin-scene:image-set(url('/assets/admin-sky-mobile-20261027hq.avif') type('image/avif'),url('/assets/admin-sky-mobile-20261027hq.webp') type('image/webp'))}
  }
 }
 .login-footer{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
