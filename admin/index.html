@@ -6,8 +6,8 @@
   <title>Shiloku · 管理后台</title>
   <link rel="preload" as="image" type="image/avif" href="/assets/admin-sky-desktop-20261027hq.avif" media="(min-width:801px)" fetchpriority="high">
   <link rel="preload" as="image" type="image/avif" href="/assets/admin-sky-mobile-20261027hq.avif" media="(max-width:800px)" fetchpriority="high">
-  <link rel="stylesheet" href="/admin/admin.css?v=20261027content1">
-  <script type="module" src="/admin/admin.js?v=20261027content1"></script>
+  <link rel="stylesheet" href="/admin/admin.css?v=20261028space1">
+  <script type="module" src="/admin/admin.js?v=20261028space1"></script>
 </head>
 <body>
   <main id="login" class="login-shell">
@@ -61,7 +61,7 @@
         <div class="grid overview-grid">
           <button class="card overview-entry" data-page="content"><span class="eyebrow">WEBSITE CONTENT</span><h2>主站内容</h2><p class="muted">更换头像、编辑昵称与介绍、管理画作</p><span class="overview-link">编辑主站 ↗</span></button>
           <button class="card overview-entry" data-page="music"><span class="eyebrow">01 / MUSIC ROOM</span><h2>音乐室</h2><p class="muted">查看账号连接、扫码授权与更新登录信息</p><span class="overview-link">管理音乐室 ↗</span></button>
-          <button class="card overview-entry" data-page="space"><span class="eyebrow">02 / PERSONAL SPACE</span><h2>我的空间</h2><p class="muted">生活日常与更新日志的独立发布空间</p><span class="overview-link">尚未接入 · 查看规划 ↗</span></button>
+          <button class="card overview-entry" data-page="space"><span class="eyebrow">02 / PERSONAL SPACE</span><h2>我的空间</h2><p class="muted">图文说说、分享链接、草稿与发布</p><span class="overview-link">发布日常 ↗</span></button>
           <button class="card overview-entry" data-page="guestbook"><span class="eyebrow">03 / GUESTBOOK</span><h2>访客留言</h2><p class="muted">独立查看来访留言，与空间内容分开管理</p><span class="overview-link">查看留言 ↗</span></button>
           <button class="card overview-entry" data-page="security"><span class="eyebrow">04 / ACCOUNT & SECURITY</span><h2>账号与安全</h2><p class="muted">管理 Google 账号、通行密钥与恢复码</p><span class="overview-link">管理账号 ↗</span></button>
         </div>
@@ -85,7 +85,21 @@
           <div class="content-publish"><button id="content-save" type="submit" class="primary">保存并发布到主站</button><a href="/" target="_blank" rel="noopener">查看主站 ↗</a></div>
         </form>
       </section>
-      <section id="page-space" class="page" hidden><div class="page-heading"><div><p class="eyebrow">PERSONAL SPACE</p><h1>我的空间</h1><p class="muted">生活日常与更新日志，有自己的位置。</p></div></div><article class="card empty"><span class="empty-icon">◈</span><h2>空间发布功能尚未接入</h2><p class="muted">后续单独接入内容数据库、图文编辑、草稿与发布。<br>这里与访客留言分开管理，不共用内容数据。</p></article></section>
+      <section id="page-space" class="page" hidden>
+        <div class="page-heading"><div><p class="eyebrow">PERSONAL SPACE</p><h1>我的空间</h1><p class="muted">记录日常、分享图片与喜欢的链接</p></div><a href="/space/" target="_blank" rel="noopener">查看日常 ↗</a></div>
+        <button id="space-new" type="button" class="secondary">写说说</button>
+        <form id="space-form" class="card space-editor">
+          <p id="space-editor-state" role="status" aria-live="polite"></p>
+          <label>正文<textarea id="space-text" rows="7" maxlength="12000" placeholder="今天有什么想记下来的"></textarea></label>
+          <div id="space-images" class="space-images"></div>
+          <label class="content-file-button">添加图片<input id="space-upload" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple></label><p class="muted">最多 9 张，上传时自动压缩</p>
+          <label>分享链接<textarea id="space-links" rows="3" maxlength="14000" placeholder="粘贴 B站、抖音、网易云音乐等分享链接，每行一个"></textarea></label>
+          <button id="space-resolve" type="button" class="secondary">生成分享卡片</button><div id="space-link-preview" class="muted"></div>
+          <label class="content-check"><input id="space-pinned" type="checkbox">置顶展示</label>
+          <div class="space-controls"><button id="space-draft" type="submit" data-status="draft" class="secondary">存草稿</button><button id="space-publish" type="submit" data-status="published" class="primary">发布说说</button></div>
+        </form>
+        <h2>说说与草稿</h2><div id="space-posts"></div><button id="space-more" type="button" class="secondary" hidden>加载更多</button>
+      </section>
       <section id="page-guestbook" class="page" hidden><div class="page-heading"><div><p class="eyebrow">GUESTBOOK</p><h1>访客留言</h1><p class="muted">独立的留言板，本期仅供查看。</p></div><span class="status-pill">只读</span></div><div id="messages" class="message-list"></div></section>
       <section id="page-security" class="page" hidden><div class="page-heading"><div><p class="eyebrow">ACCOUNT & SECURITY</p><h1>账号与安全</h1><p class="muted">为你的电脑和手机分别登记通行密钥。</p></div></div><article class="card"><h2>Google</h2><p id="google-account-state" class="muted"></p><button id="google-bind" class="secondary" disabled>Google</button></article><article class="card"><h2>已登记设备</h2><div id="credentials"></div><label>新设备名称<input id="additional-label" maxlength="60" placeholder="例如：我的电脑"></label><button id="add-passkey" class="primary">添加通行密钥</button><p class="hint">敏感操作需要在最近 5 分钟内完成身份验证。</p></article><article class="card"><h2>离线恢复码</h2><p class="muted">无法使用通行密钥时，可用一次性恢复码重新登记设备。生成新的一组会替换旧恢复码。</p><button id="create-recovery" class="secondary">生成 / 更换恢复码</button><pre id="recovery-output" hidden></pre><button id="download-recovery" class="text-button" hidden>下载并离线保存</button></article></section>
       <footer>SHILOKU · 私密管理空间</footer>

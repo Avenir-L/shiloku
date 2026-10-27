@@ -6,8 +6,10 @@ import {createQrLoginSession,checkQrLogin} from './_lib/netease/weapi.js';
 import {createGoogleAuth} from './_lib/admin/google.js';
 import {createAnalytics} from './_lib/analytics.js';
 import {createSiteContent} from './_lib/site-content.js';
+import {createSpace} from './_lib/space.js';
+import {resolveShare} from './_lib/share-links.js';
 
-export function createAdminHandler({env=process.env,store=redis,auth=createAuth({store,env}),music=createMusic({store,env,provider:{validateNeteaseCookie,createQrLoginSession,checkQrLogin}}),google=createGoogleAuth({env,store,auth}),analytics=createAnalytics({store}),content=createSiteContent({store})}={}) {
+export function createAdminHandler({env=process.env,store=redis,auth=createAuth({store,env}),music=createMusic({store,env,provider:{validateNeteaseCookie,createQrLoginSession,checkQrLogin}}),google=createGoogleAuth({env,store,auth}),analytics=createAnalytics({store}),content=createSiteContent({store}),space=createSpace({store}),shareResolver=resolveShare}={}) {
   return async function handler(req,res) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Content-Type-Options','nosniff');
@@ -25,10 +27,14 @@ export function createAdminHandler({env=process.env,store=redis,auth=createAuth(
       if(owner?.restricted && !['register-options','register-verify','logout'].includes(action)) return res.status(403).json({error:'请先登记新的通行密钥'});
       await auth.rateLimit(req);
       const body=req.body||{};
-      const bodyLimit=action==='content-upload'?810000:action==='content-save'?120000:24000;
+      const bodyLimit=action==='content-upload'?810000:action==='content-save'||action==='space-save'?120000:24000;
       if(JSON.stringify(body).length>bodyLimit) return res.status(413).json({error:'请求内容过大'});
       let result;
       switch(action) {
+        case 'space-list': return res.status(200).json(await space.list({admin:true,offset:Number(body.offset||0)}));
+        case 'space-save': return res.status(200).json(await space.save(body));
+        case 'space-delete': return res.status(200).json(await space.remove(body.id,body.revision));
+        case 'space-resolve': return res.status(200).json(await shareResolver(body.url));
         case 'content-get': return res.status(200).json(await content.read());
         case 'content-save': return res.status(200).json(await content.save(body));
         case 'content-upload': return res.status(200).json(await content.upload(body));

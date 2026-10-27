@@ -1,11 +1,4 @@
-const labels={bioTitle:'简介标题',bioP1:'简介第一段',bioP2:'简介第二段',aboutTitle:'「了解更多」弹窗标题',aboutBio1:'关于我第一段',aboutBio2:'关于我详细介绍',aboutExtra:'补充介绍',aboutMore:'「了解更多」按钮文字',galleryOpen:'「查看画作」按钮文字',galleryTitle:'画作页标题'};
-export function createContentEditor({api,notify}){
- const $=id=>document.getElementById(id);
- let state=null,language='zh',dirty=false,busy=false;
- const fields=new Map();
- const mark=()=>{dirty=true;$('content-state').textContent='有尚未发布的修改';};
- function setBusy(value){busy=value;$('content-save').disabled=value;$('content-reload').disabled=value;$('content-form').inert=value;}
- async function upload(file,avatar=false){
+export async function uploadSiteImage(file,{api,avatar=false}){
   if(!file||!['image/jpeg','image/png','image/webp','image/avif'].includes(file.type)||file.size>12*1024*1024)throw Error('请选择 12 MB 以内的 JPG、PNG、WebP 或 AVIF 图片');
   const bitmap=await createImageBitmap(file);
   try{
@@ -23,6 +16,15 @@ export function createContentEditor({api,notify}){
    return await api('content-upload',{data,type:blob.type});
   }finally{bitmap.close();}
  }
+
+const labels={bioTitle:'简介标题',bioP1:'简介第一段',bioP2:'简介第二段',aboutTitle:'「了解更多」弹窗标题',aboutBio1:'关于我第一段',aboutBio2:'关于我详细介绍',aboutExtra:'补充介绍',aboutMore:'「了解更多」按钮文字',galleryOpen:'「查看画作」按钮文字',galleryTitle:'画作页标题'};
+export function createContentEditor({api,notify}){
+ const $=id=>document.getElementById(id);
+ let state=null,language='zh',dirty=false,busy=false;
+ const fields=new Map();
+ const mark=()=>{dirty=true;$('content-state').textContent='有尚未发布的修改';};
+ function setBusy(value){busy=value;$('content-save').disabled=value;$('content-reload').disabled=value;$('content-form').inert=value;}
+ const upload=(file,avatar=false)=>uploadSiteImage(file,{api,avatar});
  function showLocale(){for(const [key,input]of fields)input.value=state.profile.locales[language][key];}
  function showProfile(){
   $('content-nickname').value=state.profile.nickname;$('content-subtitle').value=state.profile.subtitle;

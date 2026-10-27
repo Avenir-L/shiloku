@@ -6,7 +6,10 @@
     <meta http-equiv="Permissions-Policy" content="picture-in-picture=(), autoplay=(self)">
     <script>
         if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-        window.addEventListener('pageshow', () => window.scrollTo(0, 0));
+        window.addEventListener('pageshow', () => {
+            if(location.hash==='#daily-entry')document.getElementById('daily-entry')?.scrollIntoView();
+            else window.scrollTo(0, 0);
+        });
     </script>
     <title>Shiloku - 个人主页</title>
     <meta name="description" content="栀落余殁（Shiloku）的个人网站 — 作品集、音乐室、访客留言。">
@@ -21,7 +24,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css">
     <script src="scripts/static-assets.js?v=20261027metadata1"></script>
     <link rel="stylesheet" href="aether-music.css?v=20261027metadata1">
-    <link rel="stylesheet" href="site-extensions.css?v=20261027content1">
+    <link rel="stylesheet" href="site-extensions.css?v=20261028space1">
     <script type="importmap">
     {
         "imports": {
@@ -2714,6 +2717,13 @@ body.music-room-open {
                         </div>
                         <a href="/admin/" class="btn hover-target" aria-label="后台入口，仅限站长登录">后台入口</a>
                     </div>
+                </div>
+            </section>
+            <section class="scroll-page daily-page" id="daily-entry" aria-label="个人空间入口">
+                <div class="page-content daily-portal">
+                    <p class="daily-eyebrow">NOTES &amp; FINDS</p>
+                    <div class="daily-ornament" aria-hidden="true"></div>
+                    <a class="daily-enter hover-target" href="/space/">进入日常</a>
                 </div>
             </section>
         </main>
@@ -6032,10 +6042,8 @@ function initScrollPageTransitions() {
         entries.forEach((entry) => {
             const isVisiblePage = entry.isIntersecting && entry.intersectionRatio >= .42;
             entry.target.classList.toggle('page-is-visible', isVisiblePage);
-            if (entry.target.classList.contains('time-page')) {
-                document.body.classList.toggle('page-two-active', isVisiblePage);
-            }
         });
+        document.body.classList.toggle('page-two-active',[...pages].some(page=>!page.classList.contains('intro-page')&&page.classList.contains('page-is-visible')));
     }, { threshold: [.15, .42, .7] });
     pages.forEach((page) => pageObserver.observe(page));
 }

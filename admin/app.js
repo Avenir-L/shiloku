@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import {chartModel} from './analytics-chart.js';
 import {qrRetryDelay} from './qr-poll.js';
 import {createContentEditor} from './content-editor.js';
+import {createSpaceEditor} from './space-editor.js';
 
 const $=id=>document.getElementById(id);
 let currentSession=null,qrTimer=null,qrVersion=0,recoveryCodes=[];
@@ -66,6 +67,7 @@ async function showPage(name) {
   if(name==='overview') await loadAnalytics(7);
   if(name==='music') await musicStatus();
   if(name==='content') await contentEditor.load();
+  if(name==='space') await spaceEditor.load();
   if(name==='guestbook') {
     const {messages}=await api('guestbook');$('messages').replaceChildren();
     if(!messages.length) {$('messages').textContent='暂无留言。';return;}
@@ -112,6 +114,7 @@ function on(id,fn) {
   });
 }
 const contentEditor=createContentEditor({api,notify});
+const spaceEditor=createSpaceEditor({api,notify});
 let analyticsRequest=0;
 async function loadAnalytics(range){
  const request=++analyticsRequest;
