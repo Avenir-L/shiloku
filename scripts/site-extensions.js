@@ -4,7 +4,7 @@
 import {
     initI18n, setLang, getLang, t, LANGS, LANG_LABELS,
     getGreetingForHour, formatDateLine, applyI18nDom,
-} from './i18n.js?v=20261025guestbook';
+} from './i18n.js?v=20261027content1';
 import {
     setupListeningStatsUI,
     refreshListenStatsUI,
@@ -13,7 +13,7 @@ import {
 } from './listening-stats.js';
 import {
     setupGallery,
-} from './gallery.js?v=20260628g';
+} from './gallery.js?v=20261027content1';
 import {
     getSongKey,
     listCategories,

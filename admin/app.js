@@ -2,6 +2,7 @@ import {startRegistration,startAuthentication,browserSupportsWebAuthn} from '@si
 import QRCode from 'qrcode';
 import {chartModel} from './analytics-chart.js';
 import {qrRetryDelay} from './qr-poll.js';
+import {createContentEditor} from './content-editor.js';
 
 const $=id=>document.getElementById(id);
 let currentSession=null,qrTimer=null,qrVersion=0,recoveryCodes=[];
@@ -57,13 +58,14 @@ async function musicStatus() {
   } catch(error) {$('account-state').textContent='暂时无法检查连接';$('account-pill').textContent='检查失败';throw error;}
 }
 async function showPage(name) {
-  if(!['overview','music','space','guestbook','security'].includes(name)) name='overview';
+  if(!['overview','music','content','space','guestbook','security'].includes(name)) name='overview';
   if(name!=='music') stopQr();
   document.querySelectorAll('.page').forEach(el=>el.hidden=el.id!=='page-'+name);
   document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===name));
   history.replaceState(null,'','#'+name);
   if(name==='overview') await loadAnalytics(7);
   if(name==='music') await musicStatus();
+  if(name==='content') await contentEditor.load();
   if(name==='guestbook') {
     const {messages}=await api('guestbook');$('messages').replaceChildren();
     if(!messages.length) {$('messages').textContent='暂无留言。';return;}
@@ -109,6 +111,7 @@ function on(id,fn) {
     finally {$(id).disabled=false;}
   });
 }
+const contentEditor=createContentEditor({api,notify});
 let analyticsRequest=0;
 async function loadAnalytics(range){
  const request=++analyticsRequest;

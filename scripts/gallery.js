@@ -1,7 +1,8 @@
 /**
  * Procreate 作品集：读取 gallery/manifest.json，网格展示 + 灯箱
  */
-import { t } from './i18n.js?v=20260628g';
+import { t } from './i18n.js?v=20261027content1';
+import {getSiteContent} from './site-profile.js?v=20261027content1';
 
 const MANIFEST_URL = 'gallery/manifest.json';
 let manifestCache = null;
@@ -11,10 +12,12 @@ let allItems = [];
 let activeFilter = 'all';
 
 function isDraft(item) {
-    return Boolean(item?.wip) || /未命名|未完成/.test(item?.title || '');
+    return Boolean(item?.wip) || (!item?.image && /未命名|未完成/.test(item?.title || ''));
 }
 
 async function loadManifest() {
+    const content=await getSiteContent();
+    if(content)return {items:content.gallery};
     if (manifestCache) return manifestCache;
     const res = await fetch(MANIFEST_URL, { cache: 'no-cache' });
     if (!res.ok) throw new Error('manifest');
@@ -23,13 +26,9 @@ async function loadManifest() {
 }
 
 function sortedItems(items = []) {
-    return [...items].sort((a, b) => {
-        const da = isDraft(a) ? 1 : 0;
-        const db = isDraft(b) ? 1 : 0;
-        if (da !== db) return da - db;
-        return String(a.id).localeCompare(String(b.id));
-    });
+    return [...items];
 }
+function imageUrl(item){return item.image||`gallery/${item.file}`;}
 
 function filterItems(items, filter = activeFilter) {
     if (filter === 'draft') return items.filter((item) => isDraft(item));
@@ -87,17 +86,14 @@ function renderGrid(items) {
         card.dataset.id = item.id;
 
         const draft = isDraft(item);
-        card.innerHTML = `
-            <div class="gallery-card-media">
-                <img src="gallery/${item.file}" alt="${item.title}" loading="lazy" decoding="async">
-                <span class="gallery-card-shine" aria-hidden="true"></span>
-                <span class="gallery-card-index">${String(index + 1).padStart(2, '0')}</span>
-                <span class="gallery-card-overlay">
-                    <span class="gallery-card-title">${item.title}</span>
-                    ${draft ? `<span class="gallery-card-draft">${t('galleryDraft')}</span>` : ''}
-                </span>
-            </div>
-        `;
+        const media=document.createElement('div');media.className='gallery-card-media';
+        const image=document.createElement('img');image.src=imageUrl(item);image.alt=item.title;image.loading='lazy';image.decoding='async';
+        const shine=document.createElement('span');shine.className='gallery-card-shine';shine.setAttribute('aria-hidden','true');
+        const count=document.createElement('span');count.className='gallery-card-index';count.textContent=String(index+1).padStart(2,'0');
+        const overlay=document.createElement('span');overlay.className='gallery-card-overlay';
+        const title=document.createElement('span');title.className='gallery-card-title';title.textContent=item.title;overlay.append(title);
+        if(draft){const badge=document.createElement('span');badge.className='gallery-card-draft';badge.textContent=t('galleryDraft');overlay.append(badge);}
+        media.append(image,shine,count,overlay);card.append(media);
         card.addEventListener('click', () => openLightbox(item.id, items));
         grid.appendChild(card);
     });
@@ -152,7 +148,7 @@ function updateLightbox() {
     const title = document.getElementById('gallery-lightbox-title');
     const counter = document.getElementById('gallery-lightbox-counter');
     if (img) {
-        img.src = `gallery/${item.file}`;
+        img.src = imageUrl(item);
         img.alt = item.title;
     }
     if (title) {

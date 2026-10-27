@@ -1183,3 +1183,5 @@ body::-webkit-scrollbar-corner { background: transparent; }
 @supports not selector(::-webkit-scrollbar) {
     html, body { scrollbar-width: thin; scrollbar-color: rgba(190, 202, 224, .5) #0a0d17; }
 }
+/* Owner-edited content keeps paragraph breaks and fits narrow screens. */
+#bio-p1,#bio-p2,#about-modal p[data-i18n]{white-space:pre-line}.gallery-card-title,#name-text,.name-box .subtitle{overflow-wrap:anywhere}

@@ -519,7 +519,7 @@ export function getLang() {
 
 export function t(key, vars) {
     const pack = STRINGS[currentLang] || STRINGS.zh;
-    let text = pack[key] ?? STRINGS.zh[key] ?? key;
+    let text = globalThis.window?.shilokuProfile?.locales?.[currentLang]?.[key] ?? pack[key] ?? STRINGS.zh[key] ?? key;
     if (vars && typeof text === 'string') {
         Object.entries(vars).forEach(([name, value]) => {
             text = text.replaceAll(`{${name}}`, String(value));
@@ -551,7 +551,7 @@ export function applyI18nDom() {
     document.querySelectorAll('[data-i18n]').forEach((el) => {
         const key = el.getAttribute('data-i18n');
         if (!key) return;
-        const translated = pack[key] ?? STRINGS.zh[key];
+        const translated = t(key);
         if (translated != null) el.textContent = translated;
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {

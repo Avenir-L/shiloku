@@ -6,8 +6,8 @@
   <title>Shiloku · 管理后台</title>
   <link rel="preload" as="image" type="image/avif" href="/assets/admin-sky-desktop-20261027hq.avif" media="(min-width:801px)" fetchpriority="high">
   <link rel="preload" as="image" type="image/avif" href="/assets/admin-sky-mobile-20261027hq.avif" media="(max-width:800px)" fetchpriority="high">
-  <link rel="stylesheet" href="/admin/admin.css?v=20261027hq">
-  <script type="module" src="/admin/admin.js?v=20261026a"></script>
+  <link rel="stylesheet" href="/admin/admin.css?v=20261027content1">
+  <script type="module" src="/admin/admin.js?v=20261027content1"></script>
 </head>
 <body>
   <main id="login" class="login-shell">
@@ -39,6 +39,7 @@
         <button data-page="overview" class="active"><span>⌂</span>总览</button>
         <button data-page="music" class="active"><span>♫</span>音乐室</button>
         <button data-page="space"><span>◈</span>我的空间</button>
+        <button data-page="content"><span>✎</span>主站内容</button>
         <button data-page="guestbook"><span>☷</span>访客留言</button>
         <button data-page="security"><span>⌘</span>账号与安全</button>
       </nav>
@@ -58,6 +59,7 @@
         </section>
         <article class="card overview-welcome"><p class="eyebrow">YOUR PRIVATE CORNER</p><h2>欢迎回来，Shiloku</h2><p class="muted">音乐、日常与来访的声音，各有自己的位置</p></article>
         <div class="grid overview-grid">
+          <button class="card overview-entry" data-page="content"><span class="eyebrow">WEBSITE CONTENT</span><h2>主站内容</h2><p class="muted">更换头像、编辑昵称与介绍、管理画作</p><span class="overview-link">编辑主站 ↗</span></button>
           <button class="card overview-entry" data-page="music"><span class="eyebrow">01 / MUSIC ROOM</span><h2>音乐室</h2><p class="muted">查看账号连接、扫码授权与更新登录信息</p><span class="overview-link">管理音乐室 ↗</span></button>
           <button class="card overview-entry" data-page="space"><span class="eyebrow">02 / PERSONAL SPACE</span><h2>我的空间</h2><p class="muted">生活日常与更新日志的独立发布空间</p><span class="overview-link">尚未接入 · 查看规划 ↗</span></button>
           <button class="card overview-entry" data-page="guestbook"><span class="eyebrow">03 / GUESTBOOK</span><h2>访客留言</h2><p class="muted">独立查看来访留言，与空间内容分开管理</p><span class="overview-link">查看留言 ↗</span></button>
@@ -71,6 +73,17 @@
           <article class="card"><span class="step">01</span><h2>扫码连接</h2><p class="muted">使用网易云音乐 App 扫码，并在手机上确认授权。</p><button id="qr-start" class="primary">生成登录二维码</button><div id="qr-area" hidden><img id="qr-image" alt="网易云登录二维码"><p id="qr-status" role="status"></p><button id="qr-stop" class="text-button">取消扫码</button></div></article>
           <article class="card"><span class="step">02</span><h2>登录后即刻生效</h2><p class="muted">授权通过后自动验证并加密保存。下一次音乐请求使用新的账号，无需重新部署网站。</p><div class="note">访客看不到账号管理入口，也无法读取或修改登录凭据。</div><details><summary>手动更新登录信息</summary><label>网易云 Cookie<textarea id="manual-cookie" rows="4" autocomplete="off" spellcheck="false" placeholder="仅在扫码不可用时粘贴"></textarea></label><button id="manual-save" class="secondary">验证并保存</button></details></article>
         </div>
+      </section>
+      <section id="page-content" class="page" hidden>
+        <div class="page-heading"><div><p class="eyebrow">WEBSITE CONTENT</p><h1>主站内容</h1><p class="muted">更换资料、编辑介绍与管理画作，个人空间头像与主站同步</p></div><button type="button" id="content-reload" class="secondary">重新载入</button></div>
+        <p id="content-state" role="status" aria-live="polite"></p>
+        <form id="content-form" hidden>
+          <article class="card"><h2>头像与昵称</h2><div class="content-avatar-row"><img id="content-avatar-preview" alt="主站头像" width="88" height="88"><div><label class="content-file-button">更换头像<input id="content-avatar" type="file" accept="image/jpeg,image/png,image/webp,image/avif"></label><button type="button" id="content-avatar-reset" class="text-button">使用初始头像</button><p class="muted">上传时自动压缩，个人空间与主站使用同一头像</p></div></div><div class="content-fields"><label>昵称<input id="content-nickname" required maxlength="60"></label><label>副昵称 / 英文名<input id="content-subtitle" maxlength="60"></label></div></article>
+          <article class="card"><label>编辑语言<select id="content-language"><option value="zh">中文</option><option value="en">English</option><option value="ja">日本語</option></select></label><h2>个人简介</h2><div id="content-bio-fields" class="content-fields"></div></article>
+          <article class="card"><h2>了解更多</h2><div id="content-about-fields" class="content-fields"></div></article>
+          <article class="card"><h2>画作</h2><div id="content-gallery-fields" class="content-fields"></div><p class="muted">按下方顺序展示，可更换图片、修改标题、排序，或暂时隐藏</p><div id="content-gallery"></div><label class="content-file-button">添加画作<input id="content-art-add" type="file" accept="image/jpeg,image/png,image/webp,image/avif"></label></article>
+          <div class="content-publish"><button id="content-save" type="submit" class="primary">保存并发布到主站</button><a href="/" target="_blank" rel="noopener">查看主站 ↗</a></div>
+        </form>
       </section>
       <section id="page-space" class="page" hidden><div class="page-heading"><div><p class="eyebrow">PERSONAL SPACE</p><h1>我的空间</h1><p class="muted">生活日常与更新日志，有自己的位置。</p></div></div><article class="card empty"><span class="empty-icon">◈</span><h2>空间发布功能尚未接入</h2><p class="muted">后续单独接入内容数据库、图文编辑、草稿与发布。<br>这里与访客留言分开管理，不共用内容数据。</p></article></section>
       <section id="page-guestbook" class="page" hidden><div class="page-heading"><div><p class="eyebrow">GUESTBOOK</p><h1>访客留言</h1><p class="muted">独立的留言板，本期仅供查看。</p></div><span class="status-pill">只读</span></div><div id="messages" class="message-list"></div></section>

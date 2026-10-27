@@ -5,8 +5,9 @@ import {validateNeteaseCookie} from './_lib/netease/lib.js';
 import {createQrLoginSession,checkQrLogin} from './_lib/netease/weapi.js';
 import {createGoogleAuth} from './_lib/admin/google.js';
 import {createAnalytics} from './_lib/analytics.js';
+import {createSiteContent} from './_lib/site-content.js';
 
-export function createAdminHandler({env=process.env,store=redis,auth=createAuth({store,env}),music=createMusic({store,env,provider:{validateNeteaseCookie,createQrLoginSession,checkQrLogin}}),google=createGoogleAuth({env,store,auth}),analytics=createAnalytics({store})}={}) {
+export function createAdminHandler({env=process.env,store=redis,auth=createAuth({store,env}),music=createMusic({store,env,provider:{validateNeteaseCookie,createQrLoginSession,checkQrLogin}}),google=createGoogleAuth({env,store,auth}),analytics=createAnalytics({store}),content=createSiteContent({store})}={}) {
   return async function handler(req,res) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Content-Type-Options','nosniff');
@@ -24,9 +25,13 @@ export function createAdminHandler({env=process.env,store=redis,auth=createAuth(
       if(owner?.restricted && !['register-options','register-verify','logout'].includes(action)) return res.status(403).json({error:'请先登记新的通行密钥'});
       await auth.rateLimit(req);
       const body=req.body||{};
-      if(JSON.stringify(body).length>24000) return res.status(413).json({error:'请求内容过大'});
+      const bodyLimit=action==='content-upload'?810000:action==='content-save'?120000:24000;
+      if(JSON.stringify(body).length>bodyLimit) return res.status(413).json({error:'请求内容过大'});
       let result;
       switch(action) {
+        case 'content-get': return res.status(200).json(await content.read());
+        case 'content-save': return res.status(200).json(await content.save(body));
+        case 'content-upload': return res.status(200).json(await content.upload(body));
         case 'analytics': return res.status(200).json(await analytics.summary(Number(body.range||7)));
         case 'google-start': {
           const result=await google.start({token:body.token,owner});
