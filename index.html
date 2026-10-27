@@ -2799,7 +2799,8 @@ body.music-room-open {
             const mount = document.getElementById('splash-motion');
             const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
             const mobileViewport = window.matchMedia('(max-width: 768px), (hover: none) and (pointer: coarse)');
-            if (!splash || !mount || reducedMotion.matches) {
+            // Daily-space return links already target page three; do not replay the opening.
+            if (location.hash === '#daily-entry' || !splash || !mount || reducedMotion.matches) {
                 splash?.remove();
                 document.body.classList.add('intro-done');
                 return;
