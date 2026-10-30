@@ -31,6 +31,9 @@ export function createAdminHandler({env=process.env,store=redis,auth=createAuth(
       if(JSON.stringify(body).length>bodyLimit) return res.status(413).json({error:'请求内容过大'});
       let result;
       switch(action) {
+        case 'space-settings': return res.status(200).json(await space.settings());
+        case 'space-settings-save': return res.status(200).json(await space.saveSettings(body));
+        case 'space-visibility': return res.status(200).json(await space.visibility(body.id,body.revision,body.hidden));
         case 'space-list': return res.status(200).json(await space.list({admin:true,offset:Number(body.offset||0)}));
         case 'space-save': return res.status(200).json(await space.save(body));
         case 'space-delete': return res.status(200).json(await space.remove(body.id,body.revision));

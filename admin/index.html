@@ -6,8 +6,8 @@
   <title>Shiloku · 管理后台</title>
   <link rel="preload" as="image" type="image/avif" href="/assets/admin-sky-desktop-20261027hq.avif" media="(min-width:801px)" fetchpriority="high">
   <link rel="preload" as="image" type="image/avif" href="/assets/admin-sky-mobile-20261027hq.avif" media="(max-width:800px)" fetchpriority="high">
-  <link rel="stylesheet" href="/admin/admin.css?v=20261028space1">
-  <script type="module" src="/admin/admin.js?v=20261028space1"></script>
+  <link rel="stylesheet" href="/admin/admin.css?v=20261031privacy1">
+  <script type="module" src="/admin/admin.js?v=20261031privacy1"></script>
 </head>
 <body>
   <main id="login" class="login-shell">
@@ -87,6 +87,12 @@
       </section>
       <section id="page-space" class="page" hidden>
         <div class="page-heading"><div><p class="eyebrow">PERSONAL SPACE</p><h1>我的空间</h1><p class="muted">记录日常、分享图片与喜欢的链接</p></div><a href="/space/" target="_blank" rel="noopener">查看日常 ↗</a></div>
+        <form id="space-privacy" class="card space-editor">
+          <h2>访客可见范围</h2>
+          <label>仅公开此时间及之后的说说（北京时间）<input id="space-visible-after" type="datetime-local"></label>
+          <p class="muted">留空表示全部历史说说，单条隐藏的内容始终不对访客展示</p>
+          <button type="submit" class="secondary">保存可见范围</button><p id="space-privacy-state" role="status"></p>
+        </form>
         <button id="space-new" type="button" class="secondary">写说说</button>
         <form id="space-form" class="card space-editor">
           <p id="space-editor-state" role="status" aria-live="polite"></p>
@@ -95,6 +101,7 @@
           <label class="content-file-button">添加图片<input id="space-upload" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple></label><p class="muted">最多 9 张，上传时自动压缩</p>
           <label>分享链接<textarea id="space-links" rows="3" maxlength="14000" placeholder="粘贴 B站、抖音、网易云音乐等分享链接，每行一个"></textarea></label>
           <button id="space-resolve" type="button" class="secondary">生成分享卡片</button><div id="space-link-preview" class="muted"></div>
+          <label class="content-check"><input id="space-hidden" type="checkbox">仅自己可见（隐藏）</label>
           <label class="content-check"><input id="space-pinned" type="checkbox">置顶展示</label>
           <div class="space-controls"><button id="space-draft" type="submit" data-status="draft" class="secondary">存草稿</button><button id="space-publish" type="submit" data-status="published" class="primary">发布说说</button></div>
         </form>

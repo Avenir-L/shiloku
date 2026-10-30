@@ -37,12 +37,18 @@ const store={async command([op,key,...args]){
   if(op==='HSET'){const value=values.get(key)||{};value[args[0]]=args[1];values.set(key,value);return 1;}
   if(op==='ZREVRANGE')return key==='shiloku:guestbook:v1'?[JSON.stringify({id:'preview-1',name:'本地演示',message:'此处为模拟留言，不连接线上两条留言。',time:Date.now()})]:[...(indexes.get(key)||new Map())].sort((a,b)=>b[1]-a[1]).slice(Number(args[0]),Number(args[1])+1).map(x=>x[0]);
   if(op==='EVAL'){
+    if(String(key).includes('space-settings-cas')){
+     const [,record,expected,next]=args;
+     const old=values.get(record);if((old?JSON.parse(old).revision:'initial')!==expected)return 0;
+     values.set(record,next);return 1;
+    }
+
     if(String(key).includes('publish-space-post')){
       const [,record,all,pub,revision,payload,id,allScore,pubScore]=args,raw=values.get(record);
       if((raw?JSON.parse(raw).revision:'initial')!==revision)return 0;
       const index=k=>{if(!indexes.has(k))indexes.set(k,new Map());return indexes.get(k);};
       values.set(record,payload);index(all).delete(id);index(pub).delete(id);
-      const post=JSON.parse(payload);if(!post.deleted){index(all).set(id,Number(allScore));if(post.status==='published')index(pub).set(id,Number(pubScore));}return 1;
+      const post=JSON.parse(payload);if(!post.deleted){index(all).set(id,Number(allScore));if(post.status==='published'&&!post.hidden)index(pub).set(id,Number(pubScore));}return 1;
     }
     if(String(key).includes('publish-site-content')){const [,record,expected,next]=args;const raw=values.get(record);if((raw?JSON.parse(raw).revision:'initial')!==expected)return 0;values.set(record,next);return 1;}
     if(args[0]===5){const [,subject,bootstrap,owner,version,sessionId,sub,mode,digest,expected]=args;if((values.get(version)||'initial')!==expected)return 0;const current=values.get(subject);if(current)return current===sub?1:0;if(mode==='bootstrap'){if(values.get(bootstrap)!==digest)return 0;values.delete(bootstrap);}else if(mode!=='configured'&&(mode!=='session'||!values.has(sessionId)))return 0;values.set(subject,sub);values.set(owner,'owner');return 1;}
