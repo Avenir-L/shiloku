@@ -3084,36 +3084,40 @@ body.music-room-open {
             }
         }
 
+        let statusRequest = null;
         async function fetchRemoteStatus() {
-            const payloads = [];
-            for (const base of STATUS_SOURCES) {
-                try {
-                    const res = await fetch(base + (base.includes('?') ? '&' : '?') + 't=' + Date.now(), {
-                        cache: 'no-store',
-                    });
-                    if (!res.ok) continue;
-                    payloads.push(await res.json());
-                } catch (_) { /* try next source */ }
-            }
-            if (!payloads.length) return;
+            if (statusRequest) return statusRequest;
+            statusRequest = (async () => {
+                const payloads = [];
+                for (const base of STATUS_SOURCES) {
+                    try {
+                        const res = await fetch(base, { signal: AbortSignal.timeout(8000) });
+                        if (!res.ok) continue;
+                        payloads.push(await res.json());
+                    } catch (_) { /* try next source */ }
+                }
+                if (!payloads.length) return;
 
-            let best = null;
-            let bestTime = NaN;
-            for (const payload of payloads) {
-                const t = parseStatusTime(payload.updatedAt);
-                if (!best) {
-                    best = payload;
-                    bestTime = t;
-                    continue;
+                let best = null;
+                let bestTime = NaN;
+                for (const payload of payloads) {
+                    const t = parseStatusTime(payload.updatedAt);
+                    if (!best) {
+                        best = payload;
+                        bestTime = t;
+                        continue;
+                    }
+                    if (Number.isFinite(t) && (!Number.isFinite(bestTime) || t > bestTime)) {
+                        best = payload;
+                        bestTime = t;
+                    } else if (!Number.isFinite(bestTime) && payload.text) {
+                        best = payload;
+                    }
                 }
-                if (Number.isFinite(t) && (!Number.isFinite(bestTime) || t > bestTime)) {
-                    best = payload;
-                    bestTime = t;
-                } else if (!Number.isFinite(bestTime) && payload.text) {
-                    best = payload;
-                }
-            }
-            if (best) applyRemoteStatus(best);
+                if (best) applyRemoteStatus(best);
+            })();
+            try { await statusRequest; }
+            finally { statusRequest = null; }
         }
 
         window.setStatus = function(text, options = {}) {
@@ -3132,17 +3136,16 @@ body.music-room-open {
         };
 
         document.addEventListener('DOMContentLoaded', () => {
-            const STATUS_POLL_MS = 10000;
-            const STATUS_POLL_HIDDEN_MS = 60000;
+            const STATUS_POLL_MS = 30000;
             let statusPollTimer = null;
 
             const scheduleStatusPoll = () => {
                 if (statusPollTimer) clearInterval(statusPollTimer);
-                const interval = document.hidden ? STATUS_POLL_HIDDEN_MS : STATUS_POLL_MS;
+                if (document.hidden) return;
                 statusPollTimer = setInterval(() => {
                     if (document.hidden) return;
                     fetchRemoteStatus();
-                }, interval);
+                }, STATUS_POLL_MS);
             };
 
             fetchRemoteStatus();

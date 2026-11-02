@@ -65,7 +65,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-store, no-cache, must-revalidate"
+          "value": "public, max-age=15, s-maxage=30"
         },
         {
           "key": "Access-Control-Allow-Origin",

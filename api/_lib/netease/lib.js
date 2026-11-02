@@ -318,14 +318,14 @@ export async function fetchNeteaseListenStats() {
     };
 }
 
-export async function proxyNeteaseAudio(id, reqHeaders, cookie = '') {
+export async function proxyNeteaseAudio(id, reqHeaders, cookie = '', {method = 'GET', signal} = {}) {
     const playableUrl = await getNeteasePlayableUrlWithCookie(id, cookie);
     if (!playableUrl) return null;
 
     const headers = getNeteaseHeadersWithCookie(cookie);
     if (reqHeaders.range) headers.Range = reqHeaders.range;
 
-    const audioResponse = await fetch(playableUrl, { headers });
+    const audioResponse = await fetch(playableUrl, { headers, method, signal });
     return audioResponse;
 }
 

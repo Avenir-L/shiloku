@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import {createMusicLimiter} from './_lib/netease/rate.js';
 import {
     applyCors,
@@ -87,37 +88,48 @@ async function handlePlaylist(req, res) {
 
 async function handleAudio(req, res) {
     const id = String(req.query.id || '');
-    if (!id) return res.status(400).json({ error: '缺少歌曲 id' });
+    if (!/^\d{1,20}$/.test(id)) return res.status(400).json({ error: '缺少歌曲 id 或格式无效' });
 
-    const cookie = await resolveNeteaseCookie(req);
-    const audioResponse = await proxyNeteaseAudio(id, req.headers, cookie);
-    if (!audioResponse) {
-        return res.status(404).json({ error: '这首歌暂时无法播放' });
+    const controller = new AbortController();
+    const onClose = () => controller.abort();
+    res.once('close', onClose);
+    try {
+        const cookie = await resolveNeteaseCookie(req);
+        const audioResponse = await proxyNeteaseAudio(id, req.headers, cookie, {method: req.method, signal: controller.signal});
+        if (!audioResponse) {
+            return res.status(404).json({ error: '这首歌暂时无法播放' });
+        }
+
+        res.setHeader('Cache-Control', audioResponse.ok ? 'private, max-age=3600' : 'private, no-store');
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
+
+        for (const header of ['Content-Type', 'Content-Length', 'Content-Range', 'Accept-Ranges']) {
+            const value = audioResponse.headers.get(header);
+            if (value) res.setHeader(header, value);
+        }
+        if (!audioResponse.headers.get('Content-Type')) {
+            res.setHeader('Content-Type', 'audio/mpeg');
+        }
+
+        res.status(audioResponse.status);
+        if (req.method === 'HEAD') {
+            await audioResponse.body?.cancel();
+            return res.end();
+        }
+
+        if (!audioResponse.body) {
+            const buffer = Buffer.from(await audioResponse.arrayBuffer());
+            res.end(buffer);
+            return;
+        }
+
+        // Backpressure and client disconnects must propagate to the upstream body.
+        await pipeline(Readable.fromWeb(audioResponse.body), res, {signal: controller.signal});
+    } catch (error) {
+        if (!controller.signal.aborted && !res.destroyed) throw error;
+    } finally {
+        res.off('close', onClose);
     }
-
-    res.setHeader('Cache-Control', 'private, max-age=300');
-    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
-
-    for (const header of ['Content-Type', 'Content-Length', 'Content-Range', 'Accept-Ranges']) {
-        const value = audioResponse.headers.get(header);
-        if (value) res.setHeader(header, value);
-    }
-    if (!audioResponse.headers.get('Content-Type')) {
-        res.setHeader('Content-Type', 'audio/mpeg');
-    }
-
-    res.status(audioResponse.status);
-    if (req.method === 'HEAD') {
-        return res.end();
-    }
-
-    if (!audioResponse.body) {
-        const buffer = Buffer.from(await audioResponse.arrayBuffer());
-        res.end(buffer);
-        return;
-    }
-
-    Readable.fromWeb(audioResponse.body).pipe(res);
 }
 
 export function createNeteaseHandler({limit=createMusicLimiter()}={}){return async function handler(req, res) {
