@@ -1,6 +1,6 @@
+import {decodeSiteImage} from './image-upload.js';
 export async function uploadSiteImage(file,{api,avatar=false}){
-  if(!file||!['image/jpeg','image/png','image/webp','image/avif'].includes(file.type)||file.size>12*1024*1024)throw Error('请选择 12 MB 以内的 JPG、PNG、WebP 或 AVIF 图片');
-  const bitmap=await createImageBitmap(file);
+  const bitmap=await decodeSiteImage(file);
   try{
    if(bitmap.width*bitmap.height>80000000)throw Error('图片尺寸过大，请先缩小后上传');
    let side=avatar?1024:2400,blob;
@@ -44,7 +44,7 @@ export function createContentEditor({api,notify}){
    }
    for(const [delta,text]of [[-1,'↑'],[1,'↓']]){const move=button(text,()=>{[state.gallery[index],state.gallery[index+delta]]=[state.gallery[index+delta],state.gallery[index]];mark();showGallery();},`${item.title}${delta<0?'上移':'下移'}`);move.disabled=index+delta<0||index+delta>=state.gallery.length;controls.append(move);}
    const replace=document.createElement('label');replace.className='content-file-button';replace.textContent='更换图片';
-   const file=document.createElement('input');file.type='file';file.accept='image/jpeg,image/png,image/webp,image/avif';file.addEventListener('change',()=>{if(file.files.length)run(async()=>{const result=await upload(file.files[0]);item.image=result.url;mark();showGallery();});});replace.append(file);controls.append(replace);
+   const file=document.createElement('input');file.type='file';file.accept='image/jpeg,image/png,image/webp,image/avif,image/heif,image/heic,.heif,.heic';file.addEventListener('change',()=>{if(file.files.length)run(async()=>{const result=await upload(file.files[0]);item.image=result.url;mark();showGallery();});});replace.append(file);controls.append(replace);
    controls.append(button('移出展示',()=>{state.gallery.splice(index,1);mark();showGallery();}));info.append(controls);row.append(image,info);$('content-gallery').append(row);
   }
   if(!state.gallery.length)$('content-gallery').textContent='尚无画作，可在下方添加';

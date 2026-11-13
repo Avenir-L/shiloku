@@ -22,3 +22,4 @@ textures/planets/
 node_modules/
 .env.admin.local
 public/
+scripts/heif-decoder.js

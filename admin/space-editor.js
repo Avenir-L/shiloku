@@ -66,7 +66,11 @@ export function createSpaceEditor({api,notify}){
  $('space-resolve').addEventListener('click',()=>run(async()=>{await resolveLinks();mark();notify('分享卡片已准备好');}));
  $('space-upload').addEventListener('change',()=>run(async()=>{
   const files=[...$('space-upload').files];if(files.length+post.images.length>9)throw Error('每条说说最多 9 张图片');
-  try{for(const file of files){const result=await uploadSiteImage(file,{api});post.images.push(result.url);mark();showImages();}}finally{$('space-upload').value='';}
+  const previousState=$('space-editor-state').textContent;
+  try{for(const [index,file] of files.entries()){
+   $('space-editor-state').textContent=`正在处理图片（${index+1} / ${files.length}）…`;
+   const result=await uploadSiteImage(file,{api});post.images.push(result.url);mark();showImages();
+  }}finally{$('space-upload').value='';$('space-editor-state').textContent=dirty?'有尚未保存的修改':previousState;}
  }));
  $('space-form').addEventListener('submit',event=>{event.preventDefault();const status=event.submitter?.dataset.status||post.status;run(async()=>{
   post.text=$('space-text').value;await resolveLinks();const saved=await api('space-save',{...post,status});edit(saved);await loadRows();notify(status==='published'?(saved.hidden?'说说已保存，仅你可见':'说说已发布到日常页'):'草稿已保存，仅你可见');

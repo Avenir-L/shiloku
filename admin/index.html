@@ -78,10 +78,10 @@
         <div class="page-heading"><div><p class="eyebrow">WEBSITE CONTENT</p><h1>主站内容</h1><p class="muted">更换资料、编辑介绍与管理画作，个人空间头像与主站同步</p></div><button type="button" id="content-reload" class="secondary">重新载入</button></div>
         <p id="content-state" role="status" aria-live="polite"></p>
         <form id="content-form" hidden>
-          <article class="card"><h2>头像与昵称</h2><div class="content-avatar-row"><img id="content-avatar-preview" alt="主站头像" width="88" height="88"><div><label class="content-file-button">更换头像<input id="content-avatar" type="file" accept="image/jpeg,image/png,image/webp,image/avif"></label><button type="button" id="content-avatar-reset" class="text-button">使用初始头像</button><p class="muted">上传时自动压缩，个人空间与主站使用同一头像</p></div></div><div class="content-fields"><label>昵称<input id="content-nickname" required maxlength="60"></label><label>副昵称 / 英文名<input id="content-subtitle" maxlength="60"></label></div></article>
+          <article class="card"><h2>头像与昵称</h2><div class="content-avatar-row"><img id="content-avatar-preview" alt="主站头像" width="88" height="88"><div><label class="content-file-button">更换头像<input id="content-avatar" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heif,image/heic,.heif,.heic"></label><button type="button" id="content-avatar-reset" class="text-button">使用初始头像</button><p class="muted">上传时自动压缩，个人空间与主站使用同一头像</p></div></div><div class="content-fields"><label>昵称<input id="content-nickname" required maxlength="60"></label><label>副昵称 / 英文名<input id="content-subtitle" maxlength="60"></label></div></article>
           <article class="card"><label>编辑语言<select id="content-language"><option value="zh">中文</option><option value="en">English</option><option value="ja">日本語</option></select></label><h2>个人简介</h2><div id="content-bio-fields" class="content-fields"></div></article>
           <article class="card"><h2>了解更多</h2><div id="content-about-fields" class="content-fields"></div></article>
-          <article class="card"><h2>画作</h2><div id="content-gallery-fields" class="content-fields"></div><p class="muted">按下方顺序展示，可更换图片、修改标题、排序，或暂时隐藏</p><div id="content-gallery"></div><label class="content-file-button">添加画作<input id="content-art-add" type="file" accept="image/jpeg,image/png,image/webp,image/avif"></label></article>
+          <article class="card"><h2>画作</h2><div id="content-gallery-fields" class="content-fields"></div><p class="muted">按下方顺序展示，可更换图片、修改标题、排序，或暂时隐藏</p><div id="content-gallery"></div><label class="content-file-button">添加画作<input id="content-art-add" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heif,image/heic,.heif,.heic"></label></article>
           <div class="content-publish"><button id="content-save" type="submit" class="primary">保存并发布到主站</button><a href="/" target="_blank" rel="noopener">查看主站 ↗</a></div>
         </form>
       </section>
@@ -98,7 +98,7 @@
           <p id="space-editor-state" role="status" aria-live="polite"></p>
           <label>正文<textarea id="space-text" rows="7" maxlength="12000" placeholder="今天有什么想记下来的"></textarea></label>
           <div id="space-images" class="space-images"></div>
-          <label class="content-file-button">添加图片<input id="space-upload" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple></label><p class="muted">最多 9 张，上传时自动压缩</p>
+          <label class="content-file-button">添加图片<input id="space-upload" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heif,image/heic,.heif,.heic" multiple></label><p class="muted">最多 9 张，每张原图不超过 12 MB；支持 HEIF / HEIC，上传时自动转换并压缩</p>
           <label>分享链接<textarea id="space-links" rows="3" maxlength="14000" placeholder="粘贴 B站、抖音、网易云音乐等分享链接，每行一个"></textarea></label>
           <button id="space-resolve" type="button" class="secondary">生成分享卡片</button><div id="space-link-preview" class="muted"></div>
           <label class="content-check"><input id="space-hidden" type="checkbox">仅自己可见（隐藏）</label>
