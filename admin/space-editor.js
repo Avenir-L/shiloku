@@ -48,7 +48,18 @@ export function createSpaceEditor({api,notify}){
     if(!confirm('确定删除这条说说？删除后无法从编辑器恢复'))return;
     await api('space-delete',{id:item.id,revision:item.revision});if(post.id===item.id)edit(fresh());await loadRows();notify('说说已删除');
    })));
-   row.append(meta,text,controls);$('space-posts').append(row);
+   const discussion=document.createElement('div');discussion.hidden=true;
+   let commentOffset=0;
+   async function loadComments(append=false){
+    const data=await api('space-comments',{postId:item.id,offset:append?commentOffset:0});
+    if(!append)discussion.replaceChildren();
+    for(const comment of data.comments){const entry=document.createElement('article');const label=document.createElement('p');label.textContent=comment.name+' · '+new Date(comment.createdAt).toLocaleString();const message=document.createElement('p');message.textContent=comment.text;message.style.whiteSpace='pre-wrap';message.style.overflowWrap='anywhere';entry.append(label,message,button('删除评论',()=>run(async()=>{if(!confirm('确定删除这条评论？'))return;await api('space-comment-delete',{postId:item.id,id:comment.id});await loadComments();notify('评论已删除');})));discussion.append(entry);}
+    commentOffset=data.nextOffset;
+    if(data.hasMore){const nextButton=button('加载更多评论',()=>run(async()=>{nextButton.remove();await loadComments(true);}));discussion.append(nextButton);}
+    if(!discussion.children.length)discussion.textContent='暂无评论';
+   }
+   controls.append(button('管理评论',()=>run(async()=>{discussion.hidden=!discussion.hidden;if(!discussion.hidden)await loadComments();})));
+   row.append(meta,text,controls,discussion);$('space-posts').append(row);
   }
   if(!$('space-posts').children.length)$('space-posts').textContent='还没有说说，可以先写一条日常';
  }

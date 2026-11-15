@@ -7,9 +7,10 @@ import {createGoogleAuth} from './_lib/admin/google.js';
 import {createAnalytics} from './_lib/analytics.js';
 import {createSiteContent} from './_lib/site-content.js';
 import {createSpace} from './_lib/space.js';
+import {createComments} from './_lib/space-comments.js';
 import {resolveShare} from './_lib/share-links.js';
 
-export function createAdminHandler({env=process.env,store=redis,auth=createAuth({store,env}),music=createMusic({store,env,provider:{validateNeteaseCookie,createQrLoginSession,checkQrLogin}}),google=createGoogleAuth({env,store,auth}),analytics=createAnalytics({store}),content=createSiteContent({store}),space=createSpace({store}),shareResolver=resolveShare}={}) {
+export function createAdminHandler({env=process.env,store=redis,auth=createAuth({store,env}),music=createMusic({store,env,provider:{validateNeteaseCookie,createQrLoginSession,checkQrLogin}}),google=createGoogleAuth({env,store,auth}),analytics=createAnalytics({store}),content=createSiteContent({store}),space=createSpace({store}),comments=createComments({store,space}),shareResolver=resolveShare}={}) {
   return async function handler(req,res) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Content-Type-Options','nosniff');
@@ -31,6 +32,8 @@ export function createAdminHandler({env=process.env,store=redis,auth=createAuth(
       if(JSON.stringify(body).length>bodyLimit) return res.status(413).json({error:'请求内容过大'});
       let result;
       switch(action) {
+        case 'space-comments': return res.status(200).json(await comments.list(body.postId,{admin:true,offset:Number(body.offset||0)}));
+        case 'space-comment-delete': return res.status(200).json(await comments.remove(body.postId,body.id));
         case 'space-settings': return res.status(200).json(await space.settings());
         case 'space-settings-save': return res.status(200).json(await space.saveSettings(body));
         case 'space-visibility': return res.status(200).json(await space.visibility(body.id,body.revision,body.hidden));

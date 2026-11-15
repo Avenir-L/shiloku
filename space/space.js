@@ -1,3 +1,4 @@
+import {commentSection} from './comments.js?v=20261115comments1';
 import {getSiteContent} from '/scripts/site-profile.js?v=20261028space1';
 const $=id=>document.getElementById(id),feed=$('space-feed');
 let profile=null,next=0,hasMore=false,busy=false;
@@ -28,6 +29,9 @@ function content(post,detail=false){
  }
  for(const link of detail?post.links:post.links.slice(0,2))card.append(share(link));
  if(!detail){const expand=node('a','space-expand',post.images.length>3?'查看全部 '+post.images.length+' 张图片':'展开这条日常');expand.href='/space/?id='+encodeURIComponent(post.id);card.append(expand);}
+ const comments=commentSection(post.id);
+ if(detail){card.append(comments.element);comments.load();}
+ else {const toggle=node('button','space-expand','评论');toggle.type='button';comments.element.hidden=true;toggle.addEventListener('click',()=>{comments.element.hidden=!comments.element.hidden;toggle.setAttribute('aria-expanded',String(!comments.element.hidden));if(!comments.element.hidden)comments.load();});toggle.setAttribute('aria-expanded','false');card.append(toggle,comments.element);}
  return card;
 }
 function entry(post){
