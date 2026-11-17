@@ -1,3 +1,4 @@
+import {shield} from './_lib/request-guard.js';
 import { createHash } from 'node:crypto';
 
 const localBuckets = new Map();
@@ -37,7 +38,7 @@ async function allowChat(req) {
     return ++bucket.count <= 5;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     const origin = req.headers.origin || '';
     res.setHeader('Cache-Control', 'no-store');
     const allowLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
@@ -131,3 +132,4 @@ export default async function handler(req, res) {
         res.status(500).json({ error: '网络请求失败，请稍后再试。' });
     }
 }
+export default shield(handler);

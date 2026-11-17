@@ -3,14 +3,35 @@
   "redirects": [
     {
       "source": "/admin/",
-      "has": [{ "type": "host", "value": "shiloku.vercel.app" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "shiloku.vercel.app"
+        }
+      ],
       "destination": "https://www.shiloku.cn/admin/",
       "permanent": false
     },
     {
       "source": "/admin/:path*",
-      "has": [{ "type": "host", "value": "shiloku.vercel.app" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "shiloku.vercel.app"
+        }
+      ],
       "destination": "https://www.shiloku.cn/admin/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "cdn.shiloku.cn"
+        }
+      ],
+      "destination": "https://www.shiloku.cn/:path*",
       "permanent": false
     }
   ],
@@ -24,23 +45,47 @@
   "headers": [
     {
       "source": "/space/(.*)",
-      "headers": [{"key":"Content-Security-Policy","value":"default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"}]
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+        }
+      ]
     },
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
       ]
     },
     {
       "source": "/",
-      "headers": [{ "key": "Content-Security-Policy", "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'" }]
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+        }
+      ]
     },
     {
       "source": "/index.html",
-      "headers": [{ "key": "Content-Security-Policy", "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'" }]
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+        }
+      ]
     },
     {
       "source": "/(.*\\.(?:jpg|jpeg|png|gif|webp|avif|svg|ico|mp4|webm|mp3|woff2|woff|ttf|css|js))",
@@ -70,23 +115,6 @@
         {
           "key": "Access-Control-Allow-Origin",
           "value": "*"
-        }
-      ]
-    },
-    {
-      "source": "/api/status/update",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "POST, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization"
         }
       ]
     },

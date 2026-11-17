@@ -1,3 +1,4 @@
+import {shield} from './_lib/request-guard.js';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import {createMusicLimiter} from './_lib/netease/rate.js';
@@ -61,7 +62,8 @@ async function handlePlayable(req, res) {
 async function handleListenStats(_req, res) {
     const stats = await fetchNeteaseListenStats();
     res.setHeader('Cache-Control', 'private, no-store');
-    return res.status(200).json(stats);
+    const {userId,nickname,...publicStats}=stats;
+    return res.status(200).json(publicStats);
 }
 
 async function handlePlaylists(req, res) {
@@ -212,4 +214,4 @@ export function createNeteaseHandler({limit=createMusicLimiter()}={}){return asy
         return res.status(500).json({ error: message });
     }
 };}
-export default createNeteaseHandler();
+export default shield(createNeteaseHandler());

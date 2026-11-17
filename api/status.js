@@ -1,6 +1,7 @@
+import {shield} from './_lib/request-guard.js';
 import { readStatus } from './_lib/status-store.js';
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'no-store');
 
@@ -11,3 +12,5 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'public, max-age=15, s-maxage=30');
     return res.status(200).json(data);
 }
+
+export default shield(handler);

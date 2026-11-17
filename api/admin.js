@@ -1,3 +1,5 @@
+import {deleteGuestbookMessage} from './_lib/guestbook-management.js';
+import {shield} from './_lib/request-guard.js';
 import {createAuth,expectedOrigin} from './_lib/admin/auth.js';
 import {createMusic} from './_lib/admin/music-account.js';
 import {redis} from './_lib/admin/store.js';
@@ -70,8 +72,9 @@ export function createAdminHandler({env=process.env,store=redis,auth=createAuth(
           result=action==='music-save'?await music.save(body.cookie):action==='music-qr-create'?await music.createQr(owner):await music.checkQr(body.id,owner);
           break;
         }
+        case 'guestbook-delete': return res.status(200).json(await deleteGuestbookMessage(store,body.id));
         case 'guestbook': {
-          // Read-only by construction. No guestbook mutation command exists in this router.
+          // Deletion is a separate authenticated operation; historical messages are retained.
           const rows=await store.command(['ZREVRANGE','shiloku:guestbook:v1',0,79]);
           return res.status(200).json({messages:rows.map(row=>JSON.parse(row))});
         }
@@ -88,4 +91,4 @@ export function createAdminHandler({env=process.env,store=redis,auth=createAuth(
     }
   };
 }
-export default createAdminHandler();
+export default shield(createAdminHandler());

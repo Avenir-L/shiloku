@@ -128,8 +128,7 @@ export async function readStatus({ localFallback } = {}) {
     const gist = await readFromGist();
     if (gist) return gist;
 
-    const legacy = await readFromLegacyRepo();
-    if (legacy) return legacy;
+    // Published local fallback avoids silently trusting mutable repository/CDN content.
 
     if (localFallback) {
         try {

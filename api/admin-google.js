@@ -1,3 +1,4 @@
+import {shield} from './_lib/request-guard.js';
 import {createGoogleAuth} from './_lib/admin/google.js';
 
 export function createGoogleCallback({google=createGoogleAuth()}={}) {
@@ -16,4 +17,4 @@ export function createGoogleCallback({google=createGoogleAuth()}={}) {
     return res.status(303).end();
   };
 }
-export default createGoogleCallback();
+export default shield(createGoogleCallback());

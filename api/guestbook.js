@@ -1,11 +1,15 @@
+import {shield,createSingleFlight} from './_lib/request-guard.js';
 import {createHash,randomUUID} from 'node:crypto';
 
+const flight=createSingleFlight();
 const STORE_KEY = 'shiloku:guestbook:v1';
 // Append and rate-limit in a single transaction. Each message has its own member;
 // concurrent writers cannot overwrite one another. Messages do not expire.
 const APPEND_SCRIPT = `
 local count = tonumber(redis.call('GET', KEYS[1]) or '0')
-if count >= 5 then return 0 end
+local total = tonumber(redis.call('GET', KEYS[3]) or '0')
+if count >= 5 or total >= 100 then return 0 end
+redis.call('INCR', KEYS[3]); redis.call('EXPIRE', KEYS[3], 120)
 redis.call('INCR', KEYS[1]); redis.call('EXPIRE', KEYS[1], 120)
 redis.call('ZADD', KEYS[2], ARGV[1], ARGV[2])
 return 1`;
@@ -24,7 +28,7 @@ async function command(args) {
     return data.result;
 }
 
-export default async function handler(req,res) {
+async function handler(req,res) {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('Vary','Origin');
     const origin=req.headers.origin || '';
@@ -41,7 +45,7 @@ export default async function handler(req,res) {
     }
     try {
         if(req.method==='GET') {
-            const rows=await command(['ZREVRANGE',STORE_KEY,0,79]);
+            const rows=await flight('messages',()=>command(['ZREVRANGE',STORE_KEY,0,79]));
             if(!Array.isArray(rows)) throw new Error('Invalid storage response');
             const messages=rows.map(row=>JSON.parse(row));
             return res.status(200).json({messages});
@@ -49,7 +53,7 @@ export default async function handler(req,res) {
         const ip=process.env.VERCEL ? req.headers['x-vercel-forwarded-for'] : req.socket?.remoteAddress;
         const hash=createHash('sha256').update(String(ip || 'unknown').split(',')[0].trim()).digest('hex');
         const entry={id:`gb-${randomUUID()}`,name:body.name?.trim() || '访客',message:body.message.trim(),time:Date.now()};
-        const result=await command(['EVAL',APPEND_SCRIPT,2,`guestbook:rate:${hash}:${Math.floor(Date.now()/60000)}`,STORE_KEY,String(entry.time),JSON.stringify(entry)]);
+        const result=await command(['EVAL',APPEND_SCRIPT,3,`guestbook:rate:${hash}:${Math.floor(Date.now()/60000)}`,STORE_KEY,`guestbook:global:${Math.floor(Date.now()/60000)}`,String(entry.time),JSON.stringify(entry)]);
         if(result===0){res.setHeader('Retry-After','60');return res.status(429).json({error:'发送太频繁，请稍后再试'});}
         if(result!==1) throw new Error('Write was not acknowledged');
         return res.status(200).json({ok:true,message:entry});
@@ -57,3 +61,5 @@ export default async function handler(req,res) {
         return res.status(503).json({error:'留言服务暂时不可用，尚未发送成功，请保留内容后重试'});
     }
 }
+
+export default shield(handler);

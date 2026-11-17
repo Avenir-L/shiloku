@@ -1,3 +1,4 @@
+import {createRequestGuard} from './request-guard.js';
 import {createHmac} from 'node:crypto';
 import {redis} from './admin/store.js';
 const P='shiloku:analytics:v1:',RETENTION=90*86400;
@@ -15,9 +16,11 @@ return {rows,redis.call('PFCOUNT',unpack(visitors))}`;
 const dateAt=t=>new Date(t+8*3600000).toISOString().slice(0,10);
 const error=(message,status=400)=>Object.assign(new Error(message),{status});
 export function createCollector({env=process.env,store=redis,now=Date.now}={}) {
+ const guard=createRequestGuard({perIp:120,total:600});
  return async(req,res)=>{
   res.setHeader('Cache-Control','no-store');
   if(req.method!=='POST')return res.status(405).end();
+  if(!guard(req)){res.setHeader('Retry-After','60');return res.status(429).end();}
   try{
    const origin=new URL(env.ADMIN_ORIGIN||'https://www.shiloku.cn');
    const accepted=new Set([origin.origin]);if(origin.hostname.startsWith('www.'))accepted.add(origin.protocol+'//'+origin.hostname.slice(4));

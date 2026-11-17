@@ -75,7 +75,9 @@ async function showPage(name) {
       const article=document.createElement('article');article.className='message';
       const header=document.createElement('header'),strong=document.createElement('strong'),time=document.createElement('time'),p=document.createElement('p');
       strong.textContent=message.name||'访客';time.textContent=new Date(message.time).toLocaleString();p.textContent=message.message;
-      header.append(strong,time);article.append(header,p);$('messages').append(article);
+      const remove=document.createElement('button');remove.className='text-button';remove.textContent='删除留言';
+      remove.addEventListener('click',async()=>{if(!window.confirm('删除这条留言？'))return;remove.disabled=true;try{await api('guestbook-delete',{id:message.id});await showPage('guestbook');}catch(error){notify(error.message,true);remove.disabled=false;}});
+      header.append(strong,time);article.append(header,p,remove);$('messages').append(article);
     }
   }
   if(name==='security') {

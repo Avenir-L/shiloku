@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const source=readFileSync(new URL('../api/chat.js',import.meta.url),'utf8');
+const source=readFileSync(new URL('../api/chat.js',import.meta.url),'utf8').replace("'./_lib/request-guard.js'",JSON.stringify(new URL('../api/_lib/request-guard.js',import.meta.url).href));
 const handler=(await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`)).default;
 function response(){return {headers:{},setHeader(k,v){this.headers[k]=v},status(n){this.code=n;return this},json(v){this.body=v;return this},end(){return this}}}
 test('invalid messages never reach paid provider',async()=>{

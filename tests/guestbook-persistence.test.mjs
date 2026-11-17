@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const code=readFileSync(new URL('../api/guestbook.js',import.meta.url),'utf8');
+const code=readFileSync(new URL('../api/guestbook.js',import.meta.url),'utf8').replace("'./_lib/request-guard.js'",JSON.stringify(new URL('../api/_lib/request-guard.js',import.meta.url).href));
 const load=async id=>(await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}#${id}`)).default;
 const response=()=>({setHeader(){},status(n){this.code=n;return this},json(v){this.body=v;return this},end(){return this}});
 const request=(method,body)=>({method,body,headers:{},socket:{remoteAddress:'127.0.0.1'}});

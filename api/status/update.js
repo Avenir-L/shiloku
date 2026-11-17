@@ -1,17 +1,13 @@
+import {createHash,timingSafeEqual} from 'node:crypto';
+import {shield,createRequestGuard} from '../_lib/request-guard.js';
 import { writeStatus, getStorageMode } from '../_lib/status-store.js';
-
-function cors(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-}
 
 function authorize(req) {
     const secret = process.env.STATUS_SYNC_SECRET;
     if (!secret) return false;
     const header = req.headers.authorization || '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-    return token && token === secret;
+    return Boolean(token) && timingSafeEqual(createHash('sha256').update(token).digest(),createHash('sha256').update(secret).digest());
 }
 
 function sanitizePayload(body) {
@@ -30,8 +26,8 @@ function sanitizePayload(body) {
     };
 }
 
-export default async function handler(req, res) {
-    cors(req, res);
+async function handler(req, res) {
+    res.setHeader('Cache-Control','no-store');
     if (req.method === 'OPTIONS') return res.status(204).end();
     if (req.method !== 'POST') return res.status(405).json({ error: '只允许 POST' });
 
@@ -57,3 +53,5 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ok: true, storage: getStorageMode() });
 }
+
+export default shield(handler,{guard:createRequestGuard({perIp:30,total:300})});
