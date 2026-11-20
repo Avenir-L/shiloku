@@ -2,6 +2,17 @@
   "outputDirectory": "public",
   "redirects": [
     {
+      "source": "/admin/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "shiloku.cn"
+        }
+      ],
+      "destination": "https://www.shiloku.cn/admin/:path*",
+      "permanent": false
+    },
+    {
       "source": "/admin/",
       "has": [
         {
