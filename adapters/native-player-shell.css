@@ -1,0 +1,78 @@
+/* Original DOM/CSS and JS own controls, progress, volume, glass and auto-hide.
+ * This shell selects the requested surfaces, inserts the cloud scene and
+ * adapts the small-window layout after the user's size feedback. */
+html,body,#desktop-window-shell{background:transparent!important}
+#wallpaper{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:0;pointer-events:none}
+#desktop-window-shell{position:relative;z-index:1}
+/* The zero-sized native SVG is a filter resource, not product chrome. */
+#desktop-window-shell>*:not(#canvas-container):not(#bottom-bar):not(#bottom-handle):not(#control-glass-svg):not(#playlist-panel):not(#toast){display:none!important}
+body>*:not(#intro-splash):not(#station-journey):not(.cloud-ring):not(#desktop-window-shell):not(#wallpaper):not(#preview-settings):not(#fog):not(#line):not(#navigation-prototype):not(.progress-drag-particle):not(#collect-modal){display:none!important}
+#canvas-container{position:fixed!important;inset:0!important;opacity:1!important;filter:none!important;pointer-events:none}
+#bottom-bar{z-index:6}
+#bottom-handle{z-index:7}
+/* Native visible glass keeps all RGB refraction. Only fully hidden controls
+ * stop filtering; the upstream .visible SVG rule otherwise beats soft-hidden. */
+html.control-glass-svg-ok #bottom-bar.visible.soft-hidden{
+ backdrop-filter:none;
+ -webkit-backdrop-filter:none;
+}
+#heart-btn,#collect-btn,#quality-control,#cuefield-automix-btn,#lyric-timing-control,#immersive-btn,.fullscreen-toggle-btn{display:none!important}
+/* Local files have no account provider / quality selector in this preview. */
+#control-title-badges{display:none!important}
+#control-cover,#control-title,#control-artist{pointer-events:none}
+#fog{position:fixed;inset:0;z-index:2;pointer-events:none;background:radial-gradient(ellipse at 30% 90%,#d9eafaaa,transparent 65%),linear-gradient(transparent,#d6e6f066);opacity:0}
+#preview-settings{position:fixed;z-index:10;top:20px;right:20px;max-width:calc(100vw - 40px);max-height:calc(100dvh - 200px);overflow:auto;padding:12px;background:#15314ac9;backdrop-filter:blur(12px);border-radius:10px;color:white;font:13px system-ui}
+#preview-settings>summary{cursor:pointer}
+#preview-settings .settings-body{margin-top:12px}
+#preview-settings button,#preview-settings select,#preview-settings input{margin:4px;padding:5px}
+#preview-settings select{max-width:100%}
+#preview-settings output{display:block;font-size:11px;max-width:680px;overflow-wrap:anywhere}
+#preview-settings a{color:#d5efff}
+#line{position:fixed;width:1px;height:1px;overflow:hidden}
+
+/* Upstream stacks three 56px control clusters below 620px. After unsupported
+ * actions are hidden, that leaves an empty row. Keep the native controls in
+ * one compact row; original events, glass and soft-hidden transitions remain. */
+@media(max-width:620px){
+ #bottom-bar,#bottom-bar.stage-mode{width:min(520px,calc(100vw - 24px));padding:9px 16px 10px;gap:6px;border-radius:28px}
+ #controls{display:flex;justify-content:center;gap:12px}
+ #controls .control-cluster{width:auto;height:44px;flex:0 0 auto;order:initial;gap:6px}
+ #controls .control-cluster.actions{display:none}
+ #controls .ctrl-btn{width:32px;height:32px}
+ #controls #play-btn{width:44px;height:44px}
+ #progress-bar{width:calc(100% - 16px);height:3px;margin:2px auto 0}
+ /* Keep the native hover wake handle below the compact buttons, so the
+  * reveal-on-hover handoff cannot send the following click to Play. */
+ #bottom-handle{bottom:0;height:16px}
+ #volume-control .volume-popover{left:auto;right:-8px;transform:translateY(8px)}
+ #volume-control.open .volume-popover,#volume-control:hover .volume-popover,#volume-control:focus-within .volume-popover{transform:translateY(0)}
+}
+@media(max-width:380px){
+ #bottom-bar,#bottom-bar.stage-mode{padding-left:12px;padding-right:12px}
+ #controls{gap:8px}
+ #controls .control-cluster{gap:4px}
+ #controls .ctrl-btn{width:30px;height:32px}
+ #controls #play-btn{width:42px;height:44px}
+}
+
+/* Filter the isolated scene pixels before painting controls above them. */
+html.control-glass-svg-ok .scene-glass-host,
+html.control-glass-svg-ok #bottom-bar.visible.scene-glass-host {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.scene-glass-frame {
+  position: absolute; inset: 0; border-radius: inherit; overflow: hidden;
+  pointer-events: none; z-index: -1; background: rgba(0,0,0,.1);
+  box-shadow: inherit;
+}
+.scene-glass-frame canvas {
+  display: block; width: 100%; height: 100%; opacity: .9;
+}
+.scene-glass-frame::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  box-shadow: inherit; pointer-events: none;
+}
+
+html:not(.music-room) :is(#playlist-panel,#collect-modal,#toast){display:none!important}
+body > #collect-modal {z-index:120}

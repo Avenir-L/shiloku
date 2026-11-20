@@ -1,0 +1,78 @@
+[
+  {
+    "title": "End of Beginning",
+    "artist": "Djo",
+    "album": "DECIDE",
+    "duration": 159246,
+    "src": "music/end_of_beginning.mp3",
+    "neteaseId": 1966970103,
+    "cover": "music/end_of_beginning.jpg",
+    "lrc": "music/end_of_beginning.lrc"
+  },
+  {
+    "title": "more than words",
+    "artist": "羊文学",
+    "album": "more than words",
+    "duration": 289785,
+    "src": "music/more_than_words.mp3",
+    "neteaseId": 2073738346,
+    "cover": "music/more_than_words.jpg",
+    "lrc": "music/more_than_words.lrc"
+  },
+  {
+    "title": "Do You Feel It?",
+    "artist": "Chaos Chaos",
+    "album": "Committed to the Crime",
+    "duration": 250713,
+    "src": "music/do_you_feel_it.mp3",
+    "neteaseId": 29481242,
+    "cover": "music/do_you_feel_it.jpg",
+    "lrc": "music/do_you_feel_it.lrc"
+  },
+  {
+    "title": "mede:mede",
+    "artist": "Reol",
+    "album": "極彩色",
+    "duration": 215133,
+    "src": "music/medemede.mp3",
+    "cover": "music/medemede.jpg",
+    "lrc": "music/medemede.lrc"
+  },
+  {
+    "title": "Hypnotized",
+    "artist": "Purple Disco Machine / Sophie and the Giants",
+    "album": "Hypnotized",
+    "duration": 195704,
+    "src": "music/Hypnotized.mp3",
+    "cover": "music/Hypnotized.jpg",
+    "lrc": "music/Hypnotized.lrc"
+  },
+  {
+    "title": "夕日坂",
+    "artist": "doriko / 初音ミク",
+    "album": "夕日坂",
+    "duration": 380347,
+    "src": "music/yuuhizaka.mp3",
+    "cover": "music/yuuhizaka.jpg",
+    "lrc": "music/yuuhizaka.lrc"
+  },
+  {
+    "title": "Beautiful World",
+    "artist": "宇多田ヒカル",
+    "album": "Beautiful World / Kiss & Cry",
+    "duration": 316040,
+    "src": "music/beautiful_world.mp3",
+    "cover": "music/beautiful_world.jpg",
+    "lrc": "music/beautiful_world.lrc"
+  },
+  {
+    "title": "Listen",
+    "artist": "ONE OK ROCK / Avril Lavigne",
+    "album": "Ambitions [日本盤]",
+    "duration": 218986,
+    "src": "music/listen.mp3",
+    "neteaseId": 453176145,
+    "cover": "music/listen.jpg",
+    "lrc": "music/listen.lrc"
+  }
+]

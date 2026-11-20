@@ -1,0 +1,215 @@
+#station-journey {position:fixed;inset:0;z-index:4;overflow:hidden;overscroll-behavior:contain;scrollbar-width:none;touch-action:pan-x pinch-zoom}
+#station-journey::-webkit-scrollbar {display:none}
+#station-journey .journey-distance {height:100%;pointer-events:none}
+#station-journey .station-image,#station-journey canvas,#journey-vision {position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+.station-image {object-fit:cover;object-position:65% center;opacity:0}
+#sakura {opacity:0}
+#journey-vision {background:radial-gradient(ellipse at 50% 51%,transparent 5%,rgba(21,19,31,.15) 27%,rgba(15,14,23,.72) 66%,#100f17 100%);backdrop-filter:saturate(.32);opacity:0}
+
+#navigation-prototype .nav-prototype-header {
+  --blend:var(--station-nav,0);
+  --portion:calc(var(--blend)*100%);
+  --nav-ink:color-mix(in srgb,#f4f8fb,#292337 var(--portion));
+  --nav-muted:color-mix(in srgb,#d7e1e9,#392e40 var(--portion));
+  opacity:1;
+  text-shadow:0 1px 5px rgb(19 44 70 / calc(.56*(1 - var(--blend))));
+  background-color:rgb(249 242 248 / calc(.76*var(--blend)));
+}
+/* Keep the native RGB sample on the lens rim and the lettering on quiet glass. */
+.nav-prototype-header .scene-glass-frame canvas {
+  box-sizing:border-box;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  padding:3px;
+  border-radius:inherit;
+}
+#navigation-prototype:not([data-section="space"]) .nav-prototype-header::after {
+  content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
+  background:rgb(18 41 65 / calc(.68 * (1 - var(--blend))));
+}
+.nav-prototype-header .scene-glass-frame::after {
+  background:rgb(249 242 248 / calc(.72*var(--blend)));
+}
+#navigation-prototype .nav-prototype-link {
+  font-size:13px;
+  font-weight:600;
+}
+.cloud-ring {position:fixed;inset:0;z-index:6;touch-action:none;outline:none}
+.cloud-ring[hidden],.cloud-ring button[hidden] {display:none}
+.cloud-ring canvas {display:block;cursor:grab}
+.cloud-ring canvas:active {cursor:grabbing}
+.cloud-ring button {position:absolute;right:5vw;bottom:4vh;border:0;border-radius:2em;padding:.7em 1.4em;background:#17344bd9;color:white;cursor:pointer}
+
+.station-credits {
+  display:none; position:absolute; left:5vw; top:23%; width:min(42vw,28rem); --credits-height:64vh; height:var(--credits-height);
+  overflow:hidden; text-align:center; color:#33253b; isolation:isolate;
+  background:radial-gradient(ellipse at center,#fff6f4dc,transparent 75%);
+  mask-image:linear-gradient(transparent,#000 13%,#000 87%,transparent);
+  text-shadow:0 1px 4px #fff;
+}
+#station-journey[data-stage="station"] .station-credits {display:block;animation:station-credits-arrival 1.2s ease-out both}
+.station-credits-roll {
+  position:relative; will-change:transform; padding:0 .5rem; font:500 clamp(14px,1.7vw,20px)/1.7 "Noto Serif SC",serif;
+  animation:station-credits-scroll 37s linear infinite;
+}
+.station-credits-roll h2 {margin:0;font-size:1.4em;line-height:1.4;letter-spacing:.12em}
+.station-credits-roll dl {margin:0}
+.station-credits-roll dt {margin:1.5em 0 .3em;font-size:.85em;font-weight:500;letter-spacing:.08em}
+.station-credits-roll dd {margin:0;font-size:1em;font-weight:650;line-height:1.55}
+.station-credits-roll dd + dd {margin-top:.28em}
+.station-credits-roll dd strong {font-weight:inherit}
+.station-credits-roll .credit-detail {display:inline-block;font-size:.85em;font-weight:400}
+.station-credits-roll p {margin:.55em 0 0;font-size:.92em;line-height:1.8;text-wrap:balance}
+.station-credits-roll .credits-thanks {margin-top:2em;font-size:1em;font-weight:600}
+.station-credits-roll .credits-signature {margin:1.6em 0 .5em;font:800 1.15em/1.4 system-ui,sans-serif;letter-spacing:-.045em}
+@keyframes station-credits-arrival {from {opacity:0} to {opacity:1}}
+@keyframes station-credits-scroll {
+  from {transform:translate3d(0,var(--credits-height),0)}
+  to {transform:translate3d(0,-100%,0)}
+}
+@media (prefers-reduced-motion:reduce) {
+  .station-credits {overflow:auto;mask-image:none}
+  .station-credits-roll {animation:none}
+}
+.station-profile {
+  display:none; position:absolute; right:2.6%; top:53%; transform:translateY(-50%);
+  width:clamp(185px,21vw,340px); color:#34233b;
+  font:500 clamp(14px,1.1vw,18px)/1.65 "Noto Serif SC",serif;
+  text-shadow:0 1px 3px #fff9;
+}
+#station-journey[data-stage="station"] .station-profile {display:block}
+.station-profile::before {
+  content:""; position:absolute; inset:-18% -10%; z-index:-1; pointer-events:none;
+  background:radial-gradient(ellipse,#fff1f4ed 12%,#fff3f6a6 52%,transparent 75%);
+}
+.station-profile header {display:flex; align-items:center; gap:.65em}
+.station-portrait {display:inline-flex;position:relative}
+.station-signature {display:none}
+.station-profile header img {border-radius:50%;object-fit:cover;border:1px solid #fff9}
+.station-profile h2 {margin:0;font-family:inherit;font-size:1.5em;font-weight:600;line-height:1.2}
+.station-about-copy {max-height:29vh;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;pointer-events:auto;
+  scrollbar-width:thin;scrollbar-color:#73516f66 transparent;
+}
+@supports selector(::-webkit-scrollbar) {
+  .station-about-copy {scrollbar-width:auto;scrollbar-color:auto}
+  .station-about-copy::-webkit-scrollbar {width:4px;background:transparent}
+  .station-about-copy::-webkit-scrollbar-track {background:transparent}
+  .station-about-copy::-webkit-scrollbar-button {display:none}
+  .station-about-copy::-webkit-scrollbar-thumb {background:transparent;border-radius:8px}
+  .station-about-copy:is(:hover,:focus-visible)::-webkit-scrollbar-thumb {background:#73516f66}
+}
+.station-copy-readable {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.station-copy-glyph {display:inline-block;transform-origin:50% 85%}
+@media (prefers-reduced-motion:no-preference) {
+  #station-journey[data-stage="station"] .station-copy-glyph {
+    --pop-height:-.48em;--pop-width:1.24;--pop-squash:.77;
+    animation:greeting-in .64s ease-out var(--arrive) backwards;
+  }
+}
+.station-about-copy h3 {line-height:1.4;font-family:inherit;font-size:1.18em;margin:0}
+.station-about-copy p {margin:.45em 0 0}
+.station-profile nav {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.station-profile a {
+  display:flex; min-height:52px; align-items:center; justify-content:center; flex-direction:column;
+  gap:3px; background:#fff4f6b8; border:1px solid #ffffffb3; border-radius:9px;
+  text-decoration:none;color:inherit;font:600 clamp(10px,.8vw,13px)/1.4 system-ui,sans-serif;
+}
+.station-profile a:hover,.station-profile a:focus-visible {background:#fff4fa}
+.station-profile a b {font:800 14px/20px system-ui;border:1px solid;border-radius:5px;padding:0 2px}
+@media (max-aspect-ratio: 1/1) {
+  #station-journey .station-image {object-position:67% 50%}
+  .station-credits {--credits-height:42vh;left:10%;width:80%;top:24%}
+  .station-profile {
+    box-sizing:border-box; top:auto;bottom:0;right:0;width:100%;transform:none;
+    padding:16px 6vw max(16px,env(safe-area-inset-bottom));
+    background:linear-gradient(0deg,#f8e5ef 12%,#f8e5eff5 75%,#f8e5efd9);
+    font-size:15px;
+  }
+  .station-profile::before {inset:-32px 0 100%;background:linear-gradient(transparent,#f8e5efd9)}
+  .station-profile header img {width:36px;height:36px}
+  .station-profile p {margin:.5em 0 .7em}
+  .station-profile a {font-size:12px}
+}
+@media (min-aspect-ratio: 10001/10000) {
+  #station-journey[data-stage="station"] .station-profile {display:contents}
+  .station-profile::before {content:none}
+  .station-profile header {
+    position:absolute;
+    /* Measure from the lower edge of the crossbar in the cover-cropped scene. */
+    --pane-unit:max(1vw,1.77778vh);
+    left:calc(67.4vw - max(3.016vw,5.362vh));
+    top:calc(50vh - var(--pane-unit)*8.65);
+    transform:translateX(-50%);flex-direction:column;text-align:center;gap:1px;
+    white-space:nowrap;
+  }
+  .station-profile header img {
+    width:clamp(34px,calc(3.4 * var(--pane-unit)),64px);height:auto;aspect-ratio:1;
+    box-shadow:0 0 0 3px #fff6f580,0 3px 12px #64365330;
+  }
+  .station-profile header h2 {margin-top:2px;font-size:clamp(17px,calc(1.6 * var(--pane-unit)),26px);letter-spacing:.075em;text-indent:.075em}
+  .station-signature {
+    display:flex;align-items:center;gap:7px;color:#51364c;
+    font:900 11px/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:-.04em;
+  }
+  .station-signature::before,.station-signature::after {
+    content:"";width:16px;height:1px;background:currentColor;opacity:.48;
+  }
+  .station-profile-details {
+    /* Inner edges of the right pane in the scaled, cover-cropped wallpaper. */
+    --pane-left:calc(67.4vw + max(9.86vw,17.53vh) + 9px);
+    --pane-right:min(calc(100vw - 9px),calc(67.4vw + max(30.16vw,53.62vh) - 9px));
+  }
+  /* Include the glass around the text in the same wheel target. */
+  .station-profile-details::before {
+    content:"";position:absolute;pointer-events:auto;
+    left:calc(var(--pane-left) - 9px);right:calc(100% - var(--pane-right) - 9px);
+    top:calc(50vh - max(10vw,17.78vh));bottom:calc(50vh - max(15vw,26.67vh));
+  }
+  .station-profile-details > * {
+    position:absolute;left:var(--pane-left);width:calc(var(--pane-right) - var(--pane-left));
+    box-sizing:border-box;transform:translateY(-50%);
+  }
+  .station-about-copy {top:calc(50vh - max(.46vw,.81vh));max-height:min(45vh,max(17.6vw,31.29vh));line-height:1.52}
+  .station-profile-details nav {top:min(calc(100vh - 32px),calc(50vh + max(12.1vw,21.5vh)))}
+  .station-profile-details a {min-width:0;min-height:clamp(40px,7vh,52px)}
+}
+
+#station-name .hover-char {
+  display:inline-block; position:relative; pointer-events:auto; transform-origin:center bottom;
+  transition:transform .18s ease,color .18s ease,text-shadow .18s ease;
+}
+@media (hover:hover) {
+  #station-name .hover-char:hover {
+    z-index:2; color:#fff; transform:translateY(-1px) scale(1.06);
+    text-shadow:0 0 5px rgba(255,229,237,.18);
+  }
+}
+
+/* The open rim and gardenia share the same ink as the station window frame. */
+.station-stamp {
+  position:absolute; inset:-17%; width:134%; height:134%; overflow:visible;
+  pointer-events:none; fill:none; stroke:#634356; stroke-width:1.55;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.stamp-leaf {fill:#81596c;stroke-width:.8}
+.stamp-flower {fill:#fff4ea;stroke-width:1.35}
+@media (prefers-reduced-motion:no-preference) {
+  #station-journey[data-stage="station"]:has(~ #navigation-prototype[data-section="about"]) .station-portrait img {
+    animation:stamp-settle .48s ease-out both;
+  }
+  #station-journey[data-stage="station"]:has(~ #navigation-prototype[data-section="about"]) .stamp-rim,
+  #station-journey[data-stage="station"]:has(~ #navigation-prototype[data-section="about"]) .stamp-stem {
+    stroke-dasharray:1; animation:stamp-draw .85s ease-out .25s both;
+  }
+  #station-journey[data-stage="station"]:has(~ #navigation-prototype[data-section="about"]) .stamp-stem {animation-delay:.85s;animation-duration:.42s}
+  #station-journey[data-stage="station"]:has(~ #navigation-prototype[data-section="about"]) .stamp-leaf,
+  #station-journey[data-stage="station"]:has(~ #navigation-prototype[data-section="about"]) .stamp-flower {
+    animation:stamp-ink .42s ease-out 1.04s both;
+  }
+}
+@keyframes stamp-draw {from {stroke-dashoffset:1} to {stroke-dashoffset:0}}
+@keyframes stamp-ink {from {opacity:0} to {opacity:1}}
+@keyframes stamp-settle {from {opacity:0;transform:translateY(3px) scale(.95)} to {opacity:1;transform:none}}
+@media (max-aspect-ratio:1/1) {
+  .station-stamp {inset:-12%;width:124%;height:124%}
+}
