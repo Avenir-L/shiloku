@@ -20,6 +20,11 @@ export function createContentHandler({content=createSiteContent()}={}){
    const data=await flight('profile',()=>content.read());
    res.setHeader('Cache-Control','no-store');
    // Only public artwork metadata is sent to visitors.
+   if(req.query?.view==='cloud'){
+    const {avatar,nickname,subtitle}=data.profile;
+    const photos=data.cloud.albumMode==='photos' ? data.gallery.filter(item=>!item.hidden).map(({image,title})=>({image,title})) : [];
+    return req.method==='HEAD'?res.status(200).end():res.status(200).json({avatar,nickname,subtitle,...data.cloud,photos});
+   }
    const result={profile:data.profile,gallery:data.gallery.filter(item=>!item.hidden)};
    return req.method==='HEAD'?res.status(200).end():res.status(200).json(result);
   }catch(error){res.setHeader('Cache-Control','no-store');return res.status(error.status||503).json({error:error.status?error.message:'主站内容暂时无法读取'});}

@@ -7,7 +7,7 @@
   <link rel="preload" as="image" type="image/avif" href="/assets/admin-sky-desktop-20261027hq.avif" media="(min-width:801px)" fetchpriority="high">
   <link rel="preload" as="image" type="image/avif" href="/assets/admin-sky-mobile-20261027hq.avif" media="(max-width:800px)" fetchpriority="high">
   <link rel="stylesheet" href="/admin/admin.css?v=20261031privacy1">
-  <script type="module" src="/admin/admin.js?v=20261117security1"></script>
+  <script type="module" src="/admin/admin.js?v=cloud-content1"></script>
 </head>
 <body>
   <main id="login" class="login-shell">
@@ -75,13 +75,15 @@
         </div>
       </section>
       <section id="page-content" class="page" hidden>
-        <div class="page-heading"><div><p class="eyebrow">WEBSITE CONTENT</p><h1>主站内容</h1><p class="muted">更换资料、编辑介绍与管理画作，个人空间头像与主站同步</p></div><button type="button" id="content-reload" class="secondary">重新载入</button></div>
+        <div class="page-heading"><div><p class="eyebrow">WEBSITE CONTENT</p><h1>主站内容</h1><p class="muted">管理云海首页、候车亭个人介绍和环形相册</p></div><button type="button" id="content-reload" class="secondary">重新载入</button></div>
         <p id="content-state" role="status" aria-live="polite"></p>
         <form id="content-form" hidden>
-          <article class="card"><h2>头像与昵称</h2><div class="content-avatar-row"><img id="content-avatar-preview" alt="主站头像" width="88" height="88"><div><label class="content-file-button">更换头像<input id="content-avatar" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heif,image/heic,.heif,.heic"></label><button type="button" id="content-avatar-reset" class="text-button">使用初始头像</button><p class="muted">上传时自动压缩，个人空间与主站使用同一头像</p></div></div><div class="content-fields"><label>昵称<input id="content-nickname" required maxlength="60"></label><label>副昵称 / 英文名<input id="content-subtitle" maxlength="60"></label></div></article>
-          <article class="card"><label>编辑语言<select id="content-language"><option value="zh">中文</option><option value="en">English</option><option value="ja">日本語</option></select></label><h2>个人简介</h2><div id="content-bio-fields" class="content-fields"></div></article>
-          <article class="card"><h2>了解更多</h2><div id="content-about-fields" class="content-fields"></div></article>
-          <article class="card"><h2>画作</h2><div id="content-gallery-fields" class="content-fields"></div><p class="muted">按下方顺序展示，可更换图片、修改标题、排序，或暂时隐藏</p><div id="content-gallery"></div><label class="content-file-button">添加画作<input id="content-art-add" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heif,image/heic,.heif,.heic"></label></article>
+          <article class="card"><h2>头像与昵称</h2><div class="content-avatar-row"><img id="content-avatar-preview" alt="主站头像" width="88" height="88"><div><label class="content-file-button">更换头像<input id="content-avatar" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heif,image/heic,.heif,.heic"></label><button type="button" id="content-avatar-reset" class="text-button">使用初始头像</button><p class="muted">用于顶部导航、动态和关于页</p></div></div><div class="content-fields"><label>昵称<input id="content-nickname" required maxlength="60"></label><label>英文署名<input id="content-subtitle" maxlength="60"></label></div></article>
+          <article class="card"><h2>云海首页</h2><div class="content-fields"><label>轮播介绍（每行一句）<textarea id="content-greetings" required maxlength="1000" rows="6"></textarea></label><label>天空题字<input id="content-sky" maxlength="120"></label></div></article>
+          <article class="card"><h2>候车亭 · 关于我</h2><div class="content-fields"><label>标题<input id="content-aboutTitle" maxlength="80" required></label><label>介绍（每行一段）<textarea id="content-aboutBody" maxlength="2500" rows="6" required></textarea></label></div></article>
+          <article class="card"><h2>候车亭 · 社交主页</h2><p class="muted">留空即可隐藏对应卡片。</p><div class="content-fields"><label>哔哩哔哩<input id="content-bilibili" type="url" maxlength="350"></label><label>Steam<input id="content-steam" type="url" maxlength="350"></label><label>GitHub<input id="content-github" type="url" maxlength="350"></label><label>VRChat<input id="content-vrchat" type="url" maxlength="350"></label></div></article>
+          <article class="card"><h2>片尾字幕</h2><label>给访客的祝福（每行一句）<textarea id="content-farewell" maxlength="400" rows="3"></textarea></label></article>
+          <article class="card"><h2>环形相册</h2><label>前台展示<select id="content-albumMode"><option value="samples">比例占位图</option><option value="photos">下方照片</option></select></label><p class="muted">选择「下方照片」后，按列表顺序展示公开照片。</p><div id="content-gallery"></div><label class="content-file-button">添加照片<input id="content-art-add" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heif,image/heic,.heif,.heic"></label></article>
           <div class="content-publish"><button id="content-save" type="submit" class="primary">保存并发布到主站</button><a href="/" target="_blank" rel="noopener">查看主站 ↗</a></div>
         </form>
       </section>

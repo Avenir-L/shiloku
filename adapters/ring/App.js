@@ -9,10 +9,11 @@ const formats = {
 const pictures = ['landscape', 'portrait', 'square', 'landscape', 'portrait', 'square', 'landscape', 'portrait', 'square']
   .map(format => ({ image: 'assets/ring/sample-' + format + '.webp', size: formats[format] }))
 export default class App {
-  constructor (host, close) {
+  constructor (host, close, photos = null) {
     this.host = host
     this.close = close
     this.focus = 0
+    this.photos = photos
 
     this.scroll = {
       ease: 0.05,
@@ -65,7 +66,7 @@ export default class App {
   }
 
   createMedias () {
-    this.mediasImages = pictures
+    this.mediasImages = this.photos === null ? pictures : this.photos.map(({image}) => ({image, size:{...formats.square}}))
     this.medias = this.mediasImages.map(({ image, size }, index) => {
       const media = new Media({
         geometry: this.planeGeometry,
@@ -80,6 +81,13 @@ export default class App {
         viewport: this.viewport
       })
 
+      if (this.photos) media.imageReady.then(() => {
+        const [w,h] = media.program.uniforms.uImageSizes.value
+        const scale = Math.min(320/w,252/h)
+        media.size = {width:w*scale,height:h*scale}
+        media.onResize()
+        this.layoutRing()
+      })
       return media
     })
     this.layoutRing()
@@ -108,6 +116,7 @@ export default class App {
   }
 
   onCheck () {
+    if (!this.medias.length) return
     const total = this.medias[0].widthTotal
     const target = this.scroll.target
     const stops = this.medias.map(({x}) => x + Math.round((target - x) / total) * total)
@@ -127,7 +136,7 @@ export default class App {
       media.x = cursor + span / 2
       cursor += span
     }
-    const origin = this.medias[0].x
+    const origin = this.medias[0]?.x ?? 0
     for (const media of this.medias) {
       media.x -= origin
       media.widthTotal = cursor

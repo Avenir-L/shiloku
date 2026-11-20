@@ -2,31 +2,66 @@ const journey = document.querySelector('#station-journey');
 // Keep the original text available as one continuous sentence to screen readers.
 const segmenter = typeof Intl.Segmenter === 'function'
   ? new Intl.Segmenter('zh', { granularity: 'grapheme' }) : null;
-let arrivalMs = 120;
-for (const block of journey.querySelector('.station-about-copy').children) {
-  const original = block.textContent;
-  const accessibleText = document.createElement('span');
-  accessibleText.className = 'station-copy-readable';
-  accessibleText.textContent = original;
-  const visual = document.createElement('span');
-  visual.setAttribute('aria-hidden', 'true');
-  const characters = segmenter
-    ? Array.from(segmenter.segment(original), part => part.segment) : Array.from(original);
-  for (const character of characters) {
-    if (character.trim()) {
-      const glyph = document.createElement('span');
-      glyph.className = 'station-copy-glyph';
-      glyph.style.setProperty('--arrive', arrivalMs + 'ms');
-      glyph.textContent = character;
-      visual.append(glyph);
-      arrivalMs += 46;
-    } else {
-      visual.append(character);
+function animateAboutCopy() {
+  let arrivalMs = 120;
+  for (const block of journey.querySelector('.station-about-copy').children) {
+    const original = block.textContent;
+    const accessibleText = document.createElement('span');
+    accessibleText.className = 'station-copy-readable';
+    accessibleText.textContent = original;
+    const visual = document.createElement('span');
+    visual.setAttribute('aria-hidden', 'true');
+    const characters = segmenter
+      ? Array.from(segmenter.segment(original), part => part.segment) : Array.from(original);
+    for (const character of characters) {
+      if (character.trim()) {
+        const glyph = document.createElement('span');
+        glyph.className = 'station-copy-glyph';
+        glyph.style.setProperty('--arrive', arrivalMs + 'ms');
+        glyph.textContent = character;
+        visual.append(glyph);
+        arrivalMs += 46;
+      } else {
+        visual.append(character);
+      }
     }
+    block.replaceChildren(accessibleText, visual);
+    arrivalMs += 160;
   }
-  block.replaceChildren(accessibleText, visual);
-  arrivalMs += 160;
 }
+animateAboutCopy();
+window.cloudContent.then(data => {
+  if (!data?.nickname) return;
+  journey.querySelector('.station-portrait img').src=data.avatar;
+  journey.querySelector('#station-name').replaceChildren(...Array.from(data.nickname, char => {
+    const span=document.createElement('span');
+    span.className='hover-char'; span.textContent=char;
+    return span;
+  }));
+  journey.querySelector('.station-signature').textContent=data.subtitle.toLowerCase()==='shiloku'?'SHILOKU.':data.subtitle;
+  const socialKeys=['bilibili','steam','github','vrchat'];
+  journey.querySelectorAll('.station-profile nav a').forEach((link,index)=>{
+    const url=data[socialKeys[index]];
+    if (url) link.href=url;
+    else link.remove();
+  });
+  const farewell=journey.querySelector('.credits-thanks + p');
+  farewell.replaceChildren();
+  for(const line of data.farewell.split('\n')){
+    if(farewell.childNodes.length) farewell.append(document.createElement('br'));
+    farewell.append(line);
+  }
+  const copy=journey.querySelector('.station-about-copy');
+  const title=copy.querySelector('h3');
+  title.textContent=data.aboutTitle;
+  const paragraphs=data.aboutBody.split('\n').map(line=>line.trim()).filter(Boolean).map(line=>{
+    const paragraph=document.createElement('p');
+    paragraph.textContent=line;
+    return paragraph;
+  });
+  copy.replaceChildren(title,...paragraphs);
+  animateAboutCopy();
+});
 const station = journey.querySelector('img');
 const mist = journey.querySelector('#journey-cloud');
 const petals = journey.querySelector('#sakura');
@@ -239,7 +274,7 @@ async function goTo(to) {
   ringBusy = true;
   if (entering) moveCamera(to);
   try {
-    if (!ringModule) ringModule = import('./ring/bundle.js?v=album-alternate1').then(({default: Gallery}) => new Gallery(ringHost,ringClose));
+    if (!ringModule) ringModule = Promise.all([import('./ring/bundle.js?v=cloud-content1'),window.cloudContent]).then(([{default: Gallery},data]) => new Gallery(ringHost,ringClose,data?.albumMode==='photos'?data.photos:null));
     gallery = await ringModule;
     if(token !== journeyToken) return;
     if (entering) {

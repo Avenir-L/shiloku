@@ -13,7 +13,7 @@ export function mountJournal(scene, latest) {
   pane.setAttribute('aria-label','日常手记');
   const entries = element('div'), state = element('p'), more = element('button','更早的日常');
   state.setAttribute('role','status');
-  const avatarSrc = latest.closest('#navigation-prototype').querySelector('.nav-prototype-avatar').src;
+  const profileAvatar = latest.closest('#navigation-prototype').querySelector('.nav-prototype-avatar');
   pane.append(element('h1','日常'), entries, state, more);
   more.hidden = true;
   scene.append(pane);
@@ -40,8 +40,8 @@ export function mountJournal(scene, latest) {
     const item=element('article');
     item.id='daily-'+post.id;
     const avatar=element('img','','daily-entry-avatar');
-    avatar.src=avatarSrc;
-    avatar.alt='栀落余殁的头像';
+    avatar.src=profileAvatar.src;
+    avatar.alt='';
     avatar.width=avatar.height=36;
     const timestamp=date.year+'年'+date.month+'月'+date.day+'日 '+date.hour+':'+date.minute;
     const time=element('time',timestamp);

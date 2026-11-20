@@ -17,18 +17,16 @@ export async function uploadSiteImage(file,{api,avatar=false}){
   }finally{bitmap.close();}
  }
 
-const labels={bioTitle:'简介标题',bioP1:'简介第一段',bioP2:'简介第二段',aboutTitle:'「了解更多」弹窗标题',aboutBio1:'关于我第一段',aboutBio2:'关于我详细介绍',aboutExtra:'补充介绍',aboutMore:'「了解更多」按钮文字',galleryOpen:'「查看画作」按钮文字',galleryTitle:'画作页标题'};
+const cloudKeys=["greetings","sky","aboutTitle","aboutBody","albumMode","bilibili","steam","github","vrchat","farewell"];
 export function createContentEditor({api,notify}){
  const $=id=>document.getElementById(id);
- let state=null,language='zh',dirty=false,busy=false;
- const fields=new Map();
+ let state=null,dirty=false,busy=false;
  const mark=()=>{dirty=true;$('content-state').textContent='有尚未发布的修改';};
  function setBusy(value){busy=value;$('content-save').disabled=value;$('content-reload').disabled=value;$('content-form').inert=value;}
  const upload=(file,avatar=false)=>uploadSiteImage(file,{api,avatar});
- function showLocale(){for(const [key,input]of fields)input.value=state.profile.locales[language][key];}
  function showProfile(){
   $('content-nickname').value=state.profile.nickname;$('content-subtitle').value=state.profile.subtitle;
-  $('content-avatar-preview').src=state.profile.avatar;showLocale();
+  $('content-avatar-preview').src=state.profile.avatar;for(const key of cloudKeys) $("content-"+key).value=state.cloud[key];
  }
  function button(text,action,label=text){const b=document.createElement('button');b.type='button';b.className='secondary';b.textContent=text;b.setAttribute('aria-label',label);b.addEventListener('click',action);return b;}
  function showGallery(){
@@ -37,9 +35,9 @@ export function createContentEditor({api,notify}){
    const row=document.createElement('article');row.className='content-art';
    const image=document.createElement('img');image.src=item.image;image.alt=item.title;image.loading='lazy';
    const info=document.createElement('div');info.className='content-art-info';
-   const label=document.createElement('label');label.textContent='画作标题';const title=document.createElement('input');title.value=item.title;title.maxLength=100;title.required=true;title.addEventListener('input',()=>{item.title=title.value;image.alt=title.value;mark();});label.append(title);info.append(label);
+   const label=document.createElement('label');label.textContent='照片标题';const title=document.createElement('input');title.value=item.title;title.maxLength=100;title.required=true;title.addEventListener('input',()=>{item.title=title.value;image.alt=title.value;mark();});label.append(title);info.append(label);
    const controls=document.createElement('div');controls.className='content-art-actions';
-   for(const [key,text]of [['wip','未完成'],['hidden','暂不展示']]){
+   for(const [key,text]of [['hidden','暂不展示']]){
     const label=document.createElement('label');label.className='content-check';const input=document.createElement('input');input.type='checkbox';input.checked=item[key];input.addEventListener('change',()=>{item[key]=input.checked;mark();});label.append(input,document.createTextNode(text));controls.append(label);
    }
    for(const [delta,text]of [[-1,'↑'],[1,'↓']]){const move=button(text,()=>{[state.gallery[index],state.gallery[index+delta]]=[state.gallery[index+delta],state.gallery[index]];mark();showGallery();},`${item.title}${delta<0?'上移':'下移'}`);move.disabled=index+delta<0||index+delta>=state.gallery.length;controls.append(move);}
@@ -47,22 +45,18 @@ export function createContentEditor({api,notify}){
    const file=document.createElement('input');file.type='file';file.accept='image/jpeg,image/png,image/webp,image/avif,image/heif,image/heic,.heif,.heic';file.addEventListener('change',()=>{if(file.files.length)run(async()=>{const result=await upload(file.files[0]);item.image=result.url;mark();showGallery();});});replace.append(file);controls.append(replace);
    controls.append(button('移出展示',()=>{state.gallery.splice(index,1);mark();showGallery();}));info.append(controls);row.append(image,info);$('content-gallery').append(row);
   }
-  if(!state.gallery.length)$('content-gallery').textContent='尚无画作，可在下方添加';
+  if(!state.gallery.length)$('content-gallery').textContent='尚无照片，可在下方添加';
  }
  async function run(fn){if(busy)return;setBusy(true);try{await fn();}catch(error){notify(error.message,true);}finally{setBusy(false);}}
- for(const [key,text]of Object.entries(labels)){
-  const label=document.createElement('label');label.textContent=text;const input=document.createElement(key.startsWith('bioP')||key.startsWith('aboutBio')||key==='aboutExtra'?'textarea':'input');
-  input.maxLength=key.startsWith('aboutBio')?2500:1000;input.rows=key==='aboutBio2'?5:3;
-  input.addEventListener('input',()=>{state.profile.locales[language][key]=input.value;mark();});label.append(input);fields.set(key,input);
-  $(key.startsWith('about')?'content-about-fields':key.startsWith('gallery')?'content-gallery-fields':'content-bio-fields').append(label);
+ for(const key of cloudKeys){
+  $('content-'+key).addEventListener('input',event=>{state.cloud[key]=event.target.value;mark();});
  }
- $('content-language').addEventListener('change',event=>{language=event.target.value;if(state)showLocale();});
  for(const [id,key]of [['content-nickname','nickname'],['content-subtitle','subtitle']])$(id).addEventListener('input',event=>{state.profile[key]=event.target.value;mark();});
  $('content-avatar').addEventListener('change',()=>{if($('content-avatar').files.length)run(async()=>{state.profile.avatar=(await upload($('content-avatar').files[0],true)).url;showProfile();mark();$('content-avatar').value='';});});
  $('content-avatar-reset').addEventListener('click',()=>{state.profile.avatar='/avatar.jpg';showProfile();mark();});
  $('content-art-add').addEventListener('change',()=>run(async()=>{
   if(!$('content-art-add').files.length)return;
-  if(state.gallery.length>=60)throw Error('最多可展示 60 张画作');
+  if(state.gallery.length>=60)throw Error('最多可展示 60 张照片');
   const file=$('content-art-add').files[0];const result=await upload(file);
   state.gallery.push({id:crypto.randomUUID(),title:file.name.replace(/\.[^.]+$/,'').slice(0,100),image:result.url,wip:false,hidden:false});
   mark();showGallery();$('content-art-add').value='';

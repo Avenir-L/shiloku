@@ -91,6 +91,18 @@
     }
     showSentence(0);
   }
+  window.cloudContent.then(data => {
+    if (!data?.nickname) return;
+    root.querySelector('.nav-prototype-avatar').src = data.avatar;
+    root.querySelector('.nav-prototype-nickname').textContent = data.nickname;
+    root.querySelector('.sky-inscription').textContent = data.sky;
+    for (const image of document.querySelectorAll('.daily-entry-avatar')) image.src = data.avatar;
+    const lines = data.greetings.split('\n').map(line => line.trim()).filter(Boolean);
+    if (lines.length && lines.join('\n') !== sentences.join('\n')) {
+      sentences.splice(0, sentences.length, ...lines);
+      syncGreeting();
+    }
+  });
   new IntersectionObserver(syncGreeting).observe(greeting);
   document.addEventListener('visibilitychange', syncGreeting);
   still.addEventListener('change', syncGreeting);
@@ -339,7 +351,7 @@
     menu.setAttribute('aria-label', open ? '收起导航' : '展开导航');
   }
   const daily = root.querySelector('#daily-scene');
-  const journal = import('./apartment-journal.js?v=live-posts2').then(module => module.mountJournal(daily, root.querySelector('.home-latest')));
+  const journal = import('./apartment-journal.js?v=cloud-content1').then(module => module.mountJournal(daily, root.querySelector('.home-latest')));
   const photo = daily.querySelector('.daily-photo');
   // A short shutter trail uses the same decoded photograph and camera pivot.
   const exposures = [20, 42, 66].map(delay => {

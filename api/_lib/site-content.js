@@ -7,6 +7,29 @@ const IMAGE='shiloku:content-image:v1:';
 const fields=['bioTitle','bioP1','bioP2','aboutTitle','aboutBio1','aboutBio2','aboutExtra','aboutMore','galleryOpen','galleryTitle'];
 const fail=(message,status=400)=>Object.assign(new Error(message),{status});
 const defaults=()=>({revision:'initial',profile:{nickname:'栀落余殁',subtitle:'Shiloku',avatar:'/avatar.jpg',locales:Object.fromEntries(['zh','en','ja'].map(lang=>[lang,Object.fromEntries(fields.map(key=>[key,STRINGS[lang][key]]))]))},gallery:manifest.items.map(item=>({id:item.id,title:item.title,image:'/gallery/'+item.file,wip:Boolean(item.wip)||/未命名|未完成/.test(item.title),hidden:false})).sort((a,b)=>Number(a.wip)-Number(b.wip)||a.id.localeCompare(b.id))});
+const cloudDefaults = {
+  "greetings": "你好，我是栀落余殁。\n最近在忙什么，都写在「动态」里。\n更多信息，可以看看「关于」。\n有趣的照片，收在「相册」里。\n有什么想聊的，给我留个言吧。",
+  "sky": "The sky is listening",
+  "aboutTitle": "关于我",
+  "aboutBody": "栀落余殁（Shiloku）的个人网站 — 相册、音乐室、访客留言。\n这里是我的个人空间：相册里收录着各种各样的照片，音乐室可播放本地与在线歌单，留言板开放留言。欢迎通过底部链接或留言与我联系，感谢来访。",
+  "albumMode": "samples",
+  "bilibili": "https://space.bilibili.com/479198505",
+  "steam": "https://steamcommunity.com/profiles/76561199236026651/",
+  "github": "https://github.com/Avenir-L",
+  "vrchat": "https://vrchat.com/home/user/usr_66334be0-178a-41c0-a6ad-fb0a4badd8da",
+  "farewell": "祝你今天能遇到一件开心的小事。\n也祝你在意的事，都能慢慢有个好结果。"
+};
+function validateCloud(value = cloudDefaults) {
+ if (!['samples', 'photos'].includes(value.albumMode)) throw fail("请选择相册展示方式");
+ const links={};
+ for (const key of ['bilibili','steam','github','vrchat']) {
+  const link=text(value[key],350);
+  if(link && !URL.canParse(link)) throw fail('社交链接地址无效');
+  if(link && new URL(link).protocol!=='https:') throw fail('社交链接需要使用 HTTPS');
+  links[key]=link;
+ }
+ return {...links,farewell:text(value.farewell,400),greetings:text(value.greetings,1000,true),sky:text(value.sky,120),aboutTitle:text(value.aboutTitle,80,true),aboutBody:text(value.aboutBody,2500,true),albumMode:value.albumMode};
+}
 function text(value,max,required=false){
  if(typeof value!=='string'||value.length>max||/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value)||required&&!value.trim())throw fail('请检查文字内容或长度');
  return value.trim();
@@ -42,13 +65,17 @@ redis.call('SET',KEYS[1],ARGV[2])
 return 1`;
 export function createSiteContent({store=redis}={}){
  return {
-  async read(){return await readJson(store,KEY)||defaults();},
+  async read(){
+   const data=await readJson(store,KEY)||defaults();
+   return {...data,cloud:data.cloud??{...cloudDefaults}};
+  },
   async save(input){
    const normalized=validate(input),images=[normalized.profile.avatar,...normalized.gallery.map(item=>item.image)];
    for(const url of new Set(images))if(url.startsWith('/api/site-content?image=')){
     const key=IMAGE+url.split('=')[1];if(!await store.command(['GET',key]))throw fail('上传图片已失效，请重新上传');await store.command(['PERSIST',key]);
    }
-   const next={...normalized,revision:randomUUID(),updatedAt:new Date().toISOString()};
+   const cloud=validateCloud(input.cloud ?? (await this.read()).cloud);
+   const next={...normalized,cloud,revision:randomUUID(),updatedAt:new Date().toISOString()};
    const saved=await store.command(['EVAL',CAS,1,KEY,String(input.revision),JSON.stringify(next)]);
    if(!saved)throw fail('内容已在其他页面更新，请重新载入后再编辑',409);
    return next;
