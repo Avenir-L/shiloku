@@ -122,28 +122,43 @@
   presenceSize.observe(viewport);
   presenceSize.observe(line);
   reduced.addEventListener('change', fitPresence);
+  let lastPresenceAt = 0;
+  const presenceFreshness = 15 * 60 * 1000;
   async function refreshPresence() {
-    for (const url of ['/api/status', 'status.json']) {
+    let nextPoll = 5000;
+    for (const url of ['/api/status', '/status.json']) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), url === '/api/status' ? 15000 : 4000);
       try {
-        const response = await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(5000)});
+        const response = await fetch(url, {priority:'high', signal:controller.signal});
         if (!response.ok) continue;
         const data = await response.json();
         if (!data.text && !data.primary) continue;
-        const offline = Date.now()-Date.parse(data.updatedAt)>15*60*1000 || data.mode==='offline';
-        const parts = [data.primary || data.text, data.secondary, ...(Array.isArray(data.lines)?data.lines:[])];
+        const updatedAt = Date.parse(data.updatedAt);
+        if (!Number.isFinite(updatedAt)) continue;
+        const stale = Date.now() - updatedAt > presenceFreshness;
+        // A snapshot belongs to the build and may be months behind the live feed.
+        if (url === '/status.json' && (stale || updatedAt < lastPresenceAt)) continue;
+        const offline = stale || data.mode === 'offline';
+        const parts = [data.primary || data.text, data.secondary, ...(Array.isArray(data.lines) ? data.lines : [])];
         const label = offline ? '💤 电脑已关机' : [...new Set(parts.filter(Boolean))].join(' · ');
         presence.dataset.mode = offline ? 'offline' : data.mode || 'online';
-        if (line.textContent!==label) line.textContent=label;
-        presence.title=label;
-        return;
-      } catch { /* Try the local snapshot when the preview has no API. */ }
+        if (line.textContent !== label) line.textContent = label;
+        presence.title = label;
+        lastPresenceAt = updatedAt;
+        if (url === '/api/status') nextPoll = 60000;
+        break;
+      } catch { /* A failed request can recover on the next poll. */ }
+      finally { clearTimeout(timeout); }
     }
-    presence.dataset.mode='offline';
-    line.textContent='状态暂不可用';
-    presence.title=line.textContent;
+    if (nextPoll === 5000 && Date.now() - lastPresenceAt > presenceFreshness) {
+      presence.dataset.mode = 'unknown';
+      line.textContent = '正在重试状态';
+      presence.title = line.textContent;
+    }
+    setTimeout(refreshPresence, nextPoll);
   }
   refreshPresence();
-  setInterval(refreshPresence,60000);
   const audio = document.getElementById('home-music');
   const sound = root.querySelector('.home-sound');
   audio.volume = 0.15;
