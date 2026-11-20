@@ -23,19 +23,19 @@ export function mountJournal(scene, latest) {
   scene.append(viewer);
   close.onclick = () => viewer.close();
   viewer.onclick = e => { if(e.target === viewer) viewer.close(); };
-  const seen = new Set();
+  let posts = [];
+  const rendered = new Map();
+  let pages = 0, lastRead = 0, refreshQueued = false, retryRefresh = false;
   let offset=0, done=false, busy=false, newest=null, jump=false;
   function jumpToLatest() {
     if (!jump || !newest || scene.inert) return;
     const item = document.getElementById('daily-'+newest.id);
     pane.scrollTop += item.getBoundingClientRect().top - pane.getBoundingClientRect().top - 32;
-    if (newest.id === seen.values().next().value) pane.scrollTop=0;
+    if (newest.id === posts[0]?.id) pane.scrollTop=0;
     jump=false;
   }
   latest.addEventListener('click',()=>{jump=true;queueMicrotask(jumpToLatest);});
-  function add(post) {
-    if(seen.has(post.id)) return;
-    seen.add(post.id);
+  function createEntry(post) {
     const date = Object.fromEntries(format.formatToParts(new Date(post.publishedAt)).map(p=>[p.type,p.value]));
     const item=element('article');
     item.id='daily-'+post.id;
@@ -67,30 +67,81 @@ export function mountJournal(scene, latest) {
     const meta=element('footer','','daily-meta');
     meta.append(time,toggle);
     item.className='daily-entry';
-    item.append(avatar,body,meta,comments.element);entries.append(item);
-    if(!newest || post.publishedAt>newest.publishedAt) {
-      newest=post;
-      const text=Array.from(post.text||'查看配图');
-      latest.querySelector('span').firstChild.textContent=text.slice(0,32).join('')+(text.length>32?'… ':' ');
+    item.append(avatar,body,meta,comments.element);
+    return item;
+  }
+  function display(list) {
+    posts = [...new Map(list.map(post => [post.id, post])).values()];
+    const ids = new Set(posts.map(post => post.id));
+    for (const [id, entry] of rendered) {
+      if (!ids.has(id)) { entry.item.remove(); rendered.delete(id); }
+    }
+    for (const [index, post] of posts.entries()) {
+      const signature = JSON.stringify(post);
+      let entry = rendered.get(post.id);
+      if (entry?.signature !== signature) {
+        const item = createEntry(post);
+        if (entry) entry.item.replaceWith(item);
+        entry = {item, signature};
+        rendered.set(post.id, entry);
+      }
+      const next = entries.children[index];
+      if (next !== entry.item) entries.insertBefore(entry.item, next || null);
+    }
+    newest = posts.reduce((best, post) =>
+      !best || post.publishedAt > best.publishedAt ? post : best, null);
+    const text = Array.from(newest ? newest.text || '查看配图' : '查看日常');
+    latest.querySelector('span').firstChild.textContent =
+      text.slice(0,32).join('') + (text.length > 32 ? '… ' : ' ');
+  }
+  async function load(refresh) {
+    if (busy) { if (refresh) refreshQueued = true; return; }
+    if (!refresh && done) return;
+    busy = true;
+    retryRefresh = false;
+    more.disabled = true;
+    if (!posts.length) state.textContent = '正在读取日常…';
+    try {
+      let cursor = refresh ? 0 : offset;
+      const list = refresh ? [] : posts.slice();
+      const count = refresh ? Math.max(1, pages) : 1;
+      let read = 0, hasMore;
+      do {
+        const response = await fetch('/api/space?offset='+cursor, {cache:'no-store',signal:AbortSignal.timeout(15000)});
+        if (!response.ok) throw Error();
+        const page = await response.json();
+        list.push(...page.posts);
+        cursor = page.nextOffset;
+        hasMore = page.hasMore;
+        read++;
+      } while (read < count && hasMore);
+      display(list);
+      pages = refresh ? read : pages + read;
+      offset = cursor; done = !hasMore; lastRead = Date.now();
+      more.hidden = done;
+      more.textContent = '更早的日常';
+      state.textContent = posts.length ? '' : '还没有发布的日常';
+      jumpToLatest();
+    } catch {
+      retryRefresh = refresh;
+      state.textContent = '日常暂时没有加载出来。';
+      more.hidden = false;
+      more.textContent = '重新加载';
+    } finally {
+      busy = false;
+      more.disabled = false;
+      if (refreshQueued) { refreshQueued = false; void load(true); }
     }
   }
-  async function load() {
-    if(busy || done) return;
-    busy=true;more.disabled=true;state.textContent='正在读取日常…';
-    try {
-      const r=await fetch('/api/space?offset='+offset,{cache:'no-store',signal:AbortSignal.timeout(15000)});
-      if(!r.ok) throw Error();
-      const data=await r.json();
-      for(const post of data.posts) add(post);
-      offset=data.nextOffset;done=!data.hasMore;
-      more.hidden=done;more.textContent='更早的日常';state.textContent=seen.size?'':'还没有发布的日常';
-      jumpToLatest();
-    } catch {state.textContent='日常暂时没有加载出来。';more.hidden=false;more.textContent='重新加载';}
-    finally {busy=false;more.disabled=false;}
+  more.onclick = () => load(retryRefresh || !pages);
+  function refreshVisible() {
+    if (!document.hidden && Date.now() - lastRead > 2000) void load(true);
   }
-  more.onclick=load;
-  const preload=()=>{if(!seen.size)load();};
-  if(document.readyState==='complete') setTimeout(preload,0);
-  else window.addEventListener('load',preload,{once:true});
-  return {open(){preload();jumpToLatest();}};
+  window.addEventListener('focus', refreshVisible);
+  document.addEventListener('visibilitychange', refreshVisible);
+  setInterval(() => {
+    if (!document.hidden && Date.now() - lastRead >= 30000) void load(true);
+  }, 30000);
+  void load(true);
+  return {open(){refreshVisible();jumpToLatest();}};
 }

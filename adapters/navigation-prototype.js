@@ -339,7 +339,7 @@
     menu.setAttribute('aria-label', open ? '收起导航' : '展开导航');
   }
   const daily = root.querySelector('#daily-scene');
-  const journal = import('./apartment-journal.js?v=daily-posts1').then(module => module.mountJournal(daily, root.querySelector('.home-latest')));
+  const journal = import('./apartment-journal.js?v=live-posts2').then(module => module.mountJournal(daily, root.querySelector('.home-latest')));
   const photo = daily.querySelector('.daily-photo');
   // A short shutter trail uses the same decoded photograph and camera pivot.
   const exposures = [20, 42, 66].map(delay => {
