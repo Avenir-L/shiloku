@@ -292,7 +292,7 @@
     try {
       await window.nativePlayerReady;
       if (!room || version !== roomVersion) return;
-      if (!songsPromise) songsPromise = fetch('music/playlist.json').then(r=>r.json()).then(list=>Promise.all(list.map(async(t,i)=>({
+      if (!songsPromise) songsPromise = fetch('music/playlist.json?v=stream1').then(r=>r.json()).then(list=>Promise.all(list.map(async(t,i)=>({
         type:'local',source:'local',provider:'local',name:t.title,artist:t.artist,album:t.album,
         localKey:'shiloku-preview-'+i,localUrl:new URL(t.src,location.href).href,cover:new URL(t.cover,location.href).href,
         duration:t.duration/1000,...await readTrackLyrics(t.lrc)
