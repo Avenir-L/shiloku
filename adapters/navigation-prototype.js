@@ -284,6 +284,9 @@
       if (resumeHome) playMusic();
       return;
     }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/room-audio-worker.js').catch(error => console.warn('音频分段读取暂不可用', error));
+    }
     resumeHome = !audio.paused;
     audio.pause();
     try {
