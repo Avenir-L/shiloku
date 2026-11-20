@@ -8,7 +8,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   const range = /^bytes=(\d+)-$/.exec(request.headers.get('Range') || '');
   if (request.method === 'GET' && range && url.origin === self.location.origin &&
-      /^\/music\/[\w-]+\.mp3$/i.test(url.pathname)) {
+      (/^\/music\/[\w-]+\.mp3$/i.test(url.pathname) || url.pathname === '/api/netease/audio')) {
     event.respondWith(streamTrack(request, Number(range[1])));
   }
 });
@@ -21,9 +21,12 @@ async function streamTrack(request, start) {
   const cleanup = () => request.signal.removeEventListener('abort', stop);
   let cursor = start;
   async function part(size) {
-    const headers = new Headers(request.headers);
-    headers.set('Range', 'bytes=' + cursor + '-' + (cursor + size - 1));
-    return fetch(new Request(request, {headers, signal:abort.signal}));
+    // Construct a same-origin fetch: cloning a media request can drop Range
+    // when the element uses the browser's no-cors request mode.
+    return fetch(request.url, {
+      mode:'same-origin', credentials:request.credentials, signal:abort.signal,
+      headers:{Range:'bytes=' + cursor + '-' + (cursor + size - 1)}
+    });
   }
   try {
     let response = await part(65536);
