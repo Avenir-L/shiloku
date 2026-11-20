@@ -13,6 +13,9 @@ shelfPinnedOpen=false;
 controlsShelfSuppressUntil=0;
 applyControlsAutoHidePreference();
 
+// The desktop timeout assumes local disk. Here the packaged tracks stream over HTTPS.
+AUDIO_PLAY_REQUEST_TIMEOUT_MS = 45000;
+
 function prepareRoomQueue(songs) {
   songs = Array.isArray(songs) ? songs.filter(Boolean) : [];
   if (!songs.length) return false;
@@ -40,25 +43,7 @@ fetchMusicSearchResults = async function(query) {
   const data = await response.json();
   return {songs:data.songs.map(song => ({
     ...song, provider:'netease', source:'local', type:'local', localKey:'netease-'+song.id,
-    duration:song.duration/1000, localUrl:endpoint+'audio?id='+encodeURIComponent(song.id),
-    officialOnly: ![0,8].includes(song.fee)
+    duration:song.duration/1000, localUrl:endpoint+'audio?id='+encodeURIComponent(song.id)
   }))};
 };
-const nativePlayResult = playSearchResult;
-const nativeQueueResult = queueSearchResult;
-function officialSearchAction(i, action) {
-  const song = playlist[i];
-  if (song?.officialOnly) {
-    window.open('https://music.163.com/song?id='+encodeURIComponent(song.id),'_blank','noopener,noreferrer');
-    return;
-  }
-  action(i);
-}
-playSearchResult = i => officialSearchAction(i,nativePlayResult);
-queueSearchResult = i => officialSearchAction(i,nativeQueueResult);
-const originalRow = searchSongResultHtml;
-searchSongResultHtml = (song,i) => song.officialOnly
-  ? originalRow(song,i).replace('<div class="search-result-meta">','<div class="search-result-meta">去网易云收听 · ').replace(/<button class="add-btn"[\s\S]*?<\/button>/,'')
-  : originalRow(song,i);
-
 refreshBuiltInPlaylists(true);
