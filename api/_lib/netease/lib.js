@@ -352,8 +352,8 @@ export async function getNeteasePlayableUrlWithCookie(id, cookie = '') {
     const headers = getNeteaseHeadersWithCookie(normalized);
     const encodedId = encodeURIComponent(id);
     const endpoints = [
-        `https://music.163.com/api/song/enhance/player/url?id=${encodedId}&ids=%5B${encodedId}%5D&br=320000`,
-        `https://music.163.com/api/song/enhance/player/url/v1?ids=%5B${encodedId}%5D&level=exhigh&encodeType=mp3`,
+        `https://music.163.com/api/song/enhance/player/url?id=${encodedId}&ids=%5B${encodedId}%5D&br=128000`,
+        `https://music.163.com/api/song/enhance/player/url/v1?ids=%5B${encodedId}%5D&level=standard&encodeType=mp3`,
     ];
 
     let playableUrl = null;

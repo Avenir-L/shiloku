@@ -46,4 +46,21 @@ fetchMusicSearchResults = async function(query) {
     duration:song.duration/1000, localUrl:endpoint+'audio?id='+encodeURIComponent(song.id)
   }))};
 };
+
+// Search results stream through the local transport, but their lyrics live online.
+const applyPackagedTrackLyrics = applyLocalTrackLyricOnDemand;
+applyLocalTrackLyricOnDemand = function(song, token) {
+  applyPackagedTrackLyrics(song, token);
+  if (!song || song.lyric || song.localKey !== 'netease-' + song.id) return;
+  const endpoint = new URL('lyric', song.localUrl);
+  endpoint.searchParams.set('id', song.id);
+  fetch(endpoint).then(async response => {
+    if (!response.ok) return;
+    const data = await response.json();
+    if (!data.lyric || token !== trackSwitchToken || currentLocalSong !== song) return;
+    song.lyric = data.lyric;
+    song.tlyric = data.translatedLyric || '';
+    applyFetchedLyricResponse(song, token, { lyric:song.lyric, tlyric:song.tlyric }, { persist:false });
+  }).catch(() => {});
+};
 refreshBuiltInPlaylists(true);

@@ -66,7 +66,7 @@ def get_playable_url(song_id):
 
     url = (
         "https://music.163.com/api/song/enhance/player/url?id="
-        f"{urllib.parse.quote(str(song_id))}&ids=%5B{urllib.parse.quote(str(song_id))}%5D&br=320000"
+        f"{urllib.parse.quote(str(song_id))}&ids=%5B{urllib.parse.quote(str(song_id))}%5D&br=128000"
     )
     data = _fetch_json(url)
     playable = (data.get("data") or [{}])[0].get("url")
