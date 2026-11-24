@@ -159,6 +159,7 @@ window.addEventListener('journey-direct-station', () => {
   ringBusy = false;
   ringTarget = null;
   gallery?.setActive(false);
+  ringHost.hidden = true;
   ringHost.style.pointerEvents = '';
   moveCamera(2);
   progress = startProgress = 2;
@@ -177,6 +178,7 @@ window.addEventListener('journey-navigate', event => {
     ringBusy = false;
     ringTarget = null;
     gallery?.setActive(false);
+    ringHost.hidden = true;
     ringHost.style.pointerEvents = '';
     if (panel || section === 'music') {
       moveCamera(0);
@@ -261,20 +263,38 @@ ringHost.hidden = true;
 const ringClose = document.createElement('button');
 ringClose.textContent = '关闭 ×';
 ringClose.hidden = true;
-ringHost.append(ringClose);
+const ringStatus = document.createElement('p');
+ringStatus.className = 'cloud-ring-status';
+ringStatus.setAttribute('role', 'status');
+ringStatus.hidden = true;
+ringHost.append(ringClose, ringStatus);
 document.body.append(ringHost);
 let ringModule, gallery, ringBusy = false, journeyToken = 0, ringTarget = null;
 async function goTo(to) {
-  if (ringBusy || (to === destination && (to !== 1 || !ringHost.hidden))) return;
+  if (ringBusy || (to === destination && (to !== 1 || !ringHost.hidden && ringModule))) return;
   const entering = to === 1;
   const leaving = destination === 1 && gallery;
-  if (!entering && !leaving) { moveCamera(to); return; }
+  if (!entering && !leaving) { ringHost.hidden = true; moveCamera(to); return; }
   const token = ++journeyToken;
   ringTarget = to;
   ringBusy = true;
   if (entering) moveCamera(to);
   try {
-    if (!ringModule) ringModule = Promise.all([import('./ring/bundle.js?v=cloud-content1'),window.cloudContent]).then(([{default: Gallery},data]) => new Gallery(ringHost,ringClose,data?.albumMode==='photos'?data.photos:null));
+    if (!ringModule) {
+      ringStatus.hidden = false;
+      ringStatus.textContent = '正在加载相册…';
+      ringHost.hidden = false;
+      const content = window.cloudContent.then(data => data ?? fetch('/api/site-content?view=cloud', {
+        cache: 'no-store', signal: AbortSignal.timeout(8000)
+      }).then(response => {
+        if (!response.ok) throw new Error('Album content unavailable');
+        return response.json();
+      }));
+      ringModule = Promise.all([import('./ring/bundle.js?v=photo-ready1'), content])
+        .then(([{default: Gallery}, data]) => new Gallery(ringHost, ringClose,
+          data.albumMode === 'photos' ? data.photos : null))
+        .catch(error => { ringModule = undefined; throw error; });
+    }
     gallery = await ringModule;
     if(token !== journeyToken) return;
     if (entering) {
@@ -302,6 +322,18 @@ async function goTo(to) {
     const start = performance.now();
     gallery.arrival = entering ? 0 : 1;
     gallery.setActive(true);
+    if (entering) {
+      const medias = gallery.medias;
+      ringStatus.hidden = medias.some(media => media.textureReady);
+      ringStatus.textContent = '正在加载照片…';
+      for (const media of medias) media.imageReady.then(() => {
+        if (token === journeyToken && media.textureReady) ringStatus.hidden = true;
+      });
+      Promise.all(medias.map(media => media.imageReady)).then(() => {
+        if (token !== journeyToken || ringStatus.hidden) return;
+        ringStatus.textContent = medias.length ? '照片暂时无法加载。' : '相册里还没有照片。';
+      });
+    }
 
     ringHost.style.pointerEvents = 'none';
     await new Promise(resolve => {
@@ -321,7 +353,13 @@ async function goTo(to) {
     if (!reduced.matches) await new Promise(resolve => setTimeout(resolve,220));
   } catch (error) {
     console.error(error);
+    if (token !== journeyToken) return;
     ringModule = undefined;
+    if (entering) {
+      ringHost.hidden = false;
+      ringStatus.hidden = false;
+      ringStatus.textContent = '相册暂时无法加载，点击「相册」重试。';
+    }
   } finally {
     if (token === journeyToken) {
       ringHost.style.pointerEvents = '';

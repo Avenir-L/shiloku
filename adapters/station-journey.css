@@ -36,6 +36,7 @@
 }
 .cloud-ring {position:fixed;inset:0;z-index:6;touch-action:none;outline:none}
 .cloud-ring[hidden],.cloud-ring button[hidden] {display:none}
+.cloud-ring-status {position:absolute;bottom:8vh;left:50%;transform:translateX(-50%);width:max-content;max-width:85vw;margin:0;padding:.55em 1em;border-radius:1em;background:#17344be8;color:white;pointer-events:none}
 .cloud-ring canvas {display:block;cursor:grab}
 .cloud-ring canvas:active {cursor:grabbing}
 .cloud-ring button {position:absolute;right:5vw;bottom:4vh;border:0;border-radius:2em;padding:.7em 1.4em;background:#17344bd9;color:white;cursor:pointer}

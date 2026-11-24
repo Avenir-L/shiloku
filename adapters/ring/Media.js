@@ -50,10 +50,13 @@ export default class {
     })
 
     const image = new Image()
+    this.textureReady = false
+    image.fetchPriority = this.index < 3 || this.index >= this.length - 2 ? 'high' : 'low'
 
     this.imageReady = new Promise(resolve => {
       image.onload = () => {
         texture.image = image
+        this.textureReady = true
         this.program.uniforms.uImageSizes.value = [image.naturalWidth, image.naturalHeight]
         resolve()
       }
@@ -77,7 +80,7 @@ export default class {
     const restingAngle = this.widthTotal / this.radius * (turn - Math.floor(turn + .5))
     const angle = restingAngle + fullTurn * (1 - arrival)
     // Introduce each frame beyond the right edge, before it crosses the viewport.
-    this.plane.visible = angle <= Math.PI / 2
+    this.plane.visible = this.textureReady && angle <= Math.PI / 2
     const radius = this.radius
     // The top of the circle stays at y=.5; its centre stays below the viewport.
     this.plane.position.x = radius * Math.sin(angle)

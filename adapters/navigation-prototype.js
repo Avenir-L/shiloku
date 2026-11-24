@@ -394,22 +394,28 @@
   }
   exposures.at(-1).addEventListener('transitionend', settleShutter);
   exposures.at(-1).addEventListener('transitioncancel', settleShutter);
-  function revealDaily() {
-    if (root.dataset.section === 'space') daily.classList.add('visible');
+  function loadDailyPhoto() {
+    if (photo.hasAttribute('src')) return;
+    photo.src = 'assets/apartment-19699979.webp';
+    exposures.forEach(layer => { layer.src = photo.src; });
   }
-  photo.addEventListener('load', revealDaily);
-  photo.addEventListener('error', revealDaily);
+  for (const link of root.querySelectorAll('[data-section="space"]')) {
+    link.addEventListener('pointerenter', loadDailyPhoto, { once: true });
+    link.addEventListener('focus', loadDailyPhoto, { once: true });
+  }
   function select(section) {
     const active = section === 'space';
     daily.inert = !active;
     if (active) {
+      const wasHidden = daily.hidden;
       daily.hidden = false;
+      loadDailyPhoto();
       journal.then(view => view.open());
-      if (!photo.hasAttribute('src')) {
-        photo.src = 'assets/apartment-19699979.jpg';
-        exposures.forEach(layer => { layer.src = photo.src; });
-      }
-      if (photo.complete) requestAnimationFrame(revealDaily);
+      const reveal = () => {
+        if (root.dataset.section === 'space') daily.classList.add('visible');
+      };
+      if (wasHidden) requestAnimationFrame(() => requestAnimationFrame(reveal));
+      else requestAnimationFrame(reveal);
     } else {
       daily.classList.remove('visible');
     }
