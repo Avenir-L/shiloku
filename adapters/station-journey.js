@@ -82,14 +82,16 @@ addEventListener('mousemove', event => {
   const source = wallpaper.contentWindow;
   if (Number.isFinite(source?._speedY)) pointerHeight = (event.clientY-source.windowHalfY)*source._speedY;
 });
+let stationDeadline = Infinity;
 function paint(now) {
   frame = 0;
   const target = destination;
   if (target===2 && !station.src) {
     station.src = 'assets/sakura-station/station.webp';
-    setTimeout(schedule, 3000);
+    stationDeadline = now + 3000;
+    setTimeout(schedule, 3010);
   }
-  const loaded = station.complete || now - startTime >= 3000;
+  const loaded = station.complete || now >= stationDeadline;
   const goal = loaded || startProgress === 2 ? target : Math.min(1.49,target);
   const distance = Math.max(0,now-startTime)/(reduced.matches?560:5700);
   progress = startProgress + Math.sign(goal-startProgress)*Math.min(Math.abs(goal-startProgress),distance);
