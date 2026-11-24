@@ -16,6 +16,7 @@ const archivePhotos = ['晚霞', '金色逆光', '樱花亭', '照片与花', '�
  return {id,title,image:'/gallery/images/'+id+'.webp',wip:false,hidden:false};
 });
 const fujiPhoto = {id:'fh6-fuji-01',title:'富士山下',image:'/gallery/images/fh6-fuji-01.webp',wip:false,hidden:false};
+const treeRoadPhoto = {id:'horizon-tree-road',title:'林荫道',image:'/gallery/images/horizon-tree-road.webp',wip:false,hidden:false};
 const cloudDefaults = {
   "greetings": "你好，我是栀落余殁。\n最近在忙什么，都写在「动态」里。\n更多信息，可以看看「关于」。\n有趣的照片，收在「相册」里。\n有什么想聊的，给我留个言吧。",
   "sky": "The sky is listening",
@@ -79,8 +80,8 @@ export function createSiteContent({store=redis}={}){
    const cloud=data.cloud??{...cloudDefaults};
    const gallery=[...data.gallery];
    if(!data.featuredPhotosInstalled){
-    const existing=gallery.filter(item=>![...featuredPhotos,...archivePhotos,fujiPhoto].some(photo=>photo.id===item.id));
-    return {...data,gallery:[...featuredPhotos,...archivePhotos,fujiPhoto,...existing],cloud:{...cloud,albumMode:'photos'}};
+    const existing=gallery.filter(item=>![...featuredPhotos,...archivePhotos,fujiPhoto,treeRoadPhoto].some(photo=>photo.id===item.id));
+    return {...data,gallery:[...featuredPhotos,...archivePhotos,fujiPhoto,treeRoadPhoto,...existing],cloud:{...cloud,albumMode:'photos'}};
    }
    if(!data.archivePhotosInstalled){
     const missing=archivePhotos.filter(photo=>!gallery.some(item=>item.id===photo.id));
@@ -91,6 +92,10 @@ export function createSiteContent({store=redis}={}){
     const archiveEnd=gallery.findLastIndex(item=>archivePhotos.some(photo=>photo.id===item.id));
     gallery.splice(archiveEnd<0?gallery.length:archiveEnd+1,0,fujiPhoto);
    }
+   if(!data.treeRoadPhotoInstalled&&!gallery.some(item=>item.id===treeRoadPhoto.id)){
+    const fujiIndex=gallery.findIndex(item=>item.id===fujiPhoto.id);
+    gallery.splice(fujiIndex<0?gallery.length:fujiIndex+1,0,treeRoadPhoto);
+   }
    return {...data,gallery,cloud};
   },
   async save(input){
@@ -99,7 +104,7 @@ export function createSiteContent({store=redis}={}){
     const key=IMAGE+url.split('=')[1];if(!await store.command(['GET',key]))throw fail('上传图片已失效，请重新上传');await store.command(['PERSIST',key]);
    }
    const cloud=validateCloud(input.cloud ?? (await this.read()).cloud);
-   const next={...normalized,cloud,featuredPhotosInstalled:true,archivePhotosInstalled:true,fujiPhotoInstalled:true,revision:randomUUID(),updatedAt:new Date().toISOString()};
+   const next={...normalized,cloud,featuredPhotosInstalled:true,archivePhotosInstalled:true,fujiPhotoInstalled:true,treeRoadPhotoInstalled:true,revision:randomUUID(),updatedAt:new Date().toISOString()};
    const saved=await store.command(['EVAL',CAS,1,KEY,String(input.revision),JSON.stringify(next)]);
    if(!saved)throw fail('内容已在其他页面更新，请重新载入后再编辑',409);
    return next;
