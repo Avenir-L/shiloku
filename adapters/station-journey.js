@@ -382,3 +382,5 @@ ringHost.addEventListener('touchend', e => {
   if (Math.abs(dy)>35 && Math.abs(dy)>Math.abs(dx)*1.4) travel(dy<0?1:-1);
   ringTouch=null;
 },{passive:true});
+
+window.dispatchEvent(new Event('journey-ready'));

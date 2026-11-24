@@ -430,10 +430,22 @@
     sceneSection = ['home','album','about'][event.detail];
     if (root.dataset.section !== 'space') select(sceneSection);
   });
+  let pendingJourneyEvent;
+  function notifyJourney(event) {
+    if (document.querySelector('.cloud-ring')) window.dispatchEvent(event);
+    else pendingJourneyEvent = event;
+  }
+  window.addEventListener('journey-ready', () => {
+    if (!pendingJourneyEvent) return;
+    const event = pendingJourneyEvent;
+    pendingJourneyEvent = undefined;
+    window.dispatchEvent(event);
+  }, { once: true });
+
   let departingRoom;
   function enterStationFromRoom() {
     // Place the live station behind the outgoing room before uncovering it.
-    window.dispatchEvent(new Event('journey-direct-station'));
+    notifyJourney(new Event('journey-direct-station'));
     if (!still.matches && photo.naturalWidth) {
       const duration = 1650;
       const frame = document.createElement('div');
@@ -489,7 +501,7 @@
       return;
     }
     if (section === 'music') {
-      window.dispatchEvent(new CustomEvent('journey-navigate', { detail: 'music' }));
+      notifyJourney(new CustomEvent('journey-navigate', { detail: 'music' }));
       setRoom(true);
       select('music');
       return;
@@ -505,10 +517,10 @@
     if (['home','album','about'].includes(section)) {
       if (dialog.open) dialog.close();
       select(section);
-      window.dispatchEvent(new CustomEvent('journey-navigate', { detail: section }));
+      notifyJourney(new CustomEvent('journey-navigate', { detail: section }));
       return;
     }
-    window.dispatchEvent(new CustomEvent('journey-navigate', {detail: section}));
+    notifyJourney(new CustomEvent('journey-navigate', {detail: section}));
     if (section === 'space') {
       select(section);
       return;
