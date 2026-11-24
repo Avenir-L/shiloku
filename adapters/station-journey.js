@@ -85,9 +85,12 @@ addEventListener('mousemove', event => {
 function paint(now) {
   frame = 0;
   const target = destination;
-  if (target===2 && !station.src) station.src = 'assets/sakura-station/station.webp';
-  const loaded = station.complete;
-  const goal = loaded ? target : Math.min(1.49,target);
+  if (target===2 && !station.src) {
+    station.src = 'assets/sakura-station/station.webp';
+    setTimeout(schedule, 3000);
+  }
+  const loaded = station.complete || now - startTime >= 3000;
+  const goal = loaded || startProgress === 2 ? target : Math.min(1.49,target);
   const distance = Math.max(0,now-startTime)/(reduced.matches?560:5700);
   progress = startProgress + Math.sign(goal-startProgress)*Math.min(Math.abs(goal-startProgress),distance);
   const dive = smooth(0,1,progress);

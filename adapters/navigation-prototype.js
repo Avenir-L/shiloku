@@ -430,21 +430,8 @@
     sceneSection = ['home','album','about'][event.detail];
     if (root.dataset.section !== 'space') select(sceneSection);
   });
-  let navigationVersion = 0;
   let departingRoom;
-  async function enterStationFromRoom(version) {
-    const station = document.querySelector('#station-journey .station-image');
-    if (!station.src) station.src = 'assets/sakura-station/station.webp';
-    try {
-      await station.decode();
-    } catch {
-      if (version === navigationVersion) {
-        select('about');
-        window.dispatchEvent(new CustomEvent('journey-navigate', { detail: 'about' }));
-      }
-      return;
-    }
-    if (version !== navigationVersion) return;
+  function enterStationFromRoom() {
     // Place the live station behind the outgoing room before uncovering it.
     window.dispatchEvent(new Event('journey-direct-station'));
     if (!still.matches && photo.naturalWidth) {
@@ -493,13 +480,12 @@
     }
     if (dialog.open) dialog.close();
     if (departingRoom && section === 'about') return;
-    const version = ++navigationVersion;
     if (departingRoom) {
       departingRoom.remove();
       departingRoom = null;
     }
     if (section === 'about' && root.dataset.section === 'space') {
-      enterStationFromRoom(version);
+      enterStationFromRoom();
       return;
     }
     if (section === 'music') {
