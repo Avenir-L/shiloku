@@ -7,6 +7,10 @@ const IMAGE='shiloku:content-image:v1:';
 const fields=['bioTitle','bioP1','bioP2','aboutTitle','aboutBio1','aboutBio2','aboutExtra','aboutMore','galleryOpen','galleryTitle'];
 const fail=(message,status=400)=>Object.assign(new Error(message),{status});
 const defaults=()=>({revision:'initial',profile:{nickname:'栀落余殁',subtitle:'Shiloku',avatar:'/avatar.jpg',locales:Object.fromEntries(['zh','en','ja'].map(lang=>[lang,Object.fromEntries(fields.map(key=>[key,STRINGS[lang][key]]))]))},gallery:manifest.items.map(item=>({id:item.id,title:item.title,image:'/gallery/'+item.file,wip:Boolean(item.wip)||/未命名|未完成/.test(item.title),hidden:false})).sort((a,b)=>Number(a.wip)-Number(b.wip)||a.id.localeCompare(b.id))});
+const featuredPhotos = ['彩虹花园', '双人合照', '窗边'].map((title, index) => {
+ const id = 'vrchat-20261123-0' + (index + 1);
+ return {id,title,image:'/gallery/images/'+id+'.webp',wip:false,hidden:false};
+});
 const cloudDefaults = {
   "greetings": "你好，我是栀落余殁。\n最近在忙什么，都写在「动态」里。\n更多信息，可以看看「关于」。\n有趣的照片，收在「相册」里。\n有什么想聊的，给我留个言吧。",
   "sky": "The sky is listening",
@@ -67,7 +71,10 @@ export function createSiteContent({store=redis}={}){
  return {
   async read(){
    const data=await readJson(store,KEY)||defaults();
-   return {...data,cloud:data.cloud??{...cloudDefaults}};
+   const cloud=data.cloud??{...cloudDefaults};
+   if(data.featuredPhotosInstalled)return {...data,cloud};
+   const gallery=data.gallery.filter(item=>!featuredPhotos.some(photo=>photo.id===item.id));
+   return {...data,gallery:[...featuredPhotos,...gallery],cloud:{...cloud,albumMode:'photos'}};
   },
   async save(input){
    const normalized=validate(input),images=[normalized.profile.avatar,...normalized.gallery.map(item=>item.image)];
@@ -75,7 +82,7 @@ export function createSiteContent({store=redis}={}){
     const key=IMAGE+url.split('=')[1];if(!await store.command(['GET',key]))throw fail('上传图片已失效，请重新上传');await store.command(['PERSIST',key]);
    }
    const cloud=validateCloud(input.cloud ?? (await this.read()).cloud);
-   const next={...normalized,cloud,revision:randomUUID(),updatedAt:new Date().toISOString()};
+   const next={...normalized,cloud,featuredPhotosInstalled:true,revision:randomUUID(),updatedAt:new Date().toISOString()};
    const saved=await store.command(['EVAL',CAS,1,KEY,String(input.revision),JSON.stringify(next)]);
    if(!saved)throw fail('内容已在其他页面更新，请重新载入后再编辑',409);
    return next;
