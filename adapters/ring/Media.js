@@ -105,7 +105,7 @@ export default class {
       this.plane.program.uniforms.uViewportSizes.value = [this.viewport.width, this.viewport.height]
     }
 
-    const preferredScale = this.screen.width > 620 ? 1.25 : 1
+    const preferredScale = this.screen.width > 620 ? 1.65 : 1
     const fit = Math.min(preferredScale, this.screen.width * .76 / 320, this.screen.height * .50 / 252)
     const units = fit * this.viewport.height / this.screen.height
     this.baseWidth = this.size.width * units

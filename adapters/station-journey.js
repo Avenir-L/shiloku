@@ -295,7 +295,7 @@ async function goTo(to) {
         if (!response.ok) throw new Error('Album content unavailable');
         return response.json();
       }));
-      ringModule = Promise.all([import('./ring/bundle.js?v=photo-ready1'), content])
+      ringModule = Promise.all([import('./ring/bundle.js?v=larger-prints1'), content])
         .then(([{default: Gallery}, data]) => new Gallery(ringHost, ringClose,
           data.albumMode === 'photos' ? data.photos : null))
         .catch(error => { ringModule = undefined; throw error; });

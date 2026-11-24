@@ -4,6 +4,7 @@ import manifest from '../../gallery/manifest.json' with {type:'json'};
 import {redis,readJson} from './admin/store.js';
 const KEY='shiloku:content:v1';
 const IMAGE='shiloku:content-image:v1:';
+const legacyArtworkImages=new Set(manifest.items.map(item=>'/gallery/'+item.file));
 const fields=['bioTitle','bioP1','bioP2','aboutTitle','aboutBio1','aboutBio2','aboutExtra','aboutMore','galleryOpen','galleryTitle'];
 const fail=(message,status=400)=>Object.assign(new Error(message),{status});
 const defaults=()=>({revision:'initial',profile:{nickname:'栀落余殁',subtitle:'Shiloku',avatar:'/avatar.jpg',locales:Object.fromEntries(['zh','en','ja'].map(lang=>[lang,Object.fromEntries(fields.map(key=>[key,STRINGS[lang][key]]))]))},gallery:manifest.items.map(item=>({id:item.id,title:item.title,image:'/gallery/'+item.file,wip:Boolean(item.wip)||/未命名|未完成/.test(item.title),hidden:false})).sort((a,b)=>Number(a.wip)-Number(b.wip)||a.id.localeCompare(b.id))});
@@ -78,7 +79,7 @@ export function createSiteContent({store=redis}={}){
   async read(){
    const data=await readJson(store,KEY)||defaults();
    const cloud=data.cloud??{...cloudDefaults};
-   const gallery=[...data.gallery];
+   const gallery=data.gallery.filter(item=>!legacyArtworkImages.has(item.image));
    if(!data.featuredPhotosInstalled){
     const existing=gallery.filter(item=>![...featuredPhotos,...archivePhotos,fujiPhoto,treeRoadPhoto].some(photo=>photo.id===item.id));
     return {...data,gallery:[...featuredPhotos,...archivePhotos,fujiPhoto,treeRoadPhoto,...existing],cloud:{...cloud,albumMode:'photos'}};
