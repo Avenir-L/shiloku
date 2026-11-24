@@ -86,7 +86,7 @@ function paint(now) {
   frame = 0;
   const target = destination;
   if (target===2 && !station.src) station.src = 'assets/sakura-station/station.webp';
-  const loaded = station.complete && station.naturalWidth;
+  const loaded = station.complete;
   const goal = loaded ? target : Math.min(1.49,target);
   const distance = Math.max(0,now-startTime)/(reduced.matches?560:5700);
   progress = startProgress + Math.sign(goal-startProgress)*Math.min(Math.abs(goal-startProgress),distance);
@@ -278,10 +278,14 @@ async function goTo(to) {
     gallery = await ringModule;
     if(token !== journeyToken) return;
     if (entering) {
-      await Promise.all(gallery.medias.map(media => media.imageReady));
+      // Let the first photo lead the entrance. Other textures can arrive during the spin.
+      const firstPhoto = gallery.medias[0];
+      if (firstPhoto) {
+        await Promise.race([firstPhoto.imageReady, new Promise(resolve => setTimeout(resolve, 1800))]);
+      }
       await new Promise(resolve => {
         function waitForScene() {
-          if (token !== journeyToken || progress === 1) resolve();
+          if (token !== journeyToken || progress === destination) resolve();
           else requestAnimationFrame(waitForScene);
         }
         requestAnimationFrame(waitForScene);

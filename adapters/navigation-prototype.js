@@ -486,9 +486,9 @@
       return;
     }
     if (dialog.open) dialog.close();
+    if (departingRoom && section === 'about') return;
     const version = ++navigationVersion;
     if (departingRoom) {
-      if (section === 'about') return;
       departingRoom.remove();
       departingRoom = null;
     }
