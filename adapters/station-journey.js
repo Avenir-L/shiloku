@@ -62,7 +62,23 @@ window.cloudContent.then(data => {
   copy.replaceChildren(title,...paragraphs);
   animateAboutCopy();
 });
-const station = journey.querySelector('img');
+const station = journey.querySelector('.station-backdrop');
+let stationImage = station.querySelector('.station-image');
+let stationImageRequested = false;
+function loadStationImage() {
+  if (stationImageRequested) return;
+  stationImageRequested = true;
+  const fullImage = new Image();
+  fullImage.className = stationImage.className;
+  fullImage.alt = stationImage.alt;
+  fullImage.src = 'assets/sakura-station/station.webp';
+  fullImage.decode().then(() => {
+    stationImage.replaceWith(fullImage);
+    stationImage = fullImage;
+  }).catch(() => {
+    stationImageRequested = false;
+  });
+}
 const mist = journey.querySelector('#journey-cloud');
 const petals = journey.querySelector('#sakura');
 const vision = journey.querySelector('#journey-vision');
@@ -82,17 +98,9 @@ addEventListener('mousemove', event => {
   const source = wallpaper.contentWindow;
   if (Number.isFinite(source?._speedY)) pointerHeight = (event.clientY-source.windowHalfY)*source._speedY;
 });
-let stationDeadline = Infinity;
 function paint(now) {
   frame = 0;
-  const target = destination;
-  if (target===2 && !station.src) {
-    station.src = 'assets/sakura-station/station.webp';
-    stationDeadline = now + 3000;
-    setTimeout(schedule, 3010);
-  }
-  const loaded = station.complete || now >= stationDeadline;
-  const goal = loaded || startProgress === 2 ? target : Math.min(1.49,target);
+  const goal = destination;
   const distance = Math.max(0,now-startTime)/(reduced.matches?560:5700);
   progress = startProgress + Math.sign(goal-startProgress)*Math.min(Math.abs(goal-startProgress),distance);
   const dive = smooth(0,1,progress);
@@ -152,6 +160,7 @@ function schedule(){
   if(!frame){frame=requestAnimationFrame(paint);}
 }
 function moveCamera(to) {
+  if (to === 2) loadStationImage();
   if (destination === to) return;
   startTime=performance.now();
   startProgress=progress;
@@ -226,11 +235,6 @@ journey.addEventListener('keydown', e=>{
     e.preventDefault(); travel(['ArrowDown','End','PageDown'].includes(e.key)?1:-1);
   }
 });
-station.addEventListener('load', () => {
-  startTime = performance.now();
-  startProgress = progress;
-  schedule();
-});
 addEventListener('resize',schedule);
 reduced.addEventListener('change',schedule);
 schedule();
@@ -239,13 +243,19 @@ schedule();
 window.stationGlassFrame = context => {
   if (!progress) return;
   const w = innerWidth, h = innerHeight;
-  if (+station.style.opacity && station.naturalWidth) {
+  if (+station.style.opacity) {
     context.save();context.globalAlpha=Number(station.style.opacity);
     const rect=station.getBoundingClientRect();
     context.translate(rect.x,rect.y);context.scale(rect.width/w,rect.height/h);
-    const scale = Math.max(w/station.naturalWidth,h/station.naturalHeight);
-    const dw = station.naturalWidth*scale, dh = station.naturalHeight*scale;
-    context.drawImage(station,(w-dw)*.65,(h-dh)*.5,dw,dh);
+    if (stationImage.naturalWidth) {
+      const scale = Math.max(w/stationImage.naturalWidth,h/stationImage.naturalHeight);
+      const dw = stationImage.naturalWidth*scale, dh = stationImage.naturalHeight*scale;
+      const originX = w <= h ? .67 : .65;
+      context.drawImage(stationImage,(w-dw)*originX,(h-dh)*.5,dw,dh);
+    } else {
+      context.fillStyle='#bba9c9';
+      context.fillRect(0,0,w,h);
+    }
     context.restore();
   }
   context.drawImage(mist,0,0,w,h);
